@@ -35,6 +35,7 @@ import type { App } from 'vue'
  * Vue 运行时错误处理
  */
 export function vueErrorHandler(err: unknown, instance: any, info: string) {
+  if (err === 'cancel' || err === 'close') return
   console.error('[VueError]', err, info, instance)
   // 这里可以上报到服务端，比如：
   // reportError({ type: 'vue', err, info })
@@ -50,6 +51,13 @@ export function scriptErrorHandler(
   colno?: number,
   error?: Error
 ): boolean {
+  if (
+    typeof message === 'string' &&
+    (message.includes('ResizeObserver loop limit exceeded') ||
+      message.includes('ResizeObserver loop completed with undelivered notifications'))
+  ) {
+    return true
+  }
   console.error('[ScriptError]', { message, source, lineno, colno, error })
   // reportError({ type: 'script', message, source, lineno, colno, error })
   return true // 阻止默认控制台报错，可根据需求改
@@ -60,6 +68,10 @@ export function scriptErrorHandler(
  */
 export function registerPromiseErrorHandler() {
   window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason === 'cancel' || event.reason === 'close') {
+      event.preventDefault()
+      return
+    }
     console.error('[PromiseError]', event.reason)
     // reportError({ type: 'promise', reason: event.reason })
   })

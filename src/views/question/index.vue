@@ -8,10 +8,7 @@
         /></ElSelect>
         <ElButton type="primary" @click="load">查询</ElButton
         ><ElButton v-permission="'question:edit'" @click="openEditor()">新增题目</ElButton
-        ><ElButton v-permission="'question:ai:create'" @click="aiVisible = true">AI 创作</ElButton
-        ><ElButton v-permission="'question:tag:index'" @click="$router.push('/question/tags')"
-          >标签管理</ElButton
-        >
+        ><ElButton v-permission="'question:ai:create'" @click="aiVisible = true">AI 创作</ElButton>
       </div>
       <ElTable v-loading="loading" :data="rows">
         <ElTableColumn prop="public_id" label="题目 ID" width="230" /><ElTableColumn
