@@ -8,7 +8,7 @@ return [
         'database' => env('REDIS_DB', 0),
         'pool' => [
             'max_connections' => 5,
-            'min_connections' => 1,
+            'min_connections' => 0,
             'wait_timeout' => 3,
             'idle_timeout' => 60,
             'heartbeat_interval' => 50,

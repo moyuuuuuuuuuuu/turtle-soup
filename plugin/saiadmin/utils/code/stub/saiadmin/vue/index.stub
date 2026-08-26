@@ -1,0 +1,189 @@
+<template>
+  <div class="art-full-height">
+    <!-- 搜索面板 -->
+    <TableSearch v-model="searchForm" @search="handleSearch" @reset="resetSearchParams" />
+
+    <ElCard class="art-table-card" shadow="never">
+      <!-- 表格头部 -->
+      <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
+        <template #left>
+          <ElSpace wrap>
+            <ElButton v-permission="'{{namespace}}:{{package_name}}:{{business_name}}:save'" @click="showDialog('add')" v-ripple>
+              <template #icon>
+                <ArtSvgIcon icon="ri:add-fill" />
+              </template>
+              新增
+            </ElButton>
+            <ElButton
+              v-permission="'{{namespace}}:{{package_name}}:{{business_name}}:destroy'"
+              :disabled="selectedRows.length === 0"
+              @click="deleteSelectedRows(api.delete, refreshData)"
+              v-ripple
+            >
+              <template #icon>
+                <ArtSvgIcon icon="ri:delete-bin-5-line" />
+              </template>
+              删除
+            </ElButton>
+{% if tpl_category == 'tree' %}
+            <ElButton @click="toggleExpand" v-ripple>
+              <template #icon>
+                <ArtSvgIcon v-if="isExpanded" icon="ri:collapse-diagonal-line" />
+                <ArtSvgIcon v-else icon="ri:expand-diagonal-line" />
+              </template>
+              {{ isExpanded ? '收起' : '展开' }}
+            </ElButton>
+{% endif %}
+          </ElSpace>
+        </template>
+      </ArtTableHeader>
+
+      <!-- 表格 -->
+      <ArtTable
+        ref="tableRef"
+        rowKey="id"
+        :loading="loading"
+        :data="data"
+        :columns="columns"
+        :pagination="pagination"
+        @sort-change="handleSortChange"
+        @selection-change="handleSelectionChange"
+        @pagination:size-change="handleSizeChange"
+        @pagination:current-change="handleCurrentChange"
+      >
+        <!-- 操作列 -->
+        <template #operation="{ row }">
+          <div class="flex gap-2">
+            <SaButton
+              v-permission="'{{namespace}}:{{package_name}}:{{business_name}}:update'"
+              type="secondary"
+              @click="showDialog('edit', row)"
+            />
+            <SaButton
+              v-permission="'{{namespace}}:{{package_name}}:{{business_name}}:destroy'"
+              type="error"
+              @click="deleteRow(row, api.delete, refreshData)"
+            />
+          </div>
+        </template>
+      </ArtTable>
+    </ElCard>
+
+    <!-- 编辑弹窗 -->
+    <EditDialog
+      v-model="dialogVisible"
+      :dialog-type="dialogType"
+      :data="dialogData"
+      @success="refreshData"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+  import { useTable } from '@/hooks/core/useTable'
+  import { useSaiAdmin } from '@/composables/useSaiAdmin'
+  import api from '../../api/{{package_name}}/{{business_name}}'
+  import TableSearch from './modules/table-search.vue'
+  import EditDialog from './modules/edit-dialog.vue'
+
+{% if tpl_category == 'tree' %}
+  // 状态管理
+  const isExpanded = ref(false)
+  const tableRef = ref()
+{% endif %}
+
+  // 搜索表单
+  const searchForm = ref({
+{% for column in columns %}
+{% if column.is_query == 2 and column.query_type != 'between' %}
+    {{column.column_name}}: undefined,
+{% endif %}
+{% if column.is_query == 2 and column.query_type == 'between' %}
+    {{column.column_name}}: [],
+{% endif %}
+{% endfor %}
+  })
+
+  // 搜索处理
+  const handleSearch = (params: Record<string, any>) => {
+    Object.assign(searchParams, params)
+    getData()
+  }
+
+  // 表格配置
+  const {
+    columns,
+    columnChecks,
+    data,
+    loading,
+    getData,
+    searchParams,
+    pagination,
+    resetSearchParams,
+    handleSortChange,
+    handleSizeChange,
+    handleCurrentChange,
+    refreshData
+  } = useTable({
+    core: {
+      apiFn: api.list,
+      columnsFactory: () => [
+        { type: 'selection' },
+{% for column in columns %}
+{% if column.is_list == 2 %}
+{% if column.view_type == 'uploadImage' or column.view_type == 'imagePicker' %}
+        { prop: '{{column.column_name}}', label: '{{column.column_comment}}', saiType: 'image' },
+{% else %}
+{% if column.is_sort == 2 %}
+{% if column.view_type == 'saSelect' or column.view_type == 'radio' or column.view_type == 'checkbox' %}
+        { prop: '{{column.column_name}}', label: '{{column.column_comment}}', saiType: 'dict', saiDict: '{{column.dict_type}}', sortable: true },
+{% else %}
+        { prop: '{{column.column_name}}', label: '{{column.column_comment}}', sortable: true },
+{% endif %}
+{% else %}
+{% if column.view_type == 'saSelect' or column.view_type == 'radio' or column.view_type == 'checkbox' %}
+        { prop: '{{column.column_name}}', label: '{{column.column_comment}}', saiType: 'dict', saiDict: '{{column.dict_type}}' },
+{% else %}
+        { prop: '{{column.column_name}}', label: '{{column.column_comment}}' },
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+        { prop: 'operation', label: '操作', width: 100, fixed: 'right', useSlot: true }
+      ]
+    }
+  })
+
+  // 编辑配置
+  const {
+    dialogType,
+    dialogVisible,
+    dialogData,
+    showDialog,
+    deleteRow,
+    deleteSelectedRows,
+    handleSelectionChange,
+    selectedRows
+  } = useSaiAdmin()
+
+{% if tpl_category == 'tree' %}
+  // 切换展开/收起所有菜单
+  const toggleExpand = (): void => {
+    isExpanded.value = !isExpanded.value
+    nextTick(() => {
+      if (tableRef.value?.elTableRef && data.value) {
+        const processRows = (rows: any[]) => {
+          rows.forEach((row) => {
+            if (row.children?.length) {
+              tableRef.value.elTableRef.toggleRowExpansion(row, isExpanded.value)
+              processRows(row.children)
+            }
+          })
+        }
+        processRows(data.value)
+      }
+    })
+  }
+{% endif %}
+</script>

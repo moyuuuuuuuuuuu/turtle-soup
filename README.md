@@ -12,21 +12,41 @@ This branch owns:
 - Coze workflow integrations
 - Persistence, queues, and operational notifications
 
-## Requirements
+## Local development
 
-- PHP 8.1 or later
-- Composer
-- MySQL
-- Redis
+The repository is mounted into the existing DNMP PHP container at `/www/hgt`.
+The current development runtime is PHP 8.2, MySQL 8.0, and Redis 7.2.
 
-## Installation
+Create a local environment file and fill in only local credentials:
 
 ```bash
-composer install
-php start.php start
+cp .env.example .env
+docker exec -w /www/hgt php82 composer install
+docker exec -w /www/hgt php82 php start.php start
 ```
 
-Follow SaiAdmin's installation process for its management plugin and configure Eloquent for project modules.
+The API listens on port `8787` inside the PHP container. Expose or proxy that port through
+DNMP when host access is required. The health endpoint is `GET /api/v1/health` and does not
+query MySQL or Redis.
+
+Run the baseline checks with:
+
+```bash
+docker exec -w /www/hgt php82 composer check
+```
+
+Redis queue consumers are disabled by default. Enable them with
+`REDIS_QUEUE_ENABLED=true` only after Redis configuration is ready.
+
+## Database safety
+
+Schema changes belong in `database/migrations`; optional development data belongs in
+`database/seeds`. Creating either kind of file does not authorize execution. Do not run
+Phinx, SaiAdmin installation, migration, seed, or database inspection commands until the
+user explicitly authorizes that exact operation.
+
+SaiAdmin 6.1.1 is configured to use its Eloquent implementation. New project modules also
+use Eloquent and keep persistence behind repositories.
 
 ## Related branches
 

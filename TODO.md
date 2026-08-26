@@ -17,16 +17,16 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 ### `system-manage`
 
-- [ ] Prepare an available PHP and Composer runtime.
-- [ ] Install Composer dependencies and complete the SaiAdmin installation flow.
-- [ ] Configure Eloquent ORM for new project modules.
-- [ ] Add safe MySQL and Redis configuration templates without connecting until authorized.
-- [ ] Define user API routing under `/api/v1/*` while preserving current SaiAdmin management APIs.
-- [ ] Integrate the common error enums, `BaseException`, `BusinessException`, `BaseController`, and user API response format with the global handler.
-- [ ] Add request ID middleware and structured logging.
-- [ ] Add Redis-backed queue configuration.
-- [ ] Add PHPUnit, static analysis, and code-style checks.
-- [ ] Add a health endpoint that does not leak configuration or force database access.
+- [x] Prepare an available PHP and Composer runtime.
+- [x] Install Composer dependencies and complete the SaiAdmin installation flow.
+- [x] Configure Eloquent ORM for new project modules.
+- [x] Add safe MySQL and Redis configuration templates without connecting until authorized.
+- [x] Define user API routing under `/api/v1/*` while preserving current SaiAdmin management APIs.
+- [x] Integrate the common error enums, `BaseException`, `BusinessException`, `BaseController`, and user API response format with the global handler.
+- [x] Add request ID middleware and structured logging.
+- [x] Add Redis-backed queue configuration.
+- [x] Add PHPUnit, static analysis, and code-style checks.
+- [x] Add a health endpoint that does not leak configuration or force database access.
 
 ### `ui`
 

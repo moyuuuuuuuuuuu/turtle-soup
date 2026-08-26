@@ -14,8 +14,4 @@
 
 use Webman\Route;
 
-
-
-
-
-
+Route::get('/api/v1/health', [App\Health\Controllers\HealthController::class, 'index']);

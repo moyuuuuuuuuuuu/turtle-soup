@@ -15,7 +15,8 @@
 use support\Request;
 
 return [
-    'debug' => true,
+    'debug' => (bool) env('APP_DEBUG', false),
+    'env' => env('APP_ENV', 'production'),
     'error_reporting' => E_ALL,
     'default_timezone' => 'Asia/Shanghai',
     'request_class' => Request::class,

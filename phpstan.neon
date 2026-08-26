@@ -1,0 +1,8 @@
+parameters:
+    level: 6
+    paths:
+        - app/Common
+        - app/Health
+        - tests
+    tmpDir: runtime/phpstan
+    treatPhpDocTypesAsCertain: false
