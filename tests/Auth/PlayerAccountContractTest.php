@@ -54,4 +54,12 @@ final class PlayerAccountContractTest extends TestCase
         self::assertStringNotContainsString('byAccount', $repository);
         self::assertStringContainsString('BosAvatarService', $business);
     }
+
+    public function testBosAvatarObjectKeyDoesNotExposePublicPlayerId(): void
+    {
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Services/BosAvatarService.php');
+        self::assertIsString($service);
+        self::assertStringContainsString("hash('sha256', substr(\$publicId, 0, 2).'/'.\$publicId)", $service);
+        self::assertStringNotContainsString("'/'.\$publicId.'.svg'", $service);
+    }
 }

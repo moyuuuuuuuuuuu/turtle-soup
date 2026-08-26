@@ -8,7 +8,7 @@
 
 复制 `.env.example` 中 `PLAYER_AUTH_*` 与 `MAIL_*` 配置到本地 `.env`。JWT、验证码 HMAC 密钥和 SMTP 密码必须使用独立随机值，不得提交。修改配置后重启 Webman 与 `player_email` Redis Queue 消费进程。
 
-默认头像使用邮箱首字母生成 SVG，并由后端上传到百度 BOS。必须配置 `BOS_ACCESS_KEY`、`BOS_SECRET_KEY`、`BOS_ENDPOINT`、`BOS_BUCKET` 和公开访问基址 `BOS_PUBLIC_BASE_URL`。对象键只包含玩家公开 ID，不包含邮箱。
+默认头像使用邮箱首字母生成 SVG，并由后端上传到百度 BOS。必须配置 `BOS_ACCESS_KEY`、`BOS_SECRET_KEY`、`BOS_ENDPOINT`、`BOS_BUCKET` 和公开访问基址 `BOS_PUBLIC_BASE_URL`。对象键为 `avatars/default/{sha256(玩家 ID 前两位/玩家公开 ID)}.svg`，不包含邮箱，也不直接暴露玩家 ID。
 
 ## 账号与匿名合并
 

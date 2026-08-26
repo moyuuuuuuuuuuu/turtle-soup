@@ -19,7 +19,7 @@ final class BosAvatarService
                 ErrorCode::CONFIG_ERROR->throw();
             }
         }
-        $objectKey = 'avatars/default/'.substr($publicId, 0, 2).'/'.$publicId.'.svg';
+        $objectKey = 'avatars/default/'.hash('sha256', substr($publicId, 0, 2).'/'.$publicId).'.svg';
         $body = $this->svg($email);
         $endpoint = (string) $settings['endpoint'];
         $bucket = (string) $settings['bucket'];
