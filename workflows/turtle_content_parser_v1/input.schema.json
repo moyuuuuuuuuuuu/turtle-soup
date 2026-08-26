@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["story", "source_language", "target_languages"],
+  "properties": {
+    "story": { "type": "string", "minLength": 20, "maxLength": 20000 },
+    "source_language": { "type": "string", "default": "zh-CN" },
+    "target_languages": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true },
+    "cefr": { "type": ["string", "null"], "enum": ["A1", "A2", "B1", "B2", "C1", "C2", null] }
+  },
+  "additionalProperties": false
+}

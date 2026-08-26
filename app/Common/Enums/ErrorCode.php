@@ -22,6 +22,12 @@ enum ErrorCode: string implements ErrorCodeInterface
     case DATA_STATUS_ERROR = 'data.status_invalid';
     case THIRD_PARTY_ERROR = 'third_party.error';
     case CONFIG_ERROR = 'system.config_error';
+    case QUESTION_NOT_FOUND = 'question.not_found';
+    case QUESTION_CONTENT_INCOMPLETE = 'question.content_incomplete';
+    case QUESTION_STATUS_INVALID = 'question.status_invalid';
+    case QUESTION_VERSION_CONFLICT = 'question.version_conflict';
+    case AI_WORKFLOW_TIMEOUT = 'ai.workflow_timeout';
+    case AI_INVALID_RESPONSE = 'ai.invalid_response';
 
     public function code(): string
     {
@@ -43,6 +49,12 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::DATA_STATUS_ERROR => '数据状态异常，无法操作',
             self::THIRD_PARTY_ERROR => '第三方服务异常',
             self::CONFIG_ERROR => '系统配置错误，请联系管理员',
+            self::QUESTION_NOT_FOUND => '题目不存在',
+            self::QUESTION_CONTENT_INCOMPLETE => '题目内容不完整',
+            self::QUESTION_STATUS_INVALID => '题目状态不允许当前操作',
+            self::QUESTION_VERSION_CONFLICT => '题目已被其他操作更新',
+            self::AI_WORKFLOW_TIMEOUT => 'AI 工作流超时',
+            self::AI_INVALID_RESPONSE => 'AI 返回内容不符合约定',
         };
     }
 
@@ -54,8 +66,14 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::REQUEST_METHOD_ERROR => 405,
             self::REQUEST_FREQUENCY => 429,
             self::DATA_NOT_FOUND => 404,
+            self::QUESTION_NOT_FOUND => 404,
             self::DATA_ALREADY_EXISTS,
             self::DATA_STATUS_ERROR => 409,
+            self::QUESTION_STATUS_INVALID,
+            self::QUESTION_VERSION_CONFLICT => 409,
+            self::QUESTION_CONTENT_INCOMPLETE => 422,
+            self::AI_WORKFLOW_TIMEOUT,
+            self::AI_INVALID_RESPONSE => 502,
             self::THIRD_PARTY_ERROR => 502,
             self::SYSTEM_MAINTENANCE => 503,
             default => 500,
@@ -69,6 +87,12 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::PARAM_MISSING,
             self::REQUEST_METHOD_ERROR,
             self::REQUEST_FREQUENCY => ErrorModule::REQUEST,
+            self::QUESTION_NOT_FOUND,
+            self::QUESTION_CONTENT_INCOMPLETE,
+            self::QUESTION_STATUS_INVALID,
+            self::QUESTION_VERSION_CONFLICT => ErrorModule::QUESTION,
+            self::AI_WORKFLOW_TIMEOUT,
+            self::AI_INVALID_RESPONSE => ErrorModule::AI,
             default => ErrorModule::SYSTEM,
         };
     }
@@ -83,9 +107,15 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::DATA_NOT_FOUND,
             self::DATA_ALREADY_EXISTS,
             self::DATA_STATUS_ERROR => ErrorSeverity::INFO,
+            self::QUESTION_NOT_FOUND,
+            self::QUESTION_CONTENT_INCOMPLETE,
+            self::QUESTION_STATUS_INVALID,
+            self::QUESTION_VERSION_CONFLICT => ErrorSeverity::INFO,
             self::SYSTEM_BUSY,
             self::SYSTEM_MAINTENANCE,
             self::THIRD_PARTY_ERROR => ErrorSeverity::WARNING,
+            self::AI_WORKFLOW_TIMEOUT => ErrorSeverity::WARNING,
+            self::AI_INVALID_RESPONSE => ErrorSeverity::ERROR,
             self::CONFIG_ERROR => ErrorSeverity::ERROR,
             self::SYSTEM_ERROR => ErrorSeverity::CRITICAL,
         };
@@ -107,6 +137,8 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::SYSTEM_BUSY,
             self::SYSTEM_MAINTENANCE,
             self::THIRD_PARTY_ERROR,
+            self::AI_WORKFLOW_TIMEOUT,
+            self::AI_INVALID_RESPONSE,
             self::CONFIG_ERROR => NotificationPolicy::THRESHOLD,
             default => NotificationPolicy::NEVER,
         };

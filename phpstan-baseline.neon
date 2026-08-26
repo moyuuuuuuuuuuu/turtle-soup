@@ -1,0 +1,427 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property \(Illuminate\\Database\\Eloquent\\Collection&iterable\<App\\Ai\\Models\\AiParseTask\>\)\|Illuminate\\Database\\Eloquent\\Model\:\:\$request_payload\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property \(Illuminate\\Database\\Eloquent\\Collection&iterable\<App\\Ai\\Models\\AiParseTask\>\)\|Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$create_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$error_code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$error_message\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$progress\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$public_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$question_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$result_payload\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$update_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Ai\\Models\\AiParseTask\:\:\$workflow_version\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Method App\\Ai\\Business\\ContentParseBusiness\:\:adopt\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Method App\\Ai\\Business\\ContentParseBusiness\:\:create\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Method App\\Ai\\Business\\ContentParseBusiness\:\:create\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Method App\\Ai\\Business\\ContentParseBusiness\:\:format\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Method App\\Ai\\Business\\ContentParseBusiness\:\:get\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Method App\\Ai\\Business\\ContentParseBusiness\:\:retry\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Parameter \#1 \$task of method App\\Ai\\Business\\ContentParseBusiness\:\:format\(\) expects App\\Ai\\Models\\AiParseTask, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Ai/Business/ContentParseBusiness.php
+
+		-
+			message: '#^Method App\\Ai\\Contracts\\ContentParserInterface\:\:parse\(\) has parameter \$input with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Contracts/ContentParserInterface.php
+
+		-
+			message: '#^Method App\\Ai\\Contracts\\ContentParserInterface\:\:parse\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Contracts/ContentParserInterface.php
+
+		-
+			message: '#^Method App\\Ai\\DTO\\ContentParseInput\:\:__construct\(\) has parameter \$targetLanguages with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/DTO/ContentParseInput.php
+
+		-
+			message: '#^Method App\\Ai\\DTO\\ContentParseInput\:\:fromArray\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/DTO/ContentParseInput.php
+
+		-
+			message: '#^Method App\\Ai\\DTO\\ContentParseInput\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/DTO/ContentParseInput.php
+
+		-
+			message: '#^Method App\\Ai\\Services\\CozeContentParser\:\:parse\(\) has parameter \$input with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Services/CozeContentParser.php
+
+		-
+			message: '#^Method App\\Ai\\Services\\CozeContentParser\:\:parse\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Services/CozeContentParser.php
+
+		-
+			message: '#^Method App\\Ai\\Services\\MockContentParser\:\:parse\(\) has parameter \$input with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Services/MockContentParser.php
+
+		-
+			message: '#^Method App\\Ai\\Services\\MockContentParser\:\:parse\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Services/MockContentParser.php
+
+		-
+			message: '#^Method App\\Ai\\Support\\ContentParseValidator\:\:validate\(\) has parameter \$result with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Support/ContentParseValidator.php
+
+		-
+			message: '#^Method App\\Ai\\Support\\ContentParseValidator\:\:validate\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Ai/Support/ContentParseValidator.php
+
+		-
+			message: '#^Access to an undefined property App\\Question\\Models\\Question\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Question\\Models\\Question\:\:\$version\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\QuestionBusiness\:\:create\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\QuestionBusiness\:\:create\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\QuestionBusiness\:\:detail\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\QuestionBusiness\:\:page\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\QuestionBusiness\:\:page\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\QuestionBusiness\:\:update\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\QuestionBusiness\:\:update\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Parameter \#1 \$callback of function array_map expects \(callable\(Illuminate\\Database\\Eloquent\\Model\)\: mixed\)\|null, Closure\(App\\Question\\Models\\Question\)\: array given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Question/Business/QuestionBusiness.php
+
+		-
+			message: '#^Call to an undefined method \(Illuminate\\Database\\Eloquent\\Collection&iterable\<App\\Question\\Models\\Tag\>\)\|Illuminate\\Database\\Eloquent\\Model\:\:questions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Question/Business/TagBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\TagBusiness\:\:all\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/TagBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\TagBusiness\:\:save\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/TagBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\TagBusiness\:\:save\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/TagBusiness.php
+
+		-
+			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$hints with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/DTO/QuestionData.php
+
+		-
+			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$points with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/DTO/QuestionData.php
+
+		-
+			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$tagIds with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/DTO/QuestionData.php
+
+		-
+			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$translations with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/DTO/QuestionData.php
+
+		-
+			message: '#^Method App\\Question\\DTO\\QuestionData\:\:fromArray\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/DTO/QuestionData.php
+
+		-
+			message: '#^Method App\\Question\\Formats\\QuestionFormat\:\:detail\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Formats/QuestionFormat.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Question\:\:casts\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Models/Question.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Question\:\:hints\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Models/Question.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Question\:\:hints\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany but returns Illuminate\\Database\\Query\\Builder\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Question/Models/Question.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Question\:\:points\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Models/Question.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Question\:\:points\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany but returns Illuminate\\Database\\Query\\Builder\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Question/Models/Question.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Question\:\:tags\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Models/Question.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Question\:\:translations\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Models/Question.php
+
+		-
+			message: '#^Method App\\Question\\Models\\QuestionHint\:\:translations\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Models/QuestionHint.php
+
+		-
+			message: '#^Method App\\Question\\Models\\QuestionPoint\:\:translations\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Models/QuestionPoint.php
+
+		-
+			message: '#^Method App\\Question\\Models\\Tag\:\:questions\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Models/Tag.php
+
+		-
+			message: '#^Access to an undefined property App\\Question\\Models\\Question\:\:\$hints\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Access to an undefined property App\\Question\\Models\\Question\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Access to an undefined property App\\Question\\Models\\Question\:\:\$points\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:translations\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Method App\\Question\\Repositories\\QuestionRepository\:\:search\(\) has parameter \$filters with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Method App\\Question\\Repositories\\QuestionRepository\:\:search\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Method App\\Question\\Repositories\\QuestionRepository\:\:search\(\) should return Illuminate\\Database\\Eloquent\\Builder but returns Illuminate\\Database\\Query\\Builder\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Question/Repositories/QuestionRepository.php
+
+		-
+			message: '#^Parameter \#1 \$question of method App\\Question\\Repositories\\QuestionRepository\:\:replaceRelations\(\) expects App\\Question\\Models\\Question, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Question/Repositories/QuestionRepository.php

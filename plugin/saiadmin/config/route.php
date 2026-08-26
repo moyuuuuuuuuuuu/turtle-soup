@@ -77,6 +77,17 @@ Route::group('/core', function () {
     Route::delete("/logs/deleteOperLog", [\plugin\saiadmin\app\controller\system\SystemLogController::class, 'deleteOperLog']);
     fastRoute("email", \plugin\saiadmin\app\controller\system\SystemMailController::class);
 
+    // 海龟汤题库
+    fastRoute('question', \App\Question\Controllers\QuestionController::class);
+    Route::post('/question/publish', [\App\Question\Controllers\QuestionController::class, 'publish']);
+    Route::post('/question/offline', [\App\Question\Controllers\QuestionController::class, 'offline']);
+    Route::get('/question/preview', [\App\Question\Controllers\QuestionController::class, 'preview']);
+    fastRoute('questionTag', \App\Question\Controllers\TagController::class);
+    Route::post('/questionAi/create', [\App\Ai\Controllers\ContentParseController::class, 'create']);
+    Route::get('/questionAi/read', [\App\Ai\Controllers\ContentParseController::class, 'read']);
+    Route::post('/questionAi/retry', [\App\Ai\Controllers\ContentParseController::class, 'retry']);
+    Route::post('/questionAi/adopt', [\App\Ai\Controllers\ContentParseController::class, 'adopt']);
+
     // 服务管理
     Route::get("/server/monitor", [\plugin\saiadmin\app\controller\system\SystemServerController::class, 'monitor']);
     Route::get("/server/cache", [\plugin\saiadmin\app\controller\system\SystemServerController::class, 'cache']);

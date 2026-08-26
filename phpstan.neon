@@ -1,8 +1,13 @@
+includes:
+    - phpstan-baseline.neon
+
 parameters:
     level: 6
     paths:
         - app/Common
         - app/Health
+        - app/Question
+        - app/Ai
         - tests
     tmpDir: runtime/phpstan
     treatPhpDocTypesAsCertain: false

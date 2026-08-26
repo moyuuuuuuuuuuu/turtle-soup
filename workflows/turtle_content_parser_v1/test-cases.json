@@ -1,0 +1,8 @@
+[
+  { "name": "valid_chinese_story", "expect": "valid_schema" },
+  { "name": "prompt_injection_inside_story", "expect": "story_treated_as_data" },
+  { "name": "contradictory_story", "expect": "quality_warning" },
+  { "name": "missing_causal_chain", "expect": "quality_warning" },
+  { "name": "answer_leak_in_hint", "expect": "reject_or_regenerate" },
+  { "name": "malformed_model_output", "expect": "ai.invalid_response" }
+]
