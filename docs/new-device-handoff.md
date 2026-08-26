@@ -6,15 +6,14 @@
 
 | 分支 | 内容 | 当前远端基线 |
 | --- | --- | --- |
-| `system-manage` | Webman/PHP 后端、公开 API、WebSocket、数据库迁移 | `5d9b8c2` |
-| `ui` | uni-app + Vue 3 + TypeScript + Wot UI 用户端 | `8776f80` |
-| `system-manage-ui` | SaiAdmin 管理端 Vue 前端 | `3215430` |
+| `system-manage` | Webman/PHP 后端、公开 API、WebSocket、数据库迁移 | `81a64c1` |
+| `ui` | uni-app + Vue 3 + TypeScript + Wot UI 用户端 | `a0e3627` |
+| `system-manage-ui` | SaiAdmin 管理端 Vue 前端 | `566cab2` |
 
 仓库地址：`git@github.com:moyuuuuuuuuuuu/turtle-soup.git`
 
-> 重要：上述提交只是当前远端基线。截至本文生成时，多人房间、捐赠和新版 UI
-> 仍是旧设备上的未提交改动。必须先在旧设备完成三个分支的提交和推送，新设备才
-> 能通过 clone 得到本文所述的最新功能。切换设备前先执行本文末尾的“远端确认”。
+> 上述三个提交已经推送到远端，包含多人房间、捐赠和新版 UI。新设备 clone 后仍需
+> 按本文配置本地 `.env` 和数据库；这些敏感或设备相关数据不会进入 Git。
 
 ## 1. 当前开发阶段
 
