@@ -1,15 +1,10 @@
 <script setup lang="ts">
 /* eslint-disable style/max-statements-per-line */
-import type { PublicQuestion } from '@/types/game'; import { gameApi, questionApi } from '@/api/turtle'; import { useGameStore } from '@/store/gameStore'
+import type { PublicQuestion } from '@/types/game'; import { questionApi } from '@/api/turtle'
 
-definePage({ name: 'questions', style: { navigationBarTitleText: '选择题目' } }); const router = useRouter(); const store = useGameStore(); const items = ref<PublicQuestion[]>([]); const difficulty = ref<number>(); const loading = ref(false); async function load() {
+definePage({ name: 'questions', style: { navigationBarTitleText: '选择题目' } }); const router = useRouter(); const items = ref<PublicQuestion[]>([]); const difficulty = ref<number>(); const loading = ref(false); async function load() {
   loading.value = true; try { items.value = (await questionApi.list(difficulty.value ? { difficulty: difficulty.value } : {})).items }
   finally { loading.value = false }
-} async function start(item: PublicQuestion) {
-  let confirmed = false; if (item.risk_level === 'caution') {
-    confirmed = await new Promise(resolve => uni.showModal({ title: '内容提醒', content: item.risk_warning || '', success: r => resolve(r.confirm) })); if (!confirmed)
-      return
-  }store.setGame(await gameApi.create(item.id, confirmed)); router.push({ name: 'game', params: { id: store.current!.id } })
 }onMounted(load)
 </script>
 
@@ -19,7 +14,7 @@ definePage({ name: 'questions', style: { navigationBarTitleText: '选择题目' 
       <wd-button v-for="level in [1, 2, 3, 4, 5]" :key="level" size="small" :type="difficulty === level ? 'primary' : 'info'" @click="difficulty = difficulty === level ? undefined : level;load()">
         难度 {{ level }}
       </wd-button>
-    </view><wd-loading v-if="loading" /><view v-for="item in items" :key="item.id" class="mb-4 rounded-4 bg-white p-4 shadow-sm" @click="start(item)">
+    </view><wd-loading v-if="loading" /><view v-for="item in items" :key="item.id" class="mb-4 rounded-4 bg-white p-4 shadow-sm" @click="router.push({ name: 'question-detail', params: { id: item.id } })">
       <view class="flex justify-between">
         <text class="font-bold">
           {{ item.title }}

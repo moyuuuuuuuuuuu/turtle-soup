@@ -9,6 +9,7 @@ type _LocationUrl =
   "/pages/game/index" |
   "/pages/guess/index" |
   "/pages/history/index" |
+  "/pages/question-detail/index" |
   "/pages/questions/index" |
   "/pages/result/index" |
   "/subPages/ci/index" |

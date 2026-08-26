@@ -10,6 +10,7 @@ const store = useGameStore()
 const socket = useGameSocket()
 const question = ref('')
 const busy = ref(false)
+const errorMessage = ref('')
 const game = computed(() => store.current)
 
 async function refresh() {
@@ -24,19 +25,26 @@ async function ask() {
   if (!question.value.trim())
     return
   busy.value = true
+  errorMessage.value = ''
   try {
     store.setGame(await socket.ask(game.value!.id, question.value))
     question.value = ''
   }
   catch (error) {
-    uni.showToast({ title: (error as Error).message, icon: 'none' })
+    errorMessage.value = (error as Error).message
+    uni.showToast({ title: 'AI 判定失败，可原样重试', icon: 'none' })
   }
   finally {
     busy.value = false
   }
 }
 async function hint(level: number) {
-  store.setGame(await socket.hint(game.value!.id, level))
+  try {
+    store.setGame(await socket.hint(game.value!.id, level))
+  }
+  catch (error) {
+    uni.showToast({ title: (error as Error).message, icon: 'none' })
+  }
 }
 function abandon() {
   uni.showModal({
@@ -65,6 +73,9 @@ onMounted(refresh)
       <text class="mt-3 block text-3">
         剩余提问 {{ game.remaining_questions }} / {{ game.question_limit }}
       </text>
+      <text class="mt-1 block text-3 opacity-75">
+        {{ socket.connected.value ? 'AI 主持人在线' : socket.reconnecting.value ? '正在重新连接…' : '连接已断开' }}
+      </text>
     </view>
     <scroll-view scroll-y class="h-0 flex-1 p-4">
       <view v-for="message in game.messages" :key="message.sequence" class="mb-3 flex" :class="message.role === 'player' ? 'justify-end' : 'justify-start'">
@@ -74,6 +85,10 @@ onMounted(refresh)
       </view>
     </scroll-view>
     <view class="border-t bg-white p-3">
+      <wd-notice-bar v-if="errorMessage" type="warning" :text="`上次问题未扣次数：${errorMessage}`" closable @close="errorMessage = ''" />
+      <view v-if="game.remaining_questions === 0" class="mb-3 rounded-3 bg-orange-50 p-3 text-3 text-orange-700">
+        提问次数已经用完，请提交最终猜测。
+      </view>
       <view class="mb-3 flex gap-2">
         <wd-button v-for="level in [1, 2, 3]" :key="level" size="small" plain :disabled="game.used_hints.includes(level)" @click="hint(level)">
           提示 {{ level }}

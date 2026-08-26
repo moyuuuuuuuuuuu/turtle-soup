@@ -40,6 +40,7 @@ export async function ensureAnonymousSession() {
 }
 export const questionApi = {
   list: (params: Record<string, unknown> = {}) => request<{ items: PublicQuestion[], pagination: Record<string, number> }>(`/questions?${queryString(params)}`),
+  read: (id: string, language = 'zh-CN') => request<PublicQuestion>(`/questions/read?id=${encodeURIComponent(id)}&language=${encodeURIComponent(language)}`),
   random: (difficulty?: number) => request<PublicQuestion>(`/questions/random${difficulty ? `?difficulty=${difficulty}` : ''}`),
 }
 export const gameApi = { create: (question_id: string, risk_confirmed = false) => request<GameSnapshot>('/games', 'POST', { question_id, language: 'zh-CN', risk_confirmed }), read: (id: string) => request<GameSnapshot>(`/games/read?id=${id}`), history: () => request<Array<{ id: string, status: string, title: string, difficulty: number }>>('/games/history'), ask: (id: string, question: string) => request<GameSnapshot>('/games/ask', 'POST', { id, question, request_id: requestId() }), hint: (id: string, level: number) => request<GameSnapshot>('/games/hint', 'POST', { id, level, request_id: requestId() }), guess: (id: string, guess: string) => request<GameSnapshot>('/games/guess', 'POST', { id, guess, request_id: requestId() }), abandon: (id: string) => request<GameSnapshot>('/games/abandon', 'POST', { id }) }

@@ -13,7 +13,7 @@
     "animationDuration": 300
   },
   "pages": [
-    // #ifdef APP || MP-WEIXIN
+    // #ifdef APP || H5 || MP-WEIXIN
     {
       "path": "pages/index/index",
       "type": "home",
@@ -57,6 +57,14 @@
       "name": "history",
       "style": {
         "navigationBarTitleText": "游戏记录"
+      }
+    },
+    {
+      "path": "pages/question-detail/index",
+      "type": "page",
+      "name": "question-detail",
+      "style": {
+        "navigationBarTitleText": "题目详情"
       }
     },
     {
