@@ -28,6 +28,29 @@
       type="success"
       title="解析完成，请采纳为草稿后人工核对"
     />
+    <ElDescriptions
+      v-if="task?.status === 'succeeded' && task.result"
+      class="mt-4"
+      :column="1"
+      border
+    >
+      <ElDescriptionsItem label="风险等级">
+        <ElTag :type="riskTagType">{{ riskLevelLabel }}</ElTag>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem label="风险类型">
+        <div v-if="riskTypeLabels.length" class="flex flex-wrap gap-2">
+          <ElTag v-for="item in riskTypeLabels" :key="item" type="warning">{{ item }}</ElTag>
+        </div>
+        <span v-else>无</span>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem label="风险说明">{{ task.result.risk_note || '无' }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="质量警告">
+        <ul v-if="task.result.quality_warnings?.length" class="m-0 pl-5">
+          <li v-for="warning in task.result.quality_warnings" :key="warning">{{ warning }}</li>
+        </ul>
+        <span v-else>无</span>
+      </ElDescriptionsItem>
+    </ElDescriptions>
     <template #footer>
       <ElButton @click="visible = false">关闭</ElButton>
       <ElButton v-if="task?.status === 'failed'" @click="retry">重试</ElButton>
@@ -48,7 +71,13 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import api, { type QuestionPayload } from '@/api/question'
-  import { AI_TASK_STATUS_LABELS, enumLabel } from '@/enums/questionEnum'
+  import {
+    AI_TASK_STATUS_LABELS,
+    QUESTION_RISK_LEVEL_LABELS,
+    QUESTION_RISK_TYPE_LABELS,
+    QuestionRiskLevelEnum,
+    enumLabel
+  } from '@/enums/questionEnum'
   const visible = defineModel<boolean>({ required: true })
   const emit = defineEmits<{ adopted: [question: QuestionPayload] }>()
   const story = ref(''),
@@ -56,6 +85,19 @@
     submitting = ref(false)
   let timer: ReturnType<typeof setTimeout> | undefined
   const aiTaskStatusLabel = (status: unknown) => enumLabel(AI_TASK_STATUS_LABELS, status)
+  const riskLevelLabel = computed(() =>
+    enumLabel(QUESTION_RISK_LEVEL_LABELS, task.value?.result?.risk_level)
+  )
+  const riskTypeLabels = computed(() =>
+    (task.value?.result?.risk_types || []).map((value: unknown) =>
+      enumLabel(QUESTION_RISK_TYPE_LABELS, value)
+    )
+  )
+  const riskTagType = computed(() => {
+    if (task.value?.result?.risk_level === QuestionRiskLevelEnum.Restricted) return 'danger'
+    if (task.value?.result?.risk_level === QuestionRiskLevelEnum.Caution) return 'warning'
+    return 'success'
+  })
   async function poll() {
     if (!task.value?.id) return
     task.value = await api.aiTask(task.value.id)
