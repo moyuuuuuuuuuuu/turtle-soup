@@ -68,7 +68,7 @@
           ><ElInputNumber v-model="form.min_players" :min="1" /> 至
           <ElInputNumber v-model="form.max_players" :min="1"
         /></ElFormItem>
-        <ElTabs>
+        <ElTabs v-model="activeLanguage">
           <ElTabPane
             v-for="item in form.translations"
             :key="item.language"
@@ -87,13 +87,25 @@
         <div v-for="(point, index) in form.points" :key="index" class="mb-3 flex gap-2">
           <ElCheckbox v-model="point.is_required">必需</ElCheckbox
           ><ElInputNumber v-model="point.weight" :min="1" />
-          <ElInput v-model="point.translations[0].content" placeholder="中文关键点" />
+          <ElInput
+            :model-value="translationContent(point.translations, activeLanguage)"
+            :placeholder="`${languageLabel(activeLanguage)}关键点`"
+            @update:model-value="
+              updateTranslationContent(point.translations, activeLanguage, $event)
+            "
+          />
           <ElButton type="danger" @click="form.points.splice(index, 1)">删除</ElButton>
         </div>
         <ElButton @click="addPoint">添加关键点</ElButton>
         <ElDivider>三级提示</ElDivider>
         <ElFormItem v-for="hint in form.hints" :key="hint.level" :label="`第 ${hint.level} 级`">
-          <ElInput v-model="hint.translations[0].content" />
+          <ElInput
+            :model-value="translationContent(hint.translations, activeLanguage)"
+            :placeholder="`${languageLabel(activeLanguage)}提示`"
+            @update:model-value="
+              updateTranslationContent(hint.translations, activeLanguage, $event)
+            "
+          />
         </ElFormItem>
       </ElForm>
       <template #footer
@@ -124,6 +136,7 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import api, { type QuestionPayload } from '@/api/question'
+  import type { Translation } from '@/api/question'
   import {
     QUESTION_DIFFICULTY_LABELS,
     QUESTION_LANGUAGE_LABELS,
@@ -132,6 +145,7 @@
     QUESTION_STATUS_OPTIONS,
     QuestionSourceEnum,
     QuestionStatusEnum,
+    QuestionLanguageEnum,
     enumLabel
   } from '@/enums/questionEnum'
   import AiCreateDialog from './modules/ai-create-dialog.vue'
@@ -147,7 +161,13 @@
       { language: 'en-US', title: '', surface: '', bottom: '' }
     ],
     points: [],
-    hints: [1, 2, 3].map((level) => ({ level, translations: [{ language: 'zh-CN', content: '' }] }))
+    hints: [1, 2, 3].map((level) => ({
+      level,
+      translations: [
+        { language: QuestionLanguageEnum.SimplifiedChinese, content: '' },
+        { language: QuestionLanguageEnum.English, content: '' }
+      ]
+    }))
   })
   const rows = ref<Record<string, any>[]>([]),
     total = ref(0),
@@ -156,6 +176,7 @@
     loading = ref(false)
   const search = reactive({ keyword: '', status: '' }),
     form = ref<QuestionPayload>(emptyForm())
+  const activeLanguage = ref<string>(QuestionLanguageEnum.SimplifiedChinese)
   const editorVisible = ref(false),
     previewVisible = ref(false),
     aiVisible = ref(false),
@@ -168,6 +189,17 @@
   const sourceLabel = (source: unknown) => enumLabel(QUESTION_SOURCE_LABELS, source)
   const statusLabel = (status: unknown) => enumLabel(QUESTION_STATUS_LABELS, status)
   const languageLabel = (language: unknown) => enumLabel(QUESTION_LANGUAGE_LABELS, language)
+  const translationContent = (translations: Translation[], language: string) =>
+    translations.find((item) => item.language === language)?.content || ''
+  function updateTranslationContent(
+    translations: Translation[],
+    language: string,
+    content: string
+  ) {
+    const translation = translations.find((item) => item.language === language)
+    if (translation) translation.content = content
+    else translations.push({ language, content })
+  }
   const statusTagType = (status: QuestionStatusEnum) =>
     ({
       [QuestionStatusEnum.Draft]: 'info',
@@ -186,6 +218,12 @@
   }
   async function openEditor(id?: number) {
     form.value = id ? await api.read(id) : emptyForm()
+    activeLanguage.value =
+      form.value.translations.find(
+        (translation) => translation.language === QuestionLanguageEnum.SimplifiedChinese
+      )?.language ||
+      form.value.translations[0]?.language ||
+      QuestionLanguageEnum.SimplifiedChinese
     editorVisible.value = true
   }
   function addPoint() {
@@ -193,7 +231,7 @@
       weight: 1,
       is_required: true,
       sort: form.value.points.length + 1,
-      translations: [{ language: 'zh-CN', content: '' }]
+      translations: form.value.translations.map(({ language }) => ({ language, content: '' }))
     })
   }
   async function save() {
