@@ -32,7 +32,7 @@ final class AnonymousSessionBusiness
     public function authenticate(string $token): AnonymousSession
     {
         $session = AnonymousSession::query()->where('token_hash', $this->hash($token))->first();
-        if (!$session instanceof AnonymousSession || strtotime((string) $session->expires_at) <= time()) {
+        if (!$session instanceof AnonymousSession || $session->revoked_at || strtotime((string) $session->expires_at) <= time()) {
             ErrorCode::AUTH_ANONYMOUS_INVALID->throw();
         }
         $session->update(['last_active_at' => date('Y-m-d H:i:s')]);

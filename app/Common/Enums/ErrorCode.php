@@ -23,6 +23,20 @@ enum ErrorCode: string implements ErrorCodeInterface
     case THIRD_PARTY_ERROR = 'third_party.error';
     case CONFIG_ERROR = 'system.config_error';
     case AUTH_ANONYMOUS_INVALID = 'auth.anonymous_invalid';
+    case AUTH_USER_NOT_FOUND = 'auth.user_not_found';
+    case AUTH_CREDENTIALS_INVALID = 'auth.credentials_invalid';
+    case AUTH_EMAIL_NOT_VERIFIED = 'auth.email_not_verified';
+    case AUTH_EMAIL_CODE_INVALID = 'auth.email_code_invalid';
+    case AUTH_EMAIL_CODE_EXPIRED = 'auth.email_code_expired';
+    case AUTH_EMAIL_CODE_RATE_LIMITED = 'auth.email_code_rate_limited';
+    case AUTH_USERNAME_EXISTS = 'auth.username_exists';
+    case AUTH_EMAIL_EXISTS = 'auth.email_exists';
+    case AUTH_USERNAME_CHANGE_LIMITED = 'auth.username_change_limited';
+    case AUTH_TOKEN_INVALID = 'auth.token_invalid';
+    case AUTH_REFRESH_TOKEN_REUSED = 'auth.refresh_token_reused';
+    case AUTH_DEVICE_LIMIT_REACHED = 'auth.device_limit_reached';
+    case AUTH_USER_DISABLED = 'auth.user_disabled';
+    case AUTH_ANONYMOUS_MERGE_FAILED = 'auth.anonymous_merge_failed';
     case GAME_NOT_FOUND = 'game.not_found';
     case GAME_STATUS_INVALID = 'game.status_invalid';
     case GAME_QUESTION_LIMIT_REACHED = 'game.question_limit_reached';
@@ -66,6 +80,20 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::THIRD_PARTY_ERROR => '第三方服务异常',
             self::CONFIG_ERROR => '系统配置错误，请联系管理员',
             self::AUTH_ANONYMOUS_INVALID => '匿名会话无效或已过期',
+            self::AUTH_USER_NOT_FOUND => '玩家账号不存在',
+            self::AUTH_CREDENTIALS_INVALID => '账号或凭证错误',
+            self::AUTH_EMAIL_NOT_VERIFIED => '邮箱尚未验证',
+            self::AUTH_EMAIL_CODE_INVALID => '邮箱验证码错误',
+            self::AUTH_EMAIL_CODE_EXPIRED => '邮箱验证码已过期',
+            self::AUTH_EMAIL_CODE_RATE_LIMITED => '邮箱验证码发送过于频繁',
+            self::AUTH_USERNAME_EXISTS => '用户名已被使用',
+            self::AUTH_EMAIL_EXISTS => '邮箱已被使用',
+            self::AUTH_USERNAME_CHANGE_LIMITED => '用户名修改过于频繁',
+            self::AUTH_TOKEN_INVALID => '登录状态无效或已过期',
+            self::AUTH_REFRESH_TOKEN_REUSED => '检测到刷新令牌重复使用，相关会话已撤销',
+            self::AUTH_DEVICE_LIMIT_REACHED => '最多允许三台设备同时登录',
+            self::AUTH_USER_DISABLED => '账号已被禁用',
+            self::AUTH_ANONYMOUS_MERGE_FAILED => '匿名游戏记录合并失败',
             self::GAME_NOT_FOUND => '游戏不存在',
             self::GAME_STATUS_INVALID => '当前游戏状态不允许此操作',
             self::GAME_QUESTION_LIMIT_REACHED => '提问次数已用完，请提交最终猜测',
@@ -99,7 +127,21 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::REQUEST_FREQUENCY => 429,
             self::DATA_NOT_FOUND => 404,
             self::GAME_NOT_FOUND => 404,
-            self::AUTH_ANONYMOUS_INVALID => 401,
+            self::AUTH_ANONYMOUS_INVALID,
+            self::AUTH_CREDENTIALS_INVALID,
+            self::AUTH_TOKEN_INVALID,
+            self::AUTH_REFRESH_TOKEN_REUSED => 401,
+            self::AUTH_USER_NOT_FOUND => 404,
+            self::AUTH_USER_DISABLED => 403,
+            self::AUTH_EMAIL_CODE_RATE_LIMITED => 429,
+            self::AUTH_EMAIL_NOT_VERIFIED,
+            self::AUTH_EMAIL_CODE_INVALID,
+            self::AUTH_EMAIL_CODE_EXPIRED => 422,
+            self::AUTH_USERNAME_EXISTS,
+            self::AUTH_EMAIL_EXISTS,
+            self::AUTH_USERNAME_CHANGE_LIMITED,
+            self::AUTH_DEVICE_LIMIT_REACHED,
+            self::AUTH_ANONYMOUS_MERGE_FAILED => 409,
             self::QUESTION_NOT_FOUND => 404,
             self::DATA_ALREADY_EXISTS,
             self::DATA_STATUS_ERROR => 409,
@@ -147,7 +189,21 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::TAG_NOT_FOUND,
             self::TAG_IN_USE,
             self::TAG_SLUG_INVALID => ErrorModule::QUESTION,
-            self::AUTH_ANONYMOUS_INVALID => ErrorModule::AUTH,
+            self::AUTH_ANONYMOUS_INVALID,
+            self::AUTH_USER_NOT_FOUND,
+            self::AUTH_CREDENTIALS_INVALID,
+            self::AUTH_EMAIL_NOT_VERIFIED,
+            self::AUTH_EMAIL_CODE_INVALID,
+            self::AUTH_EMAIL_CODE_EXPIRED,
+            self::AUTH_EMAIL_CODE_RATE_LIMITED,
+            self::AUTH_USERNAME_EXISTS,
+            self::AUTH_EMAIL_EXISTS,
+            self::AUTH_USERNAME_CHANGE_LIMITED,
+            self::AUTH_TOKEN_INVALID,
+            self::AUTH_REFRESH_TOKEN_REUSED,
+            self::AUTH_DEVICE_LIMIT_REACHED,
+            self::AUTH_USER_DISABLED,
+            self::AUTH_ANONYMOUS_MERGE_FAILED => ErrorModule::AUTH,
             self::GAME_NOT_FOUND,
             self::GAME_STATUS_INVALID,
             self::GAME_QUESTION_LIMIT_REACHED,
@@ -172,6 +228,20 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::DATA_ALREADY_EXISTS,
             self::DATA_STATUS_ERROR => ErrorSeverity::INFO,
             self::AUTH_ANONYMOUS_INVALID,
+            self::AUTH_USER_NOT_FOUND,
+            self::AUTH_CREDENTIALS_INVALID,
+            self::AUTH_EMAIL_NOT_VERIFIED,
+            self::AUTH_EMAIL_CODE_INVALID,
+            self::AUTH_EMAIL_CODE_EXPIRED,
+            self::AUTH_EMAIL_CODE_RATE_LIMITED,
+            self::AUTH_USERNAME_EXISTS,
+            self::AUTH_EMAIL_EXISTS,
+            self::AUTH_USERNAME_CHANGE_LIMITED,
+            self::AUTH_TOKEN_INVALID,
+            self::AUTH_REFRESH_TOKEN_REUSED,
+            self::AUTH_DEVICE_LIMIT_REACHED,
+            self::AUTH_USER_DISABLED,
+            self::AUTH_ANONYMOUS_MERGE_FAILED,
             self::GAME_NOT_FOUND,
             self::GAME_STATUS_INVALID,
             self::GAME_QUESTION_LIMIT_REACHED,

@@ -1,6 +1,7 @@
 includes:
     - phpstan-baseline.neon
     - phpstan-game-baseline.neon
+    - phpstan-player-baseline.neon
 
 parameters:
     level: 6

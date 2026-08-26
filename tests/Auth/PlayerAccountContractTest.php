@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Auth;
+
+use App\Auth\Entities\PlayerContext;
+use App\Auth\Enums\IdentityProvider;
+use App\Auth\Services\EmailCodeService;
+use App\Common\Enums\ErrorCode;
+use PHPUnit\Framework\TestCase;
+
+final class PlayerAccountContractTest extends TestCase
+{
+    public function testPlayerContextDistinguishesRegisteredAndAnonymousPlayers(): void
+    {
+        self::assertTrue((new PlayerContext(userId: 10, refreshSessionId: 20))->isUser());
+        self::assertFalse((new PlayerContext(anonymousSessionId: 30))->isUser());
+    }
+
+    public function testEmailNormalizationAndWechatProvidersAreStable(): void
+    {
+        self::assertSame('player@example.com', EmailCodeService::normalizeEmail(' Player@Example.COM '));
+        self::assertSame('wechat_mini_program', IdentityProvider::WECHAT_MINI_PROGRAM->value);
+        self::assertSame('wechat_official_account', IdentityProvider::WECHAT_OFFICIAL_ACCOUNT->value);
+    }
+
+    public function testPlayerAuthenticationErrorsRemainStable(): void
+    {
+        self::assertSame('auth.device_limit_reached', ErrorCode::AUTH_DEVICE_LIMIT_REACHED->value);
+        self::assertSame(401, ErrorCode::AUTH_TOKEN_INVALID->httpStatus());
+        self::assertFalse(ErrorCode::AUTH_CREDENTIALS_INVALID->isReportable());
+    }
+
+    public function testMigrationContainsNoSeederOrRawSql(): void
+    {
+        $migration = file_get_contents(dirname(__DIR__, 2).'/database/migrations/20260826010004_create_player_accounts.php');
+        self::assertIsString($migration);
+        self::assertStringContainsString("'turtle_users'", $migration);
+        self::assertStringContainsString("'wechat_mini_program'", file_get_contents(dirname(__DIR__, 2).'/app/Auth/Enums/IdentityProvider.php'));
+        self::assertStringNotContainsString('DemoSeeder', $migration);
+        self::assertStringNotContainsString('execute("', $migration);
+    }
+}

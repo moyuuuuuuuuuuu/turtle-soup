@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Game\Repositories;
 
+use App\Auth\Entities\PlayerContext;
 use App\Game\Models\Game;
 use App\Game\Models\GameAiRequest;
 use App\Game\Models\GameDiscoveredPoint;
@@ -13,9 +14,10 @@ use App\Game\Models\GameMessage;
 
 final class GameRepository
 {
-    public function find(string $publicId, int $sessionId, bool $lock = false): ?Game
+    public function find(string $publicId, PlayerContext $context, bool $lock = false): ?Game
     {
-        $q = Game::query()->where('public_id', $publicId)->where('anonymous_session_id', $sessionId);
+        $q = Game::query()->where('public_id', $publicId);
+        $context->isUser() ? $q->where('user_id', $context->userId) : $q->where('anonymous_session_id', $context->anonymousSessionId);
         if ($lock) {
             $q->lockForUpdate();
         } $game = $q->first();

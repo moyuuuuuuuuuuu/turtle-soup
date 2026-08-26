@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Game\Business;
 
-use App\Auth\Models\AnonymousSession;
+use App\Auth\Entities\PlayerContext;
 use App\Common\Enums\ErrorCode;
 use App\Common\Support\PublicId;
 use App\Game\Contracts\GameJudgeInterface;
@@ -26,7 +26,7 @@ final class GameBusiness
         $this->repository = $repository ?? new GameRepository();
         $this->judge = $judge ?? GameJudgeFactory::make();
     }
-    public function create(AnonymousSession $session, string $questionPublicId, string $language, bool $riskConfirmed): array
+    public function create(PlayerContext $context, string $questionPublicId, string $language, bool $riskConfirmed): array
     {
         $question = Question::with(['translations','points.translations','hints.translations','tags'])->where('public_id', $questionPublicId)->where('status', 'published')->whereIn('risk_level', ['safe','caution'])->first();
         if (!$question instanceof Question) {
@@ -41,23 +41,25 @@ final class GameBusiness
         }
         $snapshot = ['title' => $translation->title,'surface' => $translation->surface,'bottom' => $translation->bottom,'language' => $translation->language,'risk_level' => $question->risk_level,'points' => $question->points->map(fn ($p) => ['key' => 'point_'.$p->id,'content' => $p->translations->firstWhere('language', $translation->language)?->content ?? $p->translations->firstWhere('language', 'zh-CN')?->content,'required' => (bool)$p->is_required,'weight' => (int)$p->weight])->all(),'hints' => $question->hints->mapWithKeys(fn ($h) => [(int)$h->level => $h->translations->firstWhere('language', $translation->language)?->content ?? $h->translations->firstWhere('language', 'zh-CN')?->content])->all()];
         $limit = (array)config('game.question_limits');
-        $game = Game::create(['public_id' => PublicId::make(),'question_id' => $question->id,'anonymous_session_id' => $session->id,'status' => 'created','content_locale' => $translation->language,'difficulty' => $question->difficulty,'question_limit' => $limit[(int)$question->difficulty] ?? 12,'risk_confirmed' => $riskConfirmed,'question_snapshot' => $snapshot]);
+        $game = Game::create(['public_id' => PublicId::make(),'question_id' => $question->id,'anonymous_session_id' => $context->anonymousSessionId,'user_id' => $context->userId,'status' => 'created','content_locale' => $translation->language,'difficulty' => $question->difficulty,'question_limit' => $limit[(int)$question->difficulty] ?? 12,'risk_confirmed' => $riskConfirmed,'question_snapshot' => $snapshot]);
         return GameFormat::snapshot($this->repository->hydrated($game));
     }
-    public function snapshot(AnonymousSession $session, string $id): array
+    public function snapshot(PlayerContext $context, string $id): array
     {
-        return GameFormat::snapshot($this->repository->hydrated($this->required($session, $id)));
+        return GameFormat::snapshot($this->repository->hydrated($this->required($context, $id)));
     }
-    public function history(AnonymousSession $session): array
+    public function history(PlayerContext $context): array
     {
-        return Game::query()->where('anonymous_session_id', $session->id)->orderByDesc('id')->get()->map(fn (Game $g) => ['id' => $g->public_id,'status' => $g->status,'title' => ((array)$g->question_snapshot)['title'] ?? '','difficulty' => (int)$g->difficulty,'question_count' => (int)$g->question_count,'create_time' => $g->create_time])->all();
+        $query = Game::query();
+        $context->isUser() ? $query->where('user_id', $context->userId) : $query->where('anonymous_session_id', $context->anonymousSessionId);
+        return $query->orderByDesc('id')->get()->map(fn (Game $g) => ['id' => $g->public_id,'status' => $g->status,'title' => ((array)$g->question_snapshot)['title'] ?? '','difficulty' => (int)$g->difficulty,'question_count' => (int)$g->question_count,'create_time' => $g->create_time])->all();
     }
-    public function ask(AnonymousSession $session, string $id, string $requestId, string $question): array
+    public function ask(PlayerContext $context, string $id, string $requestId, string $question): array
     {
         if (trim($question) === '' || mb_strlen($question) > 500) {
             ErrorCode::PARAM_ERROR->throw();
         }
-        $game = $this->required($session, $id);
+        $game = $this->required($context, $id);
         if ($this->repository->duplicate($game, $requestId)) {
             return GameFormat::snapshot($this->repository->hydrated($game));
         }
@@ -66,8 +68,8 @@ final class GameBusiness
         $result = $this->runJudge($game, $requestId, 'turtle_question_judge_v1', fn () => $this->judge->judgeQuestion($context, $question));
         $result['matched_point_keys'] = $this->validPointKeys($context, (array)$result['matched_point_keys']);
 
-        return Db::transaction(function () use ($session, $id, $requestId, $question, $result) {
-            $game = $this->required($session, $id, true);
+        return Db::transaction(function () use ($context, $id, $requestId, $question, $result) {
+            $game = $this->required($context, $id, true);
             if ($this->repository->duplicate($game, $requestId)) {
                 return GameFormat::snapshot($this->repository->hydrated($game));
             }
@@ -82,10 +84,10 @@ final class GameBusiness
             return GameFormat::snapshot($this->repository->hydrated($game));
         });
     }
-    public function hint(AnonymousSession $session, string $id, string $requestId, int $level): array
+    public function hint(PlayerContext $context, string $id, string $requestId, int $level): array
     {
-        return Db::transaction(function () use ($session, $id, $requestId, $level) {
-            $game = $this->required($session, $id, true);
+        return Db::transaction(function () use ($context, $id, $requestId, $level) {
+            $game = $this->required($context, $id, true);
             if ($this->repository->duplicateHint($game, $requestId)) {
                 return GameFormat::snapshot($this->repository->hydrated($game));
             }
@@ -102,12 +104,12 @@ final class GameBusiness
             return GameFormat::snapshot($this->repository->hydrated($game));
         });
     }
-    public function guess(AnonymousSession $session, string $id, string $requestId, string $guess): array
+    public function guess(PlayerContext $context, string $id, string $requestId, string $guess): array
     {
         if (trim($guess) === '' || mb_strlen($guess) > 2000) {
             ErrorCode::PARAM_ERROR->throw();
         }
-        $game = $this->required($session, $id);
+        $game = $this->required($context, $id);
         if ($this->repository->duplicateGuess($game, $requestId)) {
             return GameFormat::snapshot($this->repository->hydrated($game));
         }
@@ -118,8 +120,8 @@ final class GameBusiness
         $result = $this->runJudge($game, $requestId, 'turtle_guess_judge_v1', fn () => $this->judge->judgeGuess($context, $guess));
         $result['matched_point_keys'] = $this->validPointKeys($context, (array)$result['matched_point_keys']);
 
-        return Db::transaction(function () use ($session, $id, $requestId, $guess, $result) {
-            $game = $this->required($session, $id, true);
+        return Db::transaction(function () use ($context, $id, $requestId, $guess, $result) {
+            $game = $this->required($context, $id, true);
             if ($this->repository->duplicateGuess($game, $requestId)) {
                 return GameFormat::snapshot($this->repository->hydrated($game));
             }
@@ -137,17 +139,17 @@ final class GameBusiness
             return GameFormat::snapshot($this->repository->hydrated($game));
         });
     }
-    public function abandon(AnonymousSession $session, string $id): array
+    public function abandon(PlayerContext $context, string $id): array
     {
-        $game = $this->required($session, $id);
+        $game = $this->required($context, $id);
         if (!in_array($game->getAttribute('status'), ['created','playing'], true)) {
             ErrorCode::GAME_STATUS_INVALID->throw();
         }$game->update(['status' => 'abandoned','finished_at' => date('Y-m-d H:i:s')]);
         return GameFormat::snapshot($this->repository->hydrated($game));
     }
-    private function required(AnonymousSession $session, string $id, bool $lock = false): Game
+    private function required(PlayerContext $context, string $id, bool $lock = false): Game
     {
-        return $this->repository->find($id, (int)$session->id, $lock) ?? ErrorCode::GAME_NOT_FOUND->throw();
+        return $this->repository->find($id, $context, $lock) ?? ErrorCode::GAME_NOT_FOUND->throw();
     }
     private function assertCanAsk(Game $game): void
     {

@@ -126,6 +126,12 @@ Route::group('/core', function () {
     Route::get('/question/history', [\App\Question\Controllers\QuestionController::class, 'history']);
     Route::get('/question/historyRead', [\App\Question\Controllers\QuestionController::class, 'historyRead']);
     Route::post('/question/historyRestore', [\App\Question\Controllers\QuestionController::class, 'historyRestore']);
+    Route::get('/player/index', [\App\Auth\Controllers\PlayerAdminController::class, 'index']);
+    Route::get('/player/read', [\App\Auth\Controllers\PlayerAdminController::class, 'read']);
+    Route::post('/player/status', [\App\Auth\Controllers\PlayerAdminController::class, 'status']);
+    Route::post('/player/revoke', [\App\Auth\Controllers\PlayerAdminController::class, 'revoke']);
+    Route::get('/player/loginLogs', [\App\Auth\Controllers\PlayerAdminController::class, 'loginLogs']);
+    Route::get('/player/mergeLogs', [\App\Auth\Controllers\PlayerAdminController::class, 'mergeLogs']);
     fastRoute('questionTag', \App\Question\Controllers\TagController::class);
     Route::post('/questionAi/create', [\App\Ai\Controllers\ContentParseController::class, 'create']);
     Route::get('/questionAi/read', [\App\Ai\Controllers\ContentParseController::class, 'read']);

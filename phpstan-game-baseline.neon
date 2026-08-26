@@ -19,12 +19,6 @@ parameters:
 			path: app/Auth/Business/AnonymousSessionBusiness.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Game/Business/GameBusiness.php
-
-		-
 			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$create_time\.$#'
 			identifier: property.notFound
 			count: 1
@@ -359,24 +353,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Game/Services/MockGameJudge.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Game/WebSocket/GameWebSocket.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$public_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Game/WebSocket/GameWebSocket.php
-
-		-
-			message: '#^Access to an undefined property Workerman\\Connection\\TcpConnection\:\:\$sessionId\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Game/WebSocket/GameWebSocket.php
 
 		-
 			message: '#^Method App\\Game\\WebSocket\\GameWebSocket\:\:send\(\) has parameter \$data with no value type specified in iterable type array\.$#'

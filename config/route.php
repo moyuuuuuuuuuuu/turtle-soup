@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /**
  * This file is part of webman.
  *
@@ -18,6 +20,21 @@ Route::options('/api/v1/{path:.*}', static fn () => response('', 204));
 Route::get('/api/v1/health', [App\Health\Controllers\HealthController::class, 'index']);
 Route::post('/api/v1/anonymous/session', [App\Auth\Controllers\AnonymousSessionController::class, 'issue']);
 Route::post('/api/v1/anonymous/session/renew', [App\Auth\Controllers\AnonymousSessionController::class, 'renew']);
+Route::post('/api/v1/auth/email-code/send', [App\Auth\Controllers\PlayerAuthController::class, 'sendEmailCode']);
+Route::post('/api/v1/auth/register', [App\Auth\Controllers\PlayerAuthController::class, 'register']);
+Route::post('/api/v1/auth/login/password', [App\Auth\Controllers\PlayerAuthController::class, 'passwordLogin']);
+Route::post('/api/v1/auth/login/email-code', [App\Auth\Controllers\PlayerAuthController::class, 'emailCodeLogin']);
+Route::post('/api/v1/auth/token/refresh', [App\Auth\Controllers\PlayerAuthController::class, 'refresh']);
+Route::post('/api/v1/auth/logout', [App\Auth\Controllers\PlayerAuthController::class, 'logout']);
+Route::post('/api/v1/auth/logout-all', [App\Auth\Controllers\PlayerAuthController::class, 'logoutAll']);
+Route::post('/api/v1/auth/password/change', [App\Auth\Controllers\PlayerAuthController::class, 'changePassword']);
+Route::post('/api/v1/auth/password/reset', [App\Auth\Controllers\PlayerAuthController::class, 'resetPassword']);
+Route::get('/api/v1/me', [App\Auth\Controllers\PlayerAuthController::class, 'me']);
+Route::patch('/api/v1/me/username', [App\Auth\Controllers\PlayerAuthController::class, 'changeUsername']);
+Route::post('/api/v1/me/username', [App\Auth\Controllers\PlayerAuthController::class, 'changeUsername']);
+Route::post('/api/v1/me/email/change', [App\Auth\Controllers\PlayerAuthController::class, 'changeEmail']);
+Route::get('/api/v1/me/sessions', [App\Auth\Controllers\PlayerAuthController::class, 'sessions']);
+Route::delete('/api/v1/me/sessions', [App\Auth\Controllers\PlayerAuthController::class, 'revokeSession']);
 Route::get('/api/v1/questions', [App\Question\Controllers\PublicQuestionController::class, 'index']);
 Route::get('/api/v1/questions/read', [App\Question\Controllers\PublicQuestionController::class, 'read']);
 Route::get('/api/v1/questions/random', [App\Question\Controllers\PublicQuestionController::class, 'random']);

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Game\WebSocket;
 
-use App\Auth\Business\AnonymousSessionBusiness;
-use App\Auth\Models\AnonymousSession;
+use App\Auth\Entities\PlayerContext;
+use App\Auth\Services\PlayerPrincipalService;
 use App\Game\Business\GameBusiness;
 use Throwable;
 use Workerman\Connection\TcpConnection;
@@ -14,7 +14,7 @@ final class GameWebSocket
 {
     public function onConnect(TcpConnection $connection): void
     {
-        $connection->sessionId = null;
+        $connection->playerContext = null;
     }
     public function onMessage(TcpConnection $connection, string $raw): void
     {
@@ -25,21 +25,21 @@ final class GameWebSocket
             $requestId = (string)($data['request_id'] ?? '');
             $payload = (array)($data['data'] ?? []);
             if ($event === 'v1.auth') {
-                $session = (new AnonymousSessionBusiness())->authenticate((string)($payload['token'] ?? ''));
-                $connection->sessionId = (int)$session->id;
-                $this->send($connection, 'v1.authenticated', $requestId, ['session_id' => $session->public_id]);
+                $context = (new PlayerPrincipalService())->authenticate((string)($payload['token'] ?? ''));
+                $connection->playerContext = $context;
+                $this->send($connection, 'v1.authenticated', $requestId, ['identity' => $context->isUser() ? 'user' : 'anonymous']);
                 return;
             }
             if ($event === 'v1.ping') {
-                $this->session($connection);
+                $this->context($connection);
                 $this->send($connection, 'v1.pong', $requestId, []);
                 return;
             }
-            $session = $this->session($connection);
+            $context = $this->context($connection);
             $business = new GameBusiness();
             $gameId = (string)($payload['game_id'] ?? '');
             $result = match($event) {
-                'v1.game.join' => $business->snapshot($session, $gameId),'v1.game.question' => $business->ask($session, $gameId, $requestId, (string)($payload['question'] ?? '')),'v1.game.hint' => $business->hint($session, $gameId, $requestId, (int)($payload['level'] ?? 0)),'v1.game.guess' => $business->guess($session, $gameId, $requestId, (string)($payload['guess'] ?? '')),default => throw new \InvalidArgumentException('request.param_error')
+                'v1.game.join' => $business->snapshot($context, $gameId),'v1.game.question' => $business->ask($context, $gameId, $requestId, (string)($payload['question'] ?? '')),'v1.game.hint' => $business->hint($context, $gameId, $requestId, (int)($payload['level'] ?? 0)),'v1.game.guess' => $business->guess($context, $gameId, $requestId, (string)($payload['guess'] ?? '')),default => throw new \InvalidArgumentException('request.param_error')
             };
             $out = match($event) {
                 'v1.game.question' => 'v1.game.answer','v1.game.guess' => (($result['status'] ?? '') === 'solved' ? 'v1.game.solved' : 'v1.game.finished'),default => 'v1.game.snapshot'
@@ -49,14 +49,13 @@ final class GameWebSocket
             $this->send($connection, 'v1.game.error', $requestId, ['code' => $exception->getMessage() ?: 'system.error','retryable' => str_starts_with($exception->getMessage(), 'ai.')]);
         }
     }
-    private function session(TcpConnection $connection): AnonymousSession
+    private function context(TcpConnection $connection): PlayerContext
     {
-        if (!$connection->sessionId) {
+        if (!$connection->playerContext instanceof PlayerContext) {
             throw new \RuntimeException('auth.anonymous_invalid');
-        }$session = AnonymousSession::find($connection->sessionId);
-        if (!$session instanceof AnonymousSession) {
-            throw new \RuntimeException('auth.anonymous_invalid');
-        }return $session;
+        }
+        (new PlayerPrincipalService())->validate($connection->playerContext);
+        return $connection->playerContext;
     }
     private function send(TcpConnection $connection, string $event, string $requestId, array $data): void
     {

@@ -33,7 +33,7 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 - [ ] Remove Wot Starter demo pages and assets that are not needed by the product.
 - [ ] Establish development, staging, and production configuration.
 - [ ] Implement the typed user API client and stable error-code handling.
-- [ ] Implement access-token storage and refresh orchestration.
+- [x] Implement access-token storage and refresh orchestration.
 - [x] Implement the WebSocket client foundation and reconnect state machine.
 - [ ] Establish product theme, layout, and Chinese locale resources.
 
@@ -53,26 +53,27 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 ## Milestone 1 — Anonymous and registered identity
 
-- [ ] Create migration files for users, user identities, guest sessions, refresh tokens, email verification codes, and login logs.
-- [ ] Review migrations without running them until explicitly authorized.
+- [x] Create migration files for users, user identities, guest sessions, refresh tokens, email verification codes, login logs, and anonymous merge logs.
+- [x] Review migrations without running them until explicitly authorized.
 - [x] Implement anonymous session issuance and renewal.
-- [ ] Implement username/password registration and login.
-- [ ] Implement email/password registration and login.
-- [ ] Implement email verification-code login.
-- [ ] Hash passwords with a current password API.
-- [ ] Hash email codes; enforce expiry, single use, rate limits, and attempt limits.
-- [ ] Implement short-lived access tokens and revocable refresh tokens.
-- [ ] Implement logout, password change, and password recovery.
-- [ ] Migrate eligible anonymous history when an account is registered or upgraded.
-- [ ] Model identities so future WeChat Mini Program and Official Account identities can be bound.
+- [x] Implement username/password and email/password login through one normalized account endpoint.
+- [x] Implement open registration with verified email.
+- [x] Implement email verification-code login.
+- [x] Hash passwords with Argon2id and bcrypt fallback.
+- [x] Hash email codes; enforce expiry, single use, rate limits, and attempt limits.
+- [x] Implement short-lived access tokens, rotating refresh tokens, family reuse detection, and a three-device limit.
+- [x] Implement logout, session revocation, password change, and password recovery.
+- [x] Merge eligible anonymous history transactionally after registration or login.
+- [x] Model identities for future WeChat Mini Program and Official Account binding without exposing login routes.
+- [x] Add account/security pages and player management pages.
 - [ ] Enforce registered-user-only multiplayer access on the backend.
 
 ### Acceptance
 
 - [ ] Anonymous users can access allowed single-player operations.
 - [ ] Anonymous multiplayer access returns `room.login_required`.
-- [ ] All three initial login methods work.
-- [ ] Token refresh and revocation work.
+- [ ] All three initial login methods work against the migrated local database.
+- [ ] Token refresh and revocation work against the migrated local database.
 
 ## Milestone 2 — Question bank and management
 
