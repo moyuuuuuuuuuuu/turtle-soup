@@ -11,6 +11,7 @@ use App\Auth\Models\RefreshSession;
 use App\Auth\Models\User;
 use App\Auth\Models\UserLoginLog;
 use App\Auth\Repositories\PlayerRepository;
+use App\Auth\Services\BosAvatarService;
 use App\Auth\Services\EmailCodeService;
 use App\Auth\Services\PlayerTokenService;
 use App\Common\Enums\ErrorCode;
@@ -20,15 +21,15 @@ use Throwable;
 
 final class PlayerAuthBusiness
 {
-    public function __construct(private readonly PlayerRepository $repository = new PlayerRepository(), private readonly PlayerTokenService $tokens = new PlayerTokenService(), private readonly EmailCodeService $codes = new EmailCodeService())
+    public function __construct(private readonly PlayerRepository $repository = new PlayerRepository(), private readonly PlayerTokenService $tokens = new PlayerTokenService(), private readonly EmailCodeService $codes = new EmailCodeService(), private readonly BosAvatarService $avatars = new BosAvatarService())
     {
     }
 
     public function register(array $data, string $anonymousToken, array $device): array
     {
-        $username = trim((string) ($data['username'] ?? ''));
-        $normalized = mb_strtolower($username);
         $email = EmailCodeService::normalizeEmail((string) ($data['email'] ?? ''));
+        $username = trim((string) ($data['username'] ?? '')) ?: $this->availableUsername($email);
+        $normalized = mb_strtolower($username);
         $password = (string) ($data['password'] ?? '');
         $this->validateProfile($username, $email, $password);
         if (User::query()->where('username_normalized', $normalized)->exists()) {
@@ -39,15 +40,17 @@ final class PlayerAuthBusiness
         }
         $this->codes->verify($email, 'register', (string) ($data['email_code'] ?? ''));
         return Db::transaction(function () use ($username, $normalized, $email, $password, $anonymousToken, $device) {
-            $user = User::create(['public_id' => PublicId::make(), 'username' => $username, 'username_normalized' => $normalized, 'email' => $email, 'email_normalized' => $email, 'password_hash' => $this->passwordHash($password), 'status' => 'active', 'email_verified_at' => date('Y-m-d H:i:s'), 'last_login_at' => date('Y-m-d H:i:s')]);
+            $publicId = PublicId::make();
+            $avatar = $this->avatars->createDefault($email, $publicId);
+            $user = User::create(['public_id' => $publicId, 'username' => $username, 'username_normalized' => $normalized, 'email' => $email, 'email_normalized' => $email, 'avatar_url' => $avatar['url'], 'avatar_object_key' => $avatar['object_key'], 'password_hash' => $this->passwordHash($password), 'status' => 'active', 'email_verified_at' => date('Y-m-d H:i:s'), 'last_login_at' => date('Y-m-d H:i:s')]);
             return $this->loginResponse($user, $anonymousToken, $device, 'register');
         });
     }
 
     public function passwordLogin(array $data, string $anonymousToken, array $device): array
     {
-        $account = mb_strtolower(trim((string) ($data['account'] ?? '')));
-        $user = $this->repository->byAccount($account);
+        $email = EmailCodeService::normalizeEmail((string) ($data['email'] ?? ''));
+        $user = $this->repository->byEmail($email);
         if (!$user instanceof User || !password_verify((string) ($data['password'] ?? ''), (string) $user->password_hash)) {
             ErrorCode::AUTH_CREDENTIALS_INVALID->throw();
         }
@@ -207,6 +210,16 @@ final class PlayerAuthBusiness
     private function passwordHash(string $p): string
     {
         return password_hash($p, defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT);
+    }
+    private function availableUsername(string $email): string
+    {
+        $base = preg_replace('/[^A-Za-z0-9_]/', '_', explode('@', $email, 2)[0]) ?: 'player';
+        $base = substr(str_pad($base, 3, '_'), 0, 19);
+        $candidate = $base;
+        while (User::query()->where('username_normalized', mb_strtolower($candidate))->exists()) {
+            $candidate = $base.'_'.substr(bin2hex(random_bytes(3)), 0, 4);
+        }
+        return $candidate;
     }
     private static function maskEmail(string $e): string
     {

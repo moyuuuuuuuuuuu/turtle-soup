@@ -12,12 +12,6 @@ use App\Game\Models\Game;
 
 final class PlayerRepository
 {
-    public function byAccount(string $normalized): ?User
-    {
-        $user = User::query()->where('username_normalized', $normalized)->orWhere('email_normalized', $normalized)->first();
-        return $user instanceof User ? $user : null;
-    }
-
     public function byEmail(string $email): ?User
     {
         $user = User::query()->where('email_normalized', $email)->first();

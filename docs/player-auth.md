@@ -2,9 +2,13 @@
 
 玩家账号与 SaiAdmin 管理员账号完全隔离。玩家接口位于 `/api/v1`，使用 15 分钟 JWT Access Token 和 30 天不透明 Refresh Token；数据库仅保存 Refresh Token 摘要。
 
+玩家只允许使用邮箱登录：邮箱 + 密码或邮箱 + 验证码。用户名仅作为公开显示名称，不再参与登录匹配；注册时可留空，系统会从邮箱前缀生成一个可修改的显示名称。
+
 ## 环境配置
 
 复制 `.env.example` 中 `PLAYER_AUTH_*` 与 `MAIL_*` 配置到本地 `.env`。JWT、验证码 HMAC 密钥和 SMTP 密码必须使用独立随机值，不得提交。修改配置后重启 Webman 与 `player_email` Redis Queue 消费进程。
+
+默认头像使用邮箱首字母生成 SVG，并由后端上传到百度 BOS。必须配置 `BOS_ACCESS_KEY`、`BOS_SECRET_KEY`、`BOS_ENDPOINT`、`BOS_BUCKET` 和公开访问基址 `BOS_PUBLIC_BASE_URL`。对象键只包含玩家公开 ID，不包含邮箱。
 
 ## 账号与匿名合并
 
@@ -24,4 +28,4 @@
 
 ## 迁移状态
 
-迁移 `20260826010004_create_player_accounts.php` 与 `20260826010005_add_player_management_menu.php` 已生成并完成静态审查，但尚未执行。运行前必须再次获得数据库迁移授权。
+迁移 `20260826010004_create_player_accounts.php` 与 `20260826010005_add_player_management_menu.php` 已于 2026-08-27 获授权后在本地 `turtle_soup` 数据库执行完成。

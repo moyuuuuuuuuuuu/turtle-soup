@@ -16,6 +16,8 @@ final class CreatePlayerAccounts extends AbstractMigration
             ->addColumn('username_normalized', 'string', ['limit' => 24])
             ->addColumn('email', 'string', ['limit' => 254])
             ->addColumn('email_normalized', 'string', ['limit' => 254])
+            ->addColumn('avatar_url', 'string', ['limit' => 500, 'null' => true])
+            ->addColumn('avatar_object_key', 'string', ['limit' => 255, 'null' => true])
             ->addColumn('password_hash', 'string', ['limit' => 255])
             ->addColumn('status', 'string', ['limit' => 20, 'default' => 'active'])
             ->addColumn('email_verified_at', 'datetime')

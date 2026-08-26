@@ -37,8 +37,21 @@ final class PlayerAccountContractTest extends TestCase
         $migration = file_get_contents(dirname(__DIR__, 2).'/database/migrations/20260826010004_create_player_accounts.php');
         self::assertIsString($migration);
         self::assertStringContainsString("'turtle_users'", $migration);
+        self::assertStringContainsString("'avatar_url'", $migration);
+        self::assertStringContainsString("'avatar_object_key'", $migration);
         self::assertStringContainsString("'wechat_mini_program'", file_get_contents(dirname(__DIR__, 2).'/app/Auth/Enums/IdentityProvider.php'));
         self::assertStringNotContainsString('DemoSeeder', $migration);
         self::assertStringNotContainsString('execute("', $migration);
+    }
+
+    public function testPasswordLoginUsesEmailOnlyAndAvatarUsesBos(): void
+    {
+        $business = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Business/PlayerAuthBusiness.php');
+        $repository = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Repositories/PlayerRepository.php');
+        self::assertIsString($business);
+        self::assertIsString($repository);
+        self::assertStringContainsString("\$data['email']", $business);
+        self::assertStringNotContainsString('byAccount', $repository);
+        self::assertStringContainsString('BosAvatarService', $business);
     }
 }

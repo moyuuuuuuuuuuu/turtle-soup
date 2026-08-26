@@ -22,6 +22,7 @@ enum ErrorCode: string implements ErrorCodeInterface
     case DATA_STATUS_ERROR = 'data.status_invalid';
     case THIRD_PARTY_ERROR = 'third_party.error';
     case CONFIG_ERROR = 'system.config_error';
+    case STORAGE_UPLOAD_FAILED = 'storage.upload_failed';
     case AUTH_ANONYMOUS_INVALID = 'auth.anonymous_invalid';
     case AUTH_USER_NOT_FOUND = 'auth.user_not_found';
     case AUTH_CREDENTIALS_INVALID = 'auth.credentials_invalid';
@@ -79,6 +80,7 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::DATA_STATUS_ERROR => '数据状态异常，无法操作',
             self::THIRD_PARTY_ERROR => '第三方服务异常',
             self::CONFIG_ERROR => '系统配置错误，请联系管理员',
+            self::STORAGE_UPLOAD_FAILED => '头像存储失败，请稍后重试',
             self::AUTH_ANONYMOUS_INVALID => '匿名会话无效或已过期',
             self::AUTH_USER_NOT_FOUND => '玩家账号不存在',
             self::AUTH_CREDENTIALS_INVALID => '账号或凭证错误',
@@ -165,6 +167,7 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::AI_AUTH_FAILED,
             self::AI_WORKFLOW_FAILED => 502,
             self::THIRD_PARTY_ERROR => 502,
+            self::STORAGE_UPLOAD_FAILED => 502,
             self::SYSTEM_MAINTENANCE => 503,
             default => 500,
         };
@@ -262,6 +265,7 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::SYSTEM_BUSY,
             self::SYSTEM_MAINTENANCE,
             self::THIRD_PARTY_ERROR => ErrorSeverity::WARNING,
+            self::STORAGE_UPLOAD_FAILED => ErrorSeverity::ERROR,
             self::AI_WORKFLOW_TIMEOUT => ErrorSeverity::WARNING,
             self::AI_INVALID_RESPONSE => ErrorSeverity::ERROR,
             self::AI_AUTH_FAILED => ErrorSeverity::ERROR,
