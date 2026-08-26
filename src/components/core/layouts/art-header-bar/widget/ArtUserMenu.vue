@@ -74,9 +74,13 @@
   const { getUserInfo: userInfo } = storeToRefs(userStore)
   const userMenuPopover = ref()
   const avatarFailed = ref(false)
-  const avatarSrc = computed(() =>
-    avatarFailed.value ? fallbackAvatar : userInfo.value.avatar || fallbackAvatar
-  )
+  const avatarSrc = computed(() => {
+    const avatar = userInfo.value.avatar || ''
+    const isLegacyUnavailableAvatar = avatar.startsWith('https://image.saithink.top/')
+    return avatarFailed.value || isLegacyUnavailableAvatar
+      ? fallbackAvatar
+      : avatar || fallbackAvatar
+  })
   const useFallbackAvatar = () => {
     avatarFailed.value = true
   }
