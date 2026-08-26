@@ -13,6 +13,7 @@ use App\Game\Models\Game;
 use App\Game\Repositories\GameRepository;
 use App\Game\Services\GameJudgeFactory;
 use App\Question\Models\Question;
+use Illuminate\Database\Eloquent\Collection;
 use support\Db;
 use Throwable;
 
@@ -51,8 +52,30 @@ final class GameBusiness
     public function history(PlayerContext $context): array
     {
         $query = Game::query();
-        $context->isUser() ? $query->where('user_id', $context->userId) : $query->where('anonymous_session_id', $context->anonymousSessionId);
-        return $query->orderByDesc('id')->get()->map(fn (Game $g) => ['id' => $g->public_id,'status' => $g->status,'title' => ((array)$g->question_snapshot)['title'] ?? '','difficulty' => (int)$g->difficulty,'question_count' => (int)$g->question_count,'create_time' => $g->create_time])->all();
+        if ($context->isUser()) {
+            $query->where(static function ($builder) use ($context): void {
+                $builder->where('user_id', $context->userId)
+                    ->orWhereHas('room.members', static fn ($members) => $members->where('user_id', $context->userId)->where('status', 'active'));
+            });
+        } else {
+            $query->whereNull('room_id')->where('anonymous_session_id', $context->anonymousSessionId);
+        }
+        /** @var Collection<int, Game> $games */
+        $games = $query->orderByDesc('id')->get();
+
+        $history = [];
+        foreach ($games as $game) {
+            $history[] = [
+                'id' => (string) $game->public_id,
+                'status' => (string) $game->status,
+                'title' => (string) (((array) $game->question_snapshot)['title'] ?? ''),
+                'difficulty' => (int) $game->difficulty,
+                'question_count' => (int) $game->question_count,
+                'create_time' => (string) $game->create_time,
+            ];
+        }
+
+        return $history;
     }
     public function ask(PlayerContext $context, string $id, string $requestId, string $question): array
     {
@@ -64,9 +87,9 @@ final class GameBusiness
             return GameFormat::snapshot($this->repository->hydrated($game));
         }
         $this->assertCanAsk($game);
-        $context = (array)$game->question_snapshot;
-        $result = $this->runJudge($game, $requestId, 'turtle_question_judge_v1', fn () => $this->judge->judgeQuestion($context, $question));
-        $result['matched_point_keys'] = $this->validPointKeys($context, (array)$result['matched_point_keys']);
+        $questionSnapshot = (array)$game->question_snapshot;
+        $result = $this->runJudge($game, $requestId, 'turtle_question_judge_v1', fn () => $this->judge->judgeQuestion($questionSnapshot, $question));
+        $result['matched_point_keys'] = $this->validPointKeys($questionSnapshot, (array)$result['matched_point_keys']);
 
         return Db::transaction(function () use ($context, $id, $requestId, $question, $result) {
             $game = $this->required($context, $id, true);
@@ -77,7 +100,7 @@ final class GameBusiness
             if (!in_array($result['answer'] ?? '', ['yes','no','irrelevant','partial'], true)) {
                 ErrorCode::AI_INVALID_RESPONSE->throw();
             }
-            $this->repository->message($game, $requestId.':q', 'player', 'question', $question);
+            $this->repository->message($game, $requestId.':q', 'player', 'question', $question, [], $context->userId);
             $this->repository->message($game, $requestId, 'host', 'answer', (string)$result['reply'], ['answer' => $result['answer']]);
             $this->repository->discover($game, (array)$result['matched_point_keys']);
             $game->update(['status' => 'playing','question_count' => (int)$game->question_count + 1,'started_at' => $game->started_at ?: date('Y-m-d H:i:s')]);
@@ -116,9 +139,9 @@ final class GameBusiness
         if (!in_array($game->status, ['created','playing'], true) || $game->guess()->exists()) {
             ErrorCode::GAME_STATUS_INVALID->throw();
         }
-        $context = (array)$game->question_snapshot;
-        $result = $this->runJudge($game, $requestId, 'turtle_guess_judge_v1', fn () => $this->judge->judgeGuess($context, $guess));
-        $result['matched_point_keys'] = $this->validPointKeys($context, (array)$result['matched_point_keys']);
+        $questionSnapshot = (array)$game->question_snapshot;
+        $result = $this->runJudge($game, $requestId, 'turtle_guess_judge_v1', fn () => $this->judge->judgeGuess($questionSnapshot, $guess));
+        $result['matched_point_keys'] = $this->validPointKeys($questionSnapshot, (array)$result['matched_point_keys']);
 
         return Db::transaction(function () use ($context, $id, $requestId, $guess, $result) {
             $game = $this->required($context, $id, true);
@@ -133,18 +156,27 @@ final class GameBusiness
             }
             $this->repository->guess($game, $requestId, $guess, $result);
             $this->repository->discover($game, (array)$result['matched_point_keys']);
-            $this->repository->message($game, $requestId, 'player', 'guess', $guess);
+            $this->repository->message($game, $requestId, 'player', 'guess', $guess, [], $context->userId);
             $this->repository->message($game, $requestId.':result', 'host', 'result', (string)($result['summary'] ?? ''), ['is_solved' => (bool)$result['is_solved']]);
             $game->update(['status' => $result['is_solved'] ? 'solved' : 'finished','finished_at' => date('Y-m-d H:i:s')]);
+            if ($game->room_id) {
+                $game->room()->update(['status' => 'finished', 'finished_at' => date('Y-m-d H:i:s')]);
+            }
             return GameFormat::snapshot($this->repository->hydrated($game));
         });
     }
     public function abandon(PlayerContext $context, string $id): array
     {
         $game = $this->required($context, $id);
+        if ($game->room_id && (int) $game->room?->owner_user_id !== (int) $context->userId) {
+            ErrorCode::ROOM_OWNER_REQUIRED->throw();
+        }
         if (!in_array($game->getAttribute('status'), ['created','playing'], true)) {
             ErrorCode::GAME_STATUS_INVALID->throw();
         }$game->update(['status' => 'abandoned','finished_at' => date('Y-m-d H:i:s')]);
+        if ($game->room_id) {
+            $game->room()->update(['status' => 'finished', 'finished_at' => date('Y-m-d H:i:s')]);
+        }
         return GameFormat::snapshot($this->repository->hydrated($game));
     }
     private function required(PlayerContext $context, string $id, bool $lock = false): Game

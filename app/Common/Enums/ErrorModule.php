@@ -13,6 +13,7 @@ enum ErrorModule: string
     case QUESTION = 'question';
     case GAME = 'game';
     case ROOM = 'room';
+    case DONATION = 'donation';
     case AI = 'ai';
     case COZE = 'coze';
     case WECHAT = 'wechat';

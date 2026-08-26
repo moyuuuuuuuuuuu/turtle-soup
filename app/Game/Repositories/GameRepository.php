@@ -17,7 +17,14 @@ final class GameRepository
     public function find(string $publicId, PlayerContext $context, bool $lock = false): ?Game
     {
         $q = Game::query()->where('public_id', $publicId);
-        $context->isUser() ? $q->where('user_id', $context->userId) : $q->where('anonymous_session_id', $context->anonymousSessionId);
+        if ($context->isUser()) {
+            $q->where(static function ($query) use ($context): void {
+                $query->where('user_id', $context->userId)
+                    ->orWhereHas('room.members', static fn ($members) => $members->where('user_id', $context->userId)->where('status', 'active'));
+            });
+        } else {
+            $q->whereNull('room_id')->where('anonymous_session_id', $context->anonymousSessionId);
+        }
         if ($lock) {
             $q->lockForUpdate();
         } $game = $q->first();
@@ -25,7 +32,7 @@ final class GameRepository
     }
     public function hydrated(Game $game): Game
     {
-        return $game->fresh(['messages','hints','points','guess']) ?? $game;
+        return $game->fresh(['messages','hints','points','guess','room']) ?? $game;
     }
     public function duplicate(Game $game, string $requestId): ?GameMessage
     {
@@ -64,10 +71,10 @@ final class GameRepository
     {
         $request->update(['status' => 'failed','latency_ms' => $latencyMs,'safe_result' => null,'error_code' => $errorCode]);
     }
-    public function message(Game $game, string $requestId, string $role, string $type, string $content, array $metadata = []): GameMessage
+    public function message(Game $game, string $requestId, string $role, string $type, string $content, array $metadata = [], ?int $userId = null): GameMessage
     {
         $sequence = (int)$game->next_sequence;
-        $message = GameMessage::create(['game_id' => $game->id,'sequence' => $sequence,'request_id' => $requestId,'role' => $role,'type' => $type,'content' => $content,'metadata' => $metadata]);
+        $message = GameMessage::create(['game_id' => $game->id,'user_id' => $userId,'sequence' => $sequence,'request_id' => $requestId,'role' => $role,'type' => $type,'content' => $content,'metadata' => $metadata]);
         $game->update(['next_sequence' => $sequence + 1]);
         return $message;
     }

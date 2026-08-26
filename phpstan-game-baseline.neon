@@ -37,12 +37,6 @@ parameters:
 			path: app/Game/Business/GameBusiness.php
 
 		-
-			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$public_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Game/Business/GameBusiness.php
-
-		-
 			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_count\.$#'
 			identifier: property.notFound
 			count: 3
@@ -115,32 +109,8 @@ parameters:
 			path: app/Game/Business/GameBusiness.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Game/Business/GameBusiness.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) expects callable\(stdClass, int\)\: array\{id\: mixed, status\: mixed, title\: mixed, difficulty\: int, question_count\: int, create_time\: mixed\}, Closure\(App\\Game\\Models\\Game\)\: array\{id\: mixed, status\: mixed, title\: mixed, difficulty\: int, question_count\: int, create_time\: mixed\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Game/Business/GameBusiness.php
-
-		-
 			message: '#^Parameter \#1 \$game of method App\\Game\\Repositories\\GameRepository\:\:hydrated\(\) expects App\\Game\\Models\\Game, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Game/Business/GameBusiness.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
-			count: 1
-			path: app/Game/Business/GameBusiness.php
-
-		-
-			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: method.unresolvableReturnType
 			count: 1
 			path: app/Game/Business/GameBusiness.php
 
@@ -211,12 +181,6 @@ parameters:
 			path: app/Game/Formats/GameFormat.php
 
 		-
-			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$public_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Game/Formats/GameFormat.php
-
-		-
 			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_count\.$#'
 			identifier: property.notFound
 			count: 2
@@ -269,12 +233,6 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: app/Game/Models/Game.php
-
-		-
-			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 5
-			path: app/Game/Repositories/GameRepository.php
 
 		-
 			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$next_sequence\.$#'
@@ -353,12 +311,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Game/Services/MockGameJudge.php
-
-		-
-			message: '#^Method App\\Game\\WebSocket\\GameWebSocket\:\:send\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Game/WebSocket/GameWebSocket.php
 
 		-
 			message: '#^Method App\\Question\\Business\\PublicQuestionBusiness\:\:page\(\) return type has no value type specified in iterable type array\.$#'

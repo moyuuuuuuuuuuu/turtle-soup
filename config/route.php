@@ -45,3 +45,13 @@ Route::post('/api/v1/games/ask', [App\Game\Controllers\GameController::class, 'a
 Route::post('/api/v1/games/hint', [App\Game\Controllers\GameController::class, 'hint']);
 Route::post('/api/v1/games/guess', [App\Game\Controllers\GameController::class, 'guess']);
 Route::post('/api/v1/games/abandon', [App\Game\Controllers\GameController::class, 'abandon']);
+Route::get('/api/v1/rooms', [App\Room\Controllers\RoomController::class, 'index']);
+Route::get('/api/v1/rooms/read', [App\Room\Controllers\RoomController::class, 'read']);
+Route::get('/api/v1/rooms/mine', [App\Room\Controllers\RoomController::class, 'mine']);
+Route::post('/api/v1/rooms', [App\Room\Controllers\RoomController::class, 'create']);
+Route::post('/api/v1/rooms/join', [App\Room\Controllers\RoomController::class, 'join']);
+Route::post('/api/v1/rooms/ready', [App\Room\Controllers\RoomController::class, 'ready']);
+Route::post('/api/v1/rooms/start', [App\Room\Controllers\RoomController::class, 'start']);
+Route::post('/api/v1/rooms/leave', [App\Room\Controllers\RoomController::class, 'leave']);
+Route::post('/api/v1/rooms/close', [App\Room\Controllers\RoomController::class, 'close']);
+Route::get('/api/v1/donations', [App\Donation\Controllers\PublicDonationController::class, 'index']);

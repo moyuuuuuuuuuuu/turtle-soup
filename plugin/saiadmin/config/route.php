@@ -132,6 +132,16 @@ Route::group('/core', function () {
     Route::post('/player/revoke', [\App\Auth\Controllers\PlayerAdminController::class, 'revoke']);
     Route::get('/player/loginLogs', [\App\Auth\Controllers\PlayerAdminController::class, 'loginLogs']);
     Route::get('/player/mergeLogs', [\App\Auth\Controllers\PlayerAdminController::class, 'mergeLogs']);
+    Route::get('/donation/index', [\App\Donation\Controllers\DonationAdminController::class, 'index']);
+    Route::post('/donation/save', [\App\Donation\Controllers\DonationAdminController::class, 'save']);
+    Route::put('/donation/update', [\App\Donation\Controllers\DonationAdminController::class, 'update']);
+    Route::delete('/donation/destroy', [\App\Donation\Controllers\DonationAdminController::class, 'destroy']);
+    Route::get('/donation/channels', [\App\Donation\Controllers\DonationAdminController::class, 'channels']);
+    Route::post('/donation/channelUpdate', [\App\Donation\Controllers\DonationAdminController::class, 'channelUpdate']);
+    Route::get('/donation/stats', [\App\Donation\Controllers\DonationAdminController::class, 'stats']);
+    Route::get('/room/index', [\App\Room\Controllers\RoomAdminController::class, 'index']);
+    Route::get('/room/read', [\App\Room\Controllers\RoomAdminController::class, 'read']);
+    Route::post('/room/close', [\App\Room\Controllers\RoomAdminController::class, 'close']);
     fastRoute('questionTag', \App\Question\Controllers\TagController::class);
     Route::post('/questionAi/create', [\App\Ai\Controllers\ContentParseController::class, 'create']);
     Route::get('/questionAi/read', [\App\Ai\Controllers\ContentParseController::class, 'read']);

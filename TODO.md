@@ -130,16 +130,20 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 ## Milestone 5 — Multiplayer cooperation (`v0.4.0`)
 
-- [ ] Create reviewed migrations for rooms, room players, invitations, and room events.
-- [ ] Implement room creation, code/link join, readiness, owner start, chat, leave, owner transfer, and timeout cleanup.
+- [x] Create, review, execute, and verify migrations for rooms, members, messages, and game ownership.
+- [x] Implement room creation, invite-code join, readiness, owner start, chat, leave, owner transfer, and forced close.
+- [ ] Implement idle-room timeout cleanup.
 - [ ] Serialize or safely queue concurrent room questions.
-- [ ] Broadcast persisted/ordered game results to all room members.
-- [ ] Implement multiplayer reconnect and snapshots.
-- [ ] Implement room and multiplayer result pages in `ui`.
+- [x] Broadcast persisted/ordered game results to connected room members.
+- [x] Implement multiplayer reconnect snapshots and ephemeral typing indicators.
+- [x] Implement room lobby and adaptive single/multiplayer game pages in `ui`.
+- [x] Hide all team DOM and discussion controls in single-player mode.
+- [x] Add donation channels, BOS QR-code upload, manually maintained recent donations, and public donation display without amount selection.
+- [ ] Replace the single-process room broadcast registry with Channel/Redis fan-out before increasing the WebSocket worker count.
 
 ### Acceptance
 
-- [ ] Anonymous users cannot create or join rooms.
+- [x] Anonymous users cannot create or join rooms.
 - [ ] Two to eight registered users can finish a game with consistent ordering.
 - [ ] Individual disconnects do not break the room.
 
@@ -195,5 +199,5 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 - [ ] Complete migration review and rollback strategy; run only after explicit authorization.
 - [ ] Verify `.env.example` and deployment configuration for every service.
 - [ ] Verify backups, logs, alert routing, rate limits, and queue recovery.
-- [ ] Test H5 and WeChat Mini Program builds.
+- [x] Test H5 and WeChat Mini Program builds.
 - [ ] Document deployment, rollback, Coze workflow import, and operational recovery.

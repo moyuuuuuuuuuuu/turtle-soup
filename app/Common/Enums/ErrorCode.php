@@ -43,6 +43,17 @@ enum ErrorCode: string implements ErrorCodeInterface
     case GAME_QUESTION_LIMIT_REACHED = 'game.question_limit_reached';
     case GAME_HINT_UNAVAILABLE = 'game.hint_unavailable';
     case GAME_REQUEST_DUPLICATE = 'game.request_duplicate';
+    case ROOM_NOT_FOUND = 'room.not_found';
+    case ROOM_FULL = 'room.full';
+    case ROOM_STATUS_INVALID = 'room.status_invalid';
+    case ROOM_MEMBER_REQUIRED = 'room.member_required';
+    case ROOM_OWNER_REQUIRED = 'room.owner_required';
+    case ROOM_ALREADY_JOINED = 'room.already_joined';
+    case ROOM_INVITE_INVALID = 'room.invite_invalid';
+    case ROOM_MEMBERS_NOT_READY = 'room.members_not_ready';
+    case ROOM_LOGIN_REQUIRED = 'room.login_required';
+    case DONATION_NOT_FOUND = 'donation.not_found';
+    case DONATION_CHANNEL_INVALID = 'donation.channel_invalid';
     case QUESTION_NOT_FOUND = 'question.not_found';
     case QUESTION_CONTENT_INCOMPLETE = 'question.content_incomplete';
     case QUESTION_STATUS_INVALID = 'question.status_invalid';
@@ -101,6 +112,17 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::GAME_QUESTION_LIMIT_REACHED => '提问次数已用完，请提交最终猜测',
             self::GAME_HINT_UNAVAILABLE => '该级提示不可用或已经使用',
             self::GAME_REQUEST_DUPLICATE => '请求已处理，请勿重复提交',
+            self::ROOM_NOT_FOUND => '房间不存在',
+            self::ROOM_FULL => '房间人数已满',
+            self::ROOM_STATUS_INVALID => '当前房间状态不允许此操作',
+            self::ROOM_MEMBER_REQUIRED => '你不是该房间成员',
+            self::ROOM_OWNER_REQUIRED => '只有房主可以执行此操作',
+            self::ROOM_ALREADY_JOINED => '你已经加入该房间',
+            self::ROOM_INVITE_INVALID => '房间邀请码无效',
+            self::ROOM_MEMBERS_NOT_READY => '仍有队员未准备',
+            self::ROOM_LOGIN_REQUIRED => '登录后才能使用多人房间',
+            self::DONATION_NOT_FOUND => '捐赠记录不存在',
+            self::DONATION_CHANNEL_INVALID => '收款渠道配置无效',
             self::QUESTION_NOT_FOUND => '题目不存在',
             self::QUESTION_CONTENT_INCOMPLETE => '题目内容不完整',
             self::QUESTION_STATUS_INVALID => '题目状态不允许当前操作',
@@ -129,6 +151,8 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::REQUEST_FREQUENCY => 429,
             self::DATA_NOT_FOUND => 404,
             self::GAME_NOT_FOUND => 404,
+            self::ROOM_NOT_FOUND,
+            self::DONATION_NOT_FOUND => 404,
             self::AUTH_ANONYMOUS_INVALID,
             self::AUTH_CREDENTIALS_INVALID,
             self::AUTH_TOKEN_INVALID,
@@ -151,6 +175,15 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::GAME_QUESTION_LIMIT_REACHED,
             self::GAME_HINT_UNAVAILABLE,
             self::GAME_REQUEST_DUPLICATE => 409,
+            self::ROOM_FULL,
+            self::ROOM_STATUS_INVALID,
+            self::ROOM_ALREADY_JOINED,
+            self::ROOM_MEMBERS_NOT_READY => 409,
+            self::ROOM_MEMBER_REQUIRED,
+            self::ROOM_OWNER_REQUIRED,
+            self::ROOM_LOGIN_REQUIRED => 403,
+            self::ROOM_INVITE_INVALID,
+            self::DONATION_CHANNEL_INVALID => 422,
             self::QUESTION_STATUS_INVALID,
             self::QUESTION_VERSION_CONFLICT,
             self::QUESTION_COPY_FAILED,
@@ -212,6 +245,17 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::GAME_QUESTION_LIMIT_REACHED,
             self::GAME_HINT_UNAVAILABLE,
             self::GAME_REQUEST_DUPLICATE => ErrorModule::GAME,
+            self::ROOM_NOT_FOUND,
+            self::ROOM_FULL,
+            self::ROOM_STATUS_INVALID,
+            self::ROOM_MEMBER_REQUIRED,
+            self::ROOM_OWNER_REQUIRED,
+            self::ROOM_ALREADY_JOINED,
+            self::ROOM_INVITE_INVALID,
+            self::ROOM_MEMBERS_NOT_READY,
+            self::ROOM_LOGIN_REQUIRED => ErrorModule::ROOM,
+            self::DONATION_NOT_FOUND,
+            self::DONATION_CHANNEL_INVALID => ErrorModule::DONATION,
             self::AI_WORKFLOW_TIMEOUT,
             self::AI_INVALID_RESPONSE,
             self::AI_AUTH_FAILED,
@@ -250,6 +294,17 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::GAME_QUESTION_LIMIT_REACHED,
             self::GAME_HINT_UNAVAILABLE,
             self::GAME_REQUEST_DUPLICATE => ErrorSeverity::INFO,
+            self::ROOM_NOT_FOUND,
+            self::ROOM_FULL,
+            self::ROOM_STATUS_INVALID,
+            self::ROOM_MEMBER_REQUIRED,
+            self::ROOM_OWNER_REQUIRED,
+            self::ROOM_ALREADY_JOINED,
+            self::ROOM_INVITE_INVALID,
+            self::ROOM_MEMBERS_NOT_READY,
+            self::ROOM_LOGIN_REQUIRED,
+            self::DONATION_NOT_FOUND,
+            self::DONATION_CHANNEL_INVALID => ErrorSeverity::INFO,
             self::QUESTION_NOT_FOUND,
             self::QUESTION_CONTENT_INCOMPLETE,
             self::QUESTION_STATUS_INVALID,

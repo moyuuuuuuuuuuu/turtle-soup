@@ -7,12 +7,6 @@ parameters:
 			path: app/Auth/Business/AnonymousSessionBusiness.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Auth/Business/PlayerAdminBusiness.php
-
-		-
 			message: '#^Method App\\Auth\\Business\\PlayerAdminBusiness\:\:loginLogs\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -47,18 +41,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Auth/Business/PlayerAdminBusiness.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Auth/Business/PlayerAuthBusiness.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 9
-			path: app/Auth/Business/PlayerAuthBusiness.php
 
 		-
 			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$password_hash\.$#'
@@ -223,31 +205,13 @@ parameters:
 			path: app/Auth/Formats/PlayerFormat.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$email\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Formats/PlayerFormat.php
-
-		-
 			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$email_verified_at\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Auth/Formats/PlayerFormat.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$public_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Formats/PlayerFormat.php
-
-		-
 			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Formats/PlayerFormat.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$username\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Auth/Formats/PlayerFormat.php
@@ -274,12 +238,6 @@ parameters:
 			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 3
-			path: app/Auth/Repositories/PlayerRepository.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 4
 			path: app/Auth/Repositories/PlayerRepository.php
 
 		-
@@ -361,12 +319,6 @@ parameters:
 			path: app/Auth/Services/PlayerTokenService.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
 			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
@@ -401,12 +353,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Auth/Services/SmtpMailer.php
-
-		-
-			message: '#^Parameter \#1 \$context of method App\\Game\\Business\\GameBusiness\:\:required\(\) expects App\\Auth\\Entities\\PlayerContext, array given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Game/Business/GameBusiness.php
 
 		-
 			message: '#^Access to an undefined property Workerman\\Connection\\TcpConnection\:\:\$playerContext\.$#'

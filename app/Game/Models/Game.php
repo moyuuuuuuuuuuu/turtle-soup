@@ -5,6 +5,15 @@ declare(strict_types=1);
 namespace App\Game\Models;
 
 use App\Common\Models\PersistenceModel;
+use App\Room\Models\Room;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * @property int $id
+ * @property string $public_id
+ * @property int|null $room_id
+ * @property Room|null $room
+ */
 
 final class Game extends PersistenceModel
 {
@@ -28,5 +37,11 @@ final class Game extends PersistenceModel
     public function guess()
     {
         return $this->hasOne(GameGuess::class);
+    }
+
+    /** @return BelongsTo<Room, $this> */
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(Room::class);
     }
 }
