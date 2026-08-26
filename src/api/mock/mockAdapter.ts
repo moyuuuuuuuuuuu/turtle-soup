@@ -16,10 +16,10 @@ import petMocks from './modules/pet'
 import storeMocks from './modules/store'
 import userMocks from './modules/user'
 
-const canUseGroupLogger =
-  typeof console !== 'undefined'
-  && typeof console.groupCollapsed === 'function'
-  && typeof console.groupEnd === 'function'
+const canUseGroupLogger
+  = typeof console !== 'undefined'
+    && typeof console.groupCollapsed === 'function'
+    && typeof console.groupEnd === 'function'
 
 // 合并所有mock定义
 const allMocks = [
