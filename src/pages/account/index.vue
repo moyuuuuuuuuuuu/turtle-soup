@@ -2,7 +2,7 @@
 /* eslint-disable style/max-statements-per-line */
 import type { PlayerSession } from '@/api/player'; import { playerApi } from '@/api/player'; import { usePlayerStore } from '@/store/playerStore'
 
-definePage({ name: 'player-account', style: { navigationBarTitleText: '我的账号' } }); const store = usePlayerStore(); const sessions = ref<PlayerSession[]>([]); const username = ref(''); const email = ref(''); const emailCode = ref(''); const currentPassword = ref(''); const newPassword = ref('')
+definePage({ name: 'player-account', layout: 'tabbar', style: { navigationStyle: 'custom' } }); const store = usePlayerStore(); const sessions = ref<PlayerSession[]>([]); const username = ref(''); const email = ref(''); const emailCode = ref(''); const currentPassword = ref(''); const newPassword = ref('')
 onMounted(async () => {
   if (!store.user)
     await store.load(); username.value = store.user?.username || ''; email.value = store.user?.email || ''; sessions.value = await playerApi.sessions()

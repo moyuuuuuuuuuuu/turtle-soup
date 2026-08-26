@@ -1,4 +1,4 @@
-import type { ApiEnvelope, GameSnapshot, PublicQuestion } from '@/types/game'
+import type { ApiEnvelope, DonationPage, GameSnapshot, PublicQuestion, RoomSnapshot } from '@/types/game'
 import { currentAccessToken, playerApi } from '@/api/player'
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://hgt.test/api/v1'
@@ -51,3 +51,15 @@ export const questionApi = {
   random: (difficulty?: number) => request<PublicQuestion>(`/questions/random${difficulty ? `?difficulty=${difficulty}` : ''}`),
 }
 export const gameApi = { create: (question_id: string, risk_confirmed = false) => request<GameSnapshot>('/games', 'POST', { question_id, language: 'zh-CN', risk_confirmed }), read: (id: string) => request<GameSnapshot>(`/games/read?id=${id}`), history: () => request<Array<{ id: string, status: string, title: string, difficulty: number }>>('/games/history'), ask: (id: string, question: string) => request<GameSnapshot>('/games/ask', 'POST', { id, question, request_id: requestId() }), hint: (id: string, level: number) => request<GameSnapshot>('/games/hint', 'POST', { id, level, request_id: requestId() }), guess: (id: string, guess: string) => request<GameSnapshot>('/games/guess', 'POST', { id, guess, request_id: requestId() }), abandon: (id: string) => request<GameSnapshot>('/games/abandon', 'POST', { id }) }
+export const roomApi = {
+  list: () => request<RoomSnapshot[]>('/rooms'),
+  mine: () => request<RoomSnapshot[]>('/rooms/mine'),
+  read: (id: string) => request<RoomSnapshot>(`/rooms/read?id=${encodeURIComponent(id)}`),
+  create: (data: { question_id: string, name: string, max_players: number, visibility: 'private' | 'public', language?: string, risk_confirmed?: boolean }) => request<RoomSnapshot>('/rooms', 'POST', data),
+  join: (data: { id?: string, invite_code?: string }) => request<RoomSnapshot>('/rooms/join', 'POST', data),
+  ready: (id: string, ready: boolean) => request<RoomSnapshot>('/rooms/ready', 'POST', { id, ready }),
+  start: (id: string) => request<RoomSnapshot>('/rooms/start', 'POST', { id }),
+  leave: (id: string) => request<void>('/rooms/leave', 'POST', { id }),
+  close: (id: string) => request<void>('/rooms/close', 'POST', { id }),
+}
+export const donationApi = { page: () => request<DonationPage>('/donations') }

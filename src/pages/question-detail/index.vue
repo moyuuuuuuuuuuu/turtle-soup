@@ -1,12 +1,15 @@
 <script setup lang="ts">
+/* eslint-disable style/max-statements-per-line */
 import type { PublicQuestion } from '@/types/game'
 import { gameApi, questionApi } from '@/api/turtle'
 import { useGameStore } from '@/store/gameStore'
+import { usePlayerStore } from '@/store/playerStore'
 
-definePage({ name: 'question-detail', style: { navigationBarTitleText: '题目详情' } })
+definePage({ name: 'question-detail', layout: 'tabbar', style: { navigationStyle: 'custom' } })
 const route = useRoute()
 const router = useRouter()
 const store = useGameStore()
+const player = usePlayerStore()
 const question = ref<PublicQuestion | null>(null)
 const loading = ref(true)
 const starting = ref(false)
@@ -46,7 +49,15 @@ async function start() {
   }
 }
 
-onMounted(load)
+function createRoom() {
+  if (!player.user) {
+    router.push({ name: 'player-login', query: { redirect: `/pages/question-detail/index?id=${questionId.value}` } })
+    return
+  }
+  router.push({ name: 'rooms', query: { question_id: questionId.value } })
+}
+
+onMounted(async () => { await player.restore(); await load() })
 </script>
 
 <template>
@@ -73,7 +84,10 @@ onMounted(load)
         </view>
       </view>
       <wd-button block size="large" class="mt-6" :loading="starting" @click="start">
-        开始推理
+        单人推理
+      </wd-button>
+      <wd-button size="large" plain block class="mt-3" @click="createRoom">
+        创建多人房间
       </wd-button>
     </template>
   </view>

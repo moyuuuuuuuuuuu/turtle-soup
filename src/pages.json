@@ -15,17 +15,6 @@
   "pages": [
     // #ifdef APP || H5 || MP-WEIXIN
     {
-      "path": "pages/index/index",
-      "type": "home",
-      "name": "home",
-      "layout": "tabbar",
-      "style": {
-        "navigationBarTitleText": "海龟汤"
-      }
-    },
-    // #endif
-    // #ifdef APP || H5 || MP-WEIXIN
-    {
       "path": "pages/about/index",
       "type": "page",
       "name": "about",
@@ -36,19 +25,39 @@
     },
     // #endif
     {
+      "path": "pages/index/index",
+      "type": "home",
+      "name": "home",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/account/index",
       "type": "page",
       "name": "player-account",
+      "layout": "tabbar",
       "style": {
-        "navigationBarTitleText": "我的账号"
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/donate/index",
+      "type": "page",
+      "name": "donate",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/game/index",
       "type": "page",
       "name": "game",
+      "layout": "tabbar",
       "style": {
-        "navigationBarTitleText": "推理中"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -63,8 +72,9 @@
       "path": "pages/history/index",
       "type": "page",
       "name": "history",
+      "layout": "tabbar",
       "style": {
-        "navigationBarTitleText": "游戏记录"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -79,16 +89,18 @@
       "path": "pages/question-detail/index",
       "type": "page",
       "name": "question-detail",
+      "layout": "tabbar",
       "style": {
-        "navigationBarTitleText": "题目详情"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/questions/index",
       "type": "page",
       "name": "questions",
+      "layout": "tabbar",
       "style": {
-        "navigationBarTitleText": "选择题目"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -113,6 +125,24 @@
       "name": "result",
       "style": {
         "navigationBarTitleText": "游戏结算"
+      }
+    },
+    {
+      "path": "pages/room/index",
+      "type": "page",
+      "name": "room",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/rooms/index",
+      "type": "page",
+      "name": "rooms",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom"
       }
     }
   ],
