@@ -14,6 +14,7 @@
 
 return [
     '' => [
+        App\Common\Middleware\CorsMiddleware::class,
         App\Common\Middleware\RequestIdMiddleware::class,
     ],
 ];

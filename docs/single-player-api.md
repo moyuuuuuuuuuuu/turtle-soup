@@ -26,7 +26,8 @@
 
 ## WebSocket
 
-默认监听 `GAME_WS_LISTEN`（开发环境 `ws://hgt.test:8790`）。每个消息结构：
+服务进程默认监听容器内的 `GAME_WS_LISTEN`（`websocket://0.0.0.0:8790`），
+开发环境由 Nginx 将 `ws://hgt.test/game` 反向代理到该端口。每个消息结构：
 
 ```json
 {"event":"v1.game.join","request_id":"client-unique-id","data":{"game_id":"..."}}
@@ -46,7 +47,7 @@
 
 ## 扣子判定器
 
-开发环境使用 `COZE_GAME_DRIVER=mock`。真实环境设置为 `coze`，并配置
+本地无凭证开发可以使用 `COZE_GAME_DRIVER=mock`。真实联调设置为 `coze`，并配置
 `COZE_QUESTION_JUDGE_WORKFLOW_ID` 与 `COZE_GUESS_JUDGE_WORKFLOW_ID`。服务端只
 接受问题判定 `yes / no / irrelevant / partial`，最终猜测必须返回布尔
 `is_solved`；其余结果统一拒绝为 `ai.invalid_response`。

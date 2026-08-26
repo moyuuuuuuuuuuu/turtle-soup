@@ -34,7 +34,7 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 - [ ] Establish development, staging, and production configuration.
 - [ ] Implement the typed user API client and stable error-code handling.
 - [ ] Implement access-token storage and refresh orchestration.
-- [ ] Implement the WebSocket client foundation and reconnect state machine.
+- [x] Implement the WebSocket client foundation and reconnect state machine.
 - [ ] Establish product theme, layout, and Chinese locale resources.
 
 ### `system-manage-ui`
@@ -123,7 +123,7 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 ### Acceptance
 
-- [ ] An anonymous user can complete a full single-player game over WebSocket.
+- [x] An anonymous user can complete a full single-player game over WebSocket.
 - [ ] Reconnection restores authoritative state.
 - [ ] Repeated requests do not duplicate AI calls or state changes.
 

@@ -14,6 +14,7 @@
 
 use Webman\Route;
 
+Route::options('/api/v1/{path:.*}', static fn () => response('', 204));
 Route::get('/api/v1/health', [App\Health\Controllers\HealthController::class, 'index']);
 Route::post('/api/v1/anonymous/session', [App\Auth\Controllers\AnonymousSessionController::class, 'issue']);
 Route::post('/api/v1/anonymous/session/renew', [App\Auth\Controllers\AnonymousSessionController::class, 'renew']);
