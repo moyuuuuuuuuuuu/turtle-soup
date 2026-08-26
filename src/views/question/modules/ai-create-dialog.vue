@@ -12,6 +12,9 @@
       :percentage="task.progress || 0"
       :status="task.status === 'failed' ? 'exception' : undefined"
     />
+    <div v-if="task?.status" class="mt-2 text-sm text-gray-500">
+      当前状态：{{ aiTaskStatusLabel(task.status) }}
+    </div>
     <ElAlert
       v-if="task?.error"
       class="mt-3"
@@ -45,12 +48,14 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import api, { type QuestionPayload } from '@/api/question'
+  import { AI_TASK_STATUS_LABELS, enumLabel } from '@/enums/questionEnum'
   const visible = defineModel<boolean>({ required: true })
   const emit = defineEmits<{ adopted: [question: QuestionPayload] }>()
   const story = ref(''),
     task = ref<Record<string, any> | null>(null),
     submitting = ref(false)
   let timer: ReturnType<typeof setTimeout> | undefined
+  const aiTaskStatusLabel = (status: unknown) => enumLabel(AI_TASK_STATUS_LABELS, status)
   async function poll() {
     if (!task.value?.id) return
     task.value = await api.aiTask(task.value.id)

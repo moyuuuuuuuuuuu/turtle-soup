@@ -4,8 +4,12 @@
       <div class="mb-4 flex flex-wrap gap-3">
         <ElInput v-model="search.keyword" placeholder="标题或汤面" clearable class="!w-56" />
         <ElSelect v-model="search.status" placeholder="状态" clearable class="!w-36">
-          <ElOption label="草稿" value="draft" /><ElOption label="已发布" value="published" />
-          <ElOption label="已下架" value="offline" />
+          <ElOption
+            v-for="option in QUESTION_STATUS_OPTIONS"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
         </ElSelect>
         <ElButton type="primary" @click="load">查询</ElButton>
         <ElButton v-permission="'question:edit'" @click="openEditor()">新增题目</ElButton>
@@ -16,9 +20,17 @@
         <ElTableColumn label="标题" min-width="220">
           <template #default="{ row }">{{ titleOf(row) }}</template>
         </ElTableColumn>
-        <ElTableColumn prop="difficulty" label="难度" width="80" />
-        <ElTableColumn prop="source_type" label="来源" width="90" />
-        <ElTableColumn prop="status" label="状态" width="100" />
+        <ElTableColumn label="难度" width="110">
+          <template #default="{ row }">{{ difficultyLabel(row.difficulty) }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="来源" width="110">
+          <template #default="{ row }">{{ sourceLabel(row.source_type) }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="状态" width="100">
+          <template #default="{ row }">
+            <ElTag :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</ElTag>
+          </template>
+        </ElTableColumn>
         <ElTableColumn prop="version" label="版本" width="80" />
         <ElTableColumn label="操作" width="300" fixed="right">
           <template #default="{ row }">
@@ -57,7 +69,11 @@
           <ElInputNumber v-model="form.max_players" :min="1"
         /></ElFormItem>
         <ElTabs>
-          <ElTabPane v-for="item in form.translations" :key="item.language" :label="item.language">
+          <ElTabPane
+            v-for="item in form.translations"
+            :key="item.language"
+            :label="languageLabel(item.language)"
+          >
             <ElFormItem label="标题"><ElInput v-model="item.title" /></ElFormItem>
             <ElFormItem label="汤面"
               ><ElInput v-model="item.surface" type="textarea" :rows="5"
@@ -108,13 +124,23 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import api, { type QuestionPayload } from '@/api/question'
+  import {
+    QUESTION_DIFFICULTY_LABELS,
+    QUESTION_LANGUAGE_LABELS,
+    QUESTION_SOURCE_LABELS,
+    QUESTION_STATUS_LABELS,
+    QUESTION_STATUS_OPTIONS,
+    QuestionSourceEnum,
+    QuestionStatusEnum,
+    enumLabel
+  } from '@/enums/questionEnum'
   import AiCreateDialog from './modules/ai-create-dialog.vue'
 
   const emptyForm = (): QuestionPayload => ({
     difficulty: 3,
     min_players: 1,
     max_players: 8,
-    source_type: 'manual',
+    source_type: QuestionSourceEnum.Manual,
     tag_ids: [],
     translations: [
       { language: 'zh-CN', title: '', surface: '', bottom: '' },
@@ -138,6 +164,16 @@
   const translationOf = (row: Record<string, any>) =>
     row?.translations?.find((item: any) => item.language === 'zh-CN')
   const titleOf = (row: Record<string, any>) => translationOf(row)?.title || '未命名题目'
+  const difficultyLabel = (difficulty: number) => QUESTION_DIFFICULTY_LABELS[difficulty] || '-'
+  const sourceLabel = (source: unknown) => enumLabel(QUESTION_SOURCE_LABELS, source)
+  const statusLabel = (status: unknown) => enumLabel(QUESTION_STATUS_LABELS, status)
+  const languageLabel = (language: unknown) => enumLabel(QUESTION_LANGUAGE_LABELS, language)
+  const statusTagType = (status: QuestionStatusEnum) =>
+    ({
+      [QuestionStatusEnum.Draft]: 'info',
+      [QuestionStatusEnum.Published]: 'success',
+      [QuestionStatusEnum.Offline]: 'warning'
+    })[status] as 'info' | 'success' | 'warning'
   async function load() {
     loading.value = true
     try {

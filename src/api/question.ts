@@ -1,4 +1,5 @@
 import request from '@/utils/http'
+import { QuestionSourceEnum, QuestionStatusEnum } from '@/enums/questionEnum'
 
 export interface Translation {
   language: string
@@ -14,7 +15,8 @@ export interface QuestionPayload {
   difficulty: number
   min_players: number
   max_players: number
-  source_type: 'manual' | 'ai'
+  source_type: QuestionSourceEnum
+  status?: QuestionStatusEnum
   translations: Translation[]
   points: Array<{ weight: number; is_required: boolean; sort: number; translations: Translation[] }>
   hints: Array<{ level: number; translations: Translation[] }>
