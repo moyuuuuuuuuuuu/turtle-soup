@@ -13,6 +13,12 @@
             value="disabled" /></ElSelect
         ><ElButton type="primary" @click="load">查询</ElButton></div
       ><ElTable v-loading="loading" :data="rows"
+        ><ElTableColumn label="头像" width="72"
+          ><template #default="{ row }"
+            ><ElAvatar :src="row.avatar_url">{{
+              row.email?.charAt(0)?.toUpperCase()
+            }}</ElAvatar></template
+          ></ElTableColumn
         ><ElTableColumn prop="id" label="玩家 ID" min-width="220" /><ElTableColumn
           prop="username"
           label="用户名"

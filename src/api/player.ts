@@ -4,6 +4,7 @@ export interface PlayerRow {
   id: string
   username: string
   email: string
+  avatar_url?: string
   status: 'active' | 'disabled'
   active_sessions: number
   create_time: string
