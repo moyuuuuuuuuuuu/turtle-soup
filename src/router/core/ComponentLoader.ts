@@ -25,6 +25,7 @@ export class ComponentLoader {
   }
 
   preloadMenuRoutes(menuList: AppRouteRecord[]): void {
+    void menuList
     // 默认禁用全量路由预加载，以避免登录后瞬间发起大量 import() 请求导致浏览器假死及 Vite 服务过载。
     // 动态路由会在用户实际导航访问时由 vue-router 自动按需加载，无需提前全量加载。
   }
@@ -69,8 +70,9 @@ export class ComponentLoader {
   }
 
   private resolveModule(componentPath: string): (() => Promise<any>) | undefined {
-    const fullPath = `../../views${componentPath}.vue`
-    const fullPathWithIndex = `../../views${componentPath}/index.vue`
+    const normalizedPath = componentPath.startsWith('/') ? componentPath : `/${componentPath}`
+    const fullPath = `../../views${normalizedPath}.vue`
+    const fullPathWithIndex = `../../views${normalizedPath}/index.vue`
     return this.modules[fullPath] || this.modules[fullPathWithIndex]
   }
 }
