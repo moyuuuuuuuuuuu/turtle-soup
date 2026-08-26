@@ -28,6 +28,8 @@ enum ErrorCode: string implements ErrorCodeInterface
     case QUESTION_VERSION_CONFLICT = 'question.version_conflict';
     case AI_WORKFLOW_TIMEOUT = 'ai.workflow_timeout';
     case AI_INVALID_RESPONSE = 'ai.invalid_response';
+    case AI_AUTH_FAILED = 'ai.auth_failed';
+    case AI_WORKFLOW_FAILED = 'ai.workflow_failed';
 
     public function code(): string
     {
@@ -55,6 +57,8 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::QUESTION_VERSION_CONFLICT => '题目已被其他操作更新',
             self::AI_WORKFLOW_TIMEOUT => 'AI 工作流超时',
             self::AI_INVALID_RESPONSE => 'AI 返回内容不符合约定',
+            self::AI_AUTH_FAILED => 'AI 服务鉴权失败',
+            self::AI_WORKFLOW_FAILED => 'AI 工作流执行失败',
         };
     }
 
@@ -73,7 +77,9 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::QUESTION_VERSION_CONFLICT => 409,
             self::QUESTION_CONTENT_INCOMPLETE => 422,
             self::AI_WORKFLOW_TIMEOUT,
-            self::AI_INVALID_RESPONSE => 502,
+            self::AI_INVALID_RESPONSE,
+            self::AI_AUTH_FAILED,
+            self::AI_WORKFLOW_FAILED => 502,
             self::THIRD_PARTY_ERROR => 502,
             self::SYSTEM_MAINTENANCE => 503,
             default => 500,
@@ -92,7 +98,9 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::QUESTION_STATUS_INVALID,
             self::QUESTION_VERSION_CONFLICT => ErrorModule::QUESTION,
             self::AI_WORKFLOW_TIMEOUT,
-            self::AI_INVALID_RESPONSE => ErrorModule::AI,
+            self::AI_INVALID_RESPONSE,
+            self::AI_AUTH_FAILED,
+            self::AI_WORKFLOW_FAILED => ErrorModule::AI,
             default => ErrorModule::SYSTEM,
         };
     }
@@ -116,6 +124,8 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::THIRD_PARTY_ERROR => ErrorSeverity::WARNING,
             self::AI_WORKFLOW_TIMEOUT => ErrorSeverity::WARNING,
             self::AI_INVALID_RESPONSE => ErrorSeverity::ERROR,
+            self::AI_AUTH_FAILED => ErrorSeverity::ERROR,
+            self::AI_WORKFLOW_FAILED => ErrorSeverity::WARNING,
             self::CONFIG_ERROR => ErrorSeverity::ERROR,
             self::SYSTEM_ERROR => ErrorSeverity::CRITICAL,
         };
@@ -139,6 +149,8 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::THIRD_PARTY_ERROR,
             self::AI_WORKFLOW_TIMEOUT,
             self::AI_INVALID_RESPONSE,
+            self::AI_AUTH_FAILED,
+            self::AI_WORKFLOW_FAILED,
             self::CONFIG_ERROR => NotificationPolicy::THRESHOLD,
             default => NotificationPolicy::NEVER,
         };

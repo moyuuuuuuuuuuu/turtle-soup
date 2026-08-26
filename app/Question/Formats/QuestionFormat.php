@@ -11,12 +11,12 @@ final class QuestionFormat
     public static function detail(Question $question, bool $includeBottom): array
     {
         $data = $question->toArray();
-        foreach ($data['translations'] ?? [] as &$translation) {
-            if (!$includeBottom) {
+        if (!$includeBottom && isset($data['translations']) && is_array($data['translations'])) {
+            foreach ($data['translations'] as $index => $translation) {
                 unset($translation['bottom']);
+                $data['translations'][$index] = $translation;
             }
         }
-        unset($translation);
 
         return $data;
     }

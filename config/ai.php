@@ -7,7 +7,8 @@ return [
         'token' => env('COZE_API_TOKEN', ''),
         'workflow_id' => env('COZE_WORKFLOW_ID', ''),
         'workflow_version' => 'turtle_content_parser_v1',
-        'timeout' => (int) env('COZE_TIMEOUT_SECONDS', 30),
-        'retries' => (int) env('COZE_RETRY_TIMES', 2),
+        'timeout' => (int) env('COZE_TIMEOUT_SECONDS', 120),
+        'retries' => (int) env('COZE_RETRY_TIMES', 1),
+        'retry_delay_ms' => (int) env('COZE_RETRY_DELAY_MS', 250),
     ],
 ];

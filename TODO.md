@@ -96,17 +96,17 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 - [ ] Build `turtle_question_judge_v1` import package.
 - [ ] Build `turtle_guess_judge_v1` import package.
 - [ ] Build `turtle_hint_generator_v1` import package.
-- [ ] Build `turtle_content_parser_v1` import package.
+- [x] Build and verify the `turtle_content_parser_v1` import package.
 - [ ] Define JSON Schemas, examples, prompts, test cases, and version metadata for every workflow.
 - [ ] Add anti-answer-leak, contradiction, irrelevant-question, malformed-output, and prompt-injection tests.
-- [ ] Implement Coze configuration and credentials through environment/config files.
+- [x] Implement Coze configuration and service-token credentials through environment/config files.
 - [ ] Implement AI contracts, Coze Service adapters, typed DTOs, response validation, timeout, retry, and safe logging.
 - [ ] Persist workflow version, latency, attempts, and safe execution status after database permission is granted.
 
 ### Acceptance
 
 - [ ] Workflow ZIP files import into the target Coze workspace.
-- [ ] Webman can execute published workflows and reject invalid outputs.
+- [x] Webman can execute the published content-parser workflow and reject invalid outputs.
 - [ ] AI failure cannot corrupt game state or expose the answer.
 
 ## Milestone 4 — Single-player MVP (`v0.3.0`)
