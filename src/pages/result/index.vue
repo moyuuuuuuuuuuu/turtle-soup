@@ -2,7 +2,7 @@
 /* eslint-disable style/max-statements-per-line */
 import { gameApi } from '@/api/turtle'; import { useGameStore } from '@/store/gameStore'
 
-definePage({ name: 'result', style: { navigationBarTitleText: '游戏结算' } }); const route = useRoute(); const router = useRouter(); const store = useGameStore(); const game = computed(() => store.current); onMounted(async () => store.setGame(await gameApi.read(String(route.params.id))))
+definePage({ name: 'result', style: { navigationBarTitleText: '游戏结算' } }); const route = useRoute(); const store = useGameStore(); const game = computed(() => store.current); const gameId = computed(() => String(route.params.id || route.query.id || '')); function goHome() { uni.switchTab({ url: '/pages/index/index' }) } onMounted(async () => store.setGame(await gameApi.read(gameId.value)))
 </script>
 
 <template>
@@ -21,7 +21,7 @@ definePage({ name: 'result', style: { navigationBarTitleText: '游戏结算' } }
       </text><view v-for="point in game.points" :key="point.key" class="mt-2 rounded-3 bg-[#f7f4ed] p-3">
         {{ point.content }}
       </view>
-    </view><wd-button block class="mt-6" @click="router.replace({ name: 'home' })">
+    </view><wd-button block class="mt-6" @click="goHome">
       返回首页
     </wd-button>
   </view>

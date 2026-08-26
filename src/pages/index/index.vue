@@ -26,7 +26,7 @@ definePage({ name: 'home', layout: 'tabbar', style: { navigationBarTitleText: '�
         随机开局
       </wd-button><wd-button plain block size="large" @click="router.push({ name: 'questions' })">
         浏览题库
-      </wd-button><wd-button v-if="store.current" plain block @click="router.push({ name: 'game', params: { id: store.current.id } })">
+      </wd-button><wd-button v-if="store.current && ['created', 'playing'].includes(store.current.status)" plain block @click="router.push({ name: 'game', params: { id: store.current.id } })">
         继续上局
       </wd-button><wd-button plain block @click="router.push({ name: 'history' })">
         游戏记录

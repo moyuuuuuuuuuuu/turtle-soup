@@ -10,10 +10,11 @@ const store = useGameStore()
 const question = ref<PublicQuestion | null>(null)
 const loading = ref(true)
 const starting = ref(false)
+const questionId = computed(() => String(route.params.id || route.query.id || ''))
 
 async function load() {
   try {
-    question.value = await questionApi.read(String(route.params.id))
+    question.value = await questionApi.read(questionId.value)
   }
   finally {
     loading.value = false

@@ -12,13 +12,14 @@ const question = ref('')
 const busy = ref(false)
 const errorMessage = ref('')
 const game = computed(() => store.current)
+const gameId = computed(() => String(route.params.id || route.query.id || ''))
 
 async function refresh() {
   try {
-    store.setGame(await socket.join(String(route.params.id)))
+    store.setGame(await socket.join(gameId.value))
   }
   catch {
-    store.setGame(await gameApi.read(String(route.params.id)))
+    store.setGame(await gameApi.read(gameId.value))
   }
 }
 async function ask() {
