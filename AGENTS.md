@@ -160,10 +160,24 @@ State-changing APIs and WebSocket commands use idempotent request IDs. The serve
 ## Persistence and infrastructure
 
 - MySQL is the durable source of truth.
+- Do not connect to, create, drop, migrate, seed, truncate, or otherwise mutate any database unless the user has explicitly authorized that database operation in the current task.
+- All schema changes must be represented by reviewed migration files. Never apply ad-hoc DDL directly to a database.
+- Creating or editing migration files does not authorize running them. Generate and inspect migrations first, then wait for explicit permission before execution.
+- Prefer read-only inspection when diagnosing database issues, and still confirm that the intended environment and connection are safe before accessing a non-local database.
 - Use unsigned BIGINT primary keys internally and separate ULIDs for externally exposed identifiers unless an existing SaiAdmin table requires its convention.
 - Do not expose predictable internal IDs through public user APIs when a public identifier exists.
 - Redis may hold connection mappings, ephemeral room state, locks, idempotency records, rate limits, queues, and exception aggregation, but final game outcomes must be persisted to MySQL.
 - Email, AI post-processing, reports, and other noninteractive work run through Redis-backed background jobs where appropriate.
+
+## Environment configuration
+
+- Environment configuration is a required part of every feature that introduces deploy-time settings.
+- Keep a complete, safe `.env.example` with every required variable, purpose, and non-secret development default where appropriate.
+- Never place real secrets or production values in `.env.example`, documentation, tests, logs, or committed source.
+- Access environment values through configuration files or typed configuration objects; do not scatter direct environment reads throughout Business code.
+- Validate required configuration during application startup and fail clearly for missing critical values.
+- Separate development, test, staging, and production behavior explicitly. Email exception alerts are disabled outside production by default.
+- Database, Redis, mail, public URL, token signing, Coze, storage, WebSocket, and future WebRTC settings must all be represented in the environment template when introduced.
 
 ## Game and AI rules
 
