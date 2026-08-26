@@ -277,30 +277,6 @@ parameters:
 			path: app/Question/Business/TagBusiness.php
 
 		-
-			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$hints with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Question/DTO/QuestionData.php
-
-		-
-			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$points with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Question/DTO/QuestionData.php
-
-		-
-			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$tagIds with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Question/DTO/QuestionData.php
-
-		-
-			message: '#^Method App\\Question\\DTO\\QuestionData\:\:__construct\(\) has parameter \$translations with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Question/DTO/QuestionData.php
-
-		-
 			message: '#^Method App\\Question\\DTO\\QuestionData\:\:fromArray\(\) has parameter \$data with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1

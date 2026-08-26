@@ -26,6 +26,14 @@ enum ErrorCode: string implements ErrorCodeInterface
     case QUESTION_CONTENT_INCOMPLETE = 'question.content_incomplete';
     case QUESTION_STATUS_INVALID = 'question.status_invalid';
     case QUESTION_VERSION_CONFLICT = 'question.version_conflict';
+    case QUESTION_ANSWER_FORBIDDEN = 'question.answer_forbidden';
+    case QUESTION_COPY_FAILED = 'question.copy_failed';
+    case QUESTION_VERSION_NOT_FOUND = 'question.version_not_found';
+    case QUESTION_RISK_CONFIRMATION_REQUIRED = 'question.risk_confirmation_required';
+    case QUESTION_TRANSLATION_INCOMPLETE = 'question.translation_incomplete';
+    case TAG_NOT_FOUND = 'tag.not_found';
+    case TAG_IN_USE = 'tag.in_use';
+    case TAG_SLUG_INVALID = 'tag.slug_invalid';
     case AI_WORKFLOW_TIMEOUT = 'ai.workflow_timeout';
     case AI_INVALID_RESPONSE = 'ai.invalid_response';
     case AI_AUTH_FAILED = 'ai.auth_failed';
@@ -55,6 +63,14 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::QUESTION_CONTENT_INCOMPLETE => '题目内容不完整',
             self::QUESTION_STATUS_INVALID => '题目状态不允许当前操作',
             self::QUESTION_VERSION_CONFLICT => '题目已被其他操作更新',
+            self::QUESTION_ANSWER_FORBIDDEN => '无权查看或修改题目汤底',
+            self::QUESTION_COPY_FAILED => '复制题目失败',
+            self::QUESTION_VERSION_NOT_FOUND => '题目历史版本不存在',
+            self::QUESTION_RISK_CONFIRMATION_REQUIRED => '该题目需要确认内容风险后才能发布',
+            self::QUESTION_TRANSLATION_INCOMPLETE => '题目中文内容不完整',
+            self::TAG_NOT_FOUND => '标签不存在',
+            self::TAG_IN_USE => '标签正在被题目使用',
+            self::TAG_SLUG_INVALID => '标签名称或标识不合法',
             self::AI_WORKFLOW_TIMEOUT => 'AI 工作流超时',
             self::AI_INVALID_RESPONSE => 'AI 返回内容不符合约定',
             self::AI_AUTH_FAILED => 'AI 服务鉴权失败',
@@ -74,8 +90,16 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::DATA_ALREADY_EXISTS,
             self::DATA_STATUS_ERROR => 409,
             self::QUESTION_STATUS_INVALID,
-            self::QUESTION_VERSION_CONFLICT => 409,
+            self::QUESTION_VERSION_CONFLICT,
+            self::QUESTION_COPY_FAILED,
+            self::QUESTION_RISK_CONFIRMATION_REQUIRED,
+            self::TAG_IN_USE => 409,
+            self::QUESTION_VERSION_NOT_FOUND,
+            self::TAG_NOT_FOUND => 404,
+            self::QUESTION_ANSWER_FORBIDDEN => 403,
             self::QUESTION_CONTENT_INCOMPLETE => 422,
+            self::QUESTION_TRANSLATION_INCOMPLETE,
+            self::TAG_SLUG_INVALID => 422,
             self::AI_WORKFLOW_TIMEOUT,
             self::AI_INVALID_RESPONSE,
             self::AI_AUTH_FAILED,
@@ -96,7 +120,15 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::QUESTION_NOT_FOUND,
             self::QUESTION_CONTENT_INCOMPLETE,
             self::QUESTION_STATUS_INVALID,
-            self::QUESTION_VERSION_CONFLICT => ErrorModule::QUESTION,
+            self::QUESTION_VERSION_CONFLICT,
+            self::QUESTION_ANSWER_FORBIDDEN,
+            self::QUESTION_COPY_FAILED,
+            self::QUESTION_VERSION_NOT_FOUND,
+            self::QUESTION_RISK_CONFIRMATION_REQUIRED,
+            self::QUESTION_TRANSLATION_INCOMPLETE,
+            self::TAG_NOT_FOUND,
+            self::TAG_IN_USE,
+            self::TAG_SLUG_INVALID => ErrorModule::QUESTION,
             self::AI_WORKFLOW_TIMEOUT,
             self::AI_INVALID_RESPONSE,
             self::AI_AUTH_FAILED,
@@ -118,7 +150,15 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::QUESTION_NOT_FOUND,
             self::QUESTION_CONTENT_INCOMPLETE,
             self::QUESTION_STATUS_INVALID,
-            self::QUESTION_VERSION_CONFLICT => ErrorSeverity::INFO,
+            self::QUESTION_VERSION_CONFLICT,
+            self::QUESTION_ANSWER_FORBIDDEN,
+            self::QUESTION_COPY_FAILED,
+            self::QUESTION_VERSION_NOT_FOUND,
+            self::QUESTION_RISK_CONFIRMATION_REQUIRED,
+            self::QUESTION_TRANSLATION_INCOMPLETE,
+            self::TAG_NOT_FOUND,
+            self::TAG_IN_USE,
+            self::TAG_SLUG_INVALID => ErrorSeverity::INFO,
             self::SYSTEM_BUSY,
             self::SYSTEM_MAINTENANCE,
             self::THIRD_PARTY_ERROR => ErrorSeverity::WARNING,

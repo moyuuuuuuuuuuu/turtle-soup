@@ -1,6 +1,9 @@
 <?php
 
 use Webman\Route;
+use plugin\saiadmin\app\middleware\CheckAuth;
+use plugin\saiadmin\app\middleware\CheckLogin;
+use plugin\saiadmin\app\middleware\SystemLog;
 
 Route::group('/core', function () {
 
@@ -77,17 +80,6 @@ Route::group('/core', function () {
     Route::delete("/logs/deleteOperLog", [\plugin\saiadmin\app\controller\system\SystemLogController::class, 'deleteOperLog']);
     fastRoute("email", \plugin\saiadmin\app\controller\system\SystemMailController::class);
 
-    // 海龟汤题库
-    fastRoute('question', \App\Question\Controllers\QuestionController::class);
-    Route::post('/question/publish', [\App\Question\Controllers\QuestionController::class, 'publish']);
-    Route::post('/question/offline', [\App\Question\Controllers\QuestionController::class, 'offline']);
-    Route::get('/question/preview', [\App\Question\Controllers\QuestionController::class, 'preview']);
-    fastRoute('questionTag', \App\Question\Controllers\TagController::class);
-    Route::post('/questionAi/create', [\App\Ai\Controllers\ContentParseController::class, 'create']);
-    Route::get('/questionAi/read', [\App\Ai\Controllers\ContentParseController::class, 'read']);
-    Route::post('/questionAi/retry', [\App\Ai\Controllers\ContentParseController::class, 'retry']);
-    Route::post('/questionAi/adopt', [\App\Ai\Controllers\ContentParseController::class, 'adopt']);
-
     // 服务管理
     Route::get("/server/monitor", [\plugin\saiadmin\app\controller\system\SystemServerController::class, 'monitor']);
     Route::get("/server/cache", [\plugin\saiadmin\app\controller\system\SystemServerController::class, 'cache']);
@@ -122,5 +114,23 @@ Route::group('/tool', function () {
     Route::post("/code/generateFile", [\plugin\saiadmin\app\controller\tool\GenerateTablesController::class, 'generateFile']);
     Route::post("/code/sync", [\plugin\saiadmin\app\controller\tool\GenerateTablesController::class, 'sync']);
 });
+
+Route::group('/core', function () {
+    // 自有控制器需要显式挂载 SaiAdmin 中间件，否则不会继承插件控制器的认证链。
+    fastRoute('question', \App\Question\Controllers\QuestionController::class);
+    Route::post('/question/publish', [\App\Question\Controllers\QuestionController::class, 'publish']);
+    Route::post('/question/offline', [\App\Question\Controllers\QuestionController::class, 'offline']);
+    Route::get('/question/preview', [\App\Question\Controllers\QuestionController::class, 'preview']);
+    Route::get('/question/answerPreview', [\App\Question\Controllers\QuestionController::class, 'answerPreview']);
+    Route::post('/question/copy', [\App\Question\Controllers\QuestionController::class, 'copy']);
+    Route::get('/question/history', [\App\Question\Controllers\QuestionController::class, 'history']);
+    Route::get('/question/historyRead', [\App\Question\Controllers\QuestionController::class, 'historyRead']);
+    Route::post('/question/historyRestore', [\App\Question\Controllers\QuestionController::class, 'historyRestore']);
+    fastRoute('questionTag', \App\Question\Controllers\TagController::class);
+    Route::post('/questionAi/create', [\App\Ai\Controllers\ContentParseController::class, 'create']);
+    Route::get('/questionAi/read', [\App\Ai\Controllers\ContentParseController::class, 'read']);
+    Route::post('/questionAi/retry', [\App\Ai\Controllers\ContentParseController::class, 'retry']);
+    Route::post('/questionAi/adopt', [\App\Ai\Controllers\ContentParseController::class, 'adopt']);
+})->middleware([CheckLogin::class, CheckAuth::class, SystemLog::class]);
 
 Route::disableDefaultRoute('saiadmin');

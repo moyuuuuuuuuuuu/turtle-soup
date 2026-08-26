@@ -14,7 +14,11 @@ final class Question extends BaseModel
 
     protected function casts(): array
     {
-        return array_merge(parent::casts(), ['published_at' => 'datetime']);
+        return array_merge(parent::casts(), [
+            'published_at' => 'datetime',
+            'risk_reviewed_at' => 'datetime',
+            'risk_types' => 'array',
+        ]);
     }
 
     public function translations(): HasMany
@@ -35,5 +39,11 @@ final class Question extends BaseModel
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'turtle_question_tags');
+    }
+
+    /** @return HasMany<QuestionVersion, $this> */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(QuestionVersion::class);
     }
 }

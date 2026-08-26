@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Question\Business;
 
 use App\Question\DTO\QuestionData;
+use App\Question\Enums\QuestionRiskLevel;
+use App\Question\Enums\QuestionRiskType;
 use App\Question\Enums\QuestionStatus;
 use App\Question\Formats\QuestionFormat;
 use App\Question\Models\Question;
 use App\Question\Repositories\QuestionRepository;
+use App\Question\Support\QuestionPublishValidator;
 use plugin\saiadmin\exception\ApiException;
+use Throwable;
 
 final class QuestionBusiness
 {
@@ -40,6 +44,23 @@ final class QuestionBusiness
         return QuestionFormat::detail($this->repository->create($data, $adminId), true);
     }
 
+    /** @return array<string, mixed> */
+    public function copy(int $id, int $adminId): array
+    {
+        $source = $this->required($id);
+        $payload = QuestionFormat::detail($source, true);
+        $payload['source_type'] = 'manual';
+        $payload['risk_reviewed_by'] = null;
+        $payload['risk_reviewed_at'] = null;
+        $data = QuestionData::fromArray($payload);
+
+        try {
+            return QuestionFormat::detail($this->repository->create($data, $adminId), true);
+        } catch (Throwable $throwable) {
+            throw new ApiException('question.copy_failed', previous: $throwable);
+        }
+    }
+
     public function update(int $id, array $payload, int $adminId): array
     {
         $question = $this->required($id);
@@ -56,12 +77,81 @@ final class QuestionBusiness
         return QuestionFormat::detail($updated, true);
     }
 
-    public function publish(int $id): void
+    /** @return array<string, mixed> */
+    public function publish(int $id, int $version, bool $riskConfirmed, int $adminId): array
     {
         $question = $this->required($id);
+        if ((int) $question->getAttribute('version') !== $version) {
+            throw new ApiException('question.version_conflict');
+        }
         $data = QuestionData::fromArray(QuestionFormat::detail($question, true));
         $this->validate($data, true);
-        $question->update(['status' => QuestionStatus::PUBLISHED->value, 'published_at' => date('Y-m-d H:i:s')]);
+        $riskLevel = QuestionRiskLevel::tryFrom($data->riskLevel) ?? QuestionRiskLevel::SAFE;
+        if ($riskLevel->requiresConfirmation() && (!$riskConfirmed || $data->riskNote === null)) {
+            throw new ApiException('question.risk_confirmation_required');
+        }
+        $published = $this->repository->publish(
+            $question,
+            $version,
+            $adminId,
+            $riskLevel->requiresConfirmation(),
+        );
+        if (!$published) {
+            throw new ApiException('question.version_conflict');
+        }
+
+        return QuestionFormat::detail($published, true);
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function history(int $id): array
+    {
+        $this->required($id);
+
+        return $this->repository->history($id);
+    }
+
+    /** @return array<string, mixed> */
+    public function historyDetail(int $id, int $versionId, bool $includeBottom): array
+    {
+        $this->required($id);
+        $version = $this->repository->findVersion($id, $versionId)
+            ?? throw new ApiException('question.version_not_found');
+        $snapshot = (array) $version->snapshot;
+        if (!$includeBottom) {
+            foreach ($snapshot['translations'] ?? [] as $index => $translation) {
+                unset($translation['bottom']);
+                $snapshot['translations'][$index] = $translation;
+            }
+        }
+
+        return [
+            'id' => $version->id,
+            'version' => $version->version,
+            'published_by' => $version->published_by,
+            'published_at' => $version->published_at,
+            'snapshot' => $snapshot,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function restore(int $id, int $versionId, int $currentVersion, int $adminId): array
+    {
+        $question = $this->required($id);
+        if ((int) $question->getAttribute('version') !== $currentVersion) {
+            throw new ApiException('question.version_conflict');
+        }
+        $version = $this->repository->findVersion($id, $versionId)
+            ?? throw new ApiException('question.version_not_found');
+        $payload = (array) $version->snapshot;
+        $payload['version'] = $currentVersion;
+        $data = QuestionData::fromArray($payload);
+        $restored = $this->repository->update($question, $data, $adminId);
+        if ((int) $restored->getAttribute('version') === $currentVersion) {
+            throw new ApiException('question.version_conflict');
+        }
+
+        return QuestionFormat::detail($restored, true);
     }
 
     public function offline(int $id): void
@@ -89,17 +179,21 @@ final class QuestionBusiness
 
     private function validate(QuestionData $data, bool $forPublish): void
     {
+        if (QuestionRiskLevel::tryFrom($data->riskLevel) === null) {
+            throw new ApiException('question.content_incomplete');
+        }
+        $validRiskTypes = array_map(fn (QuestionRiskType $type) => $type->value, QuestionRiskType::cases());
+        if (array_diff($data->riskTypes, $validRiskTypes) !== []) {
+            throw new ApiException('question.content_incomplete');
+        }
         if ($data->difficulty < 1 || $data->difficulty > 5 || $data->minPlayers < 1 || $data->maxPlayers < $data->minPlayers) {
             throw new ApiException('question.content_incomplete');
         }
         if (!$forPublish) {
             return;
         }
-        $zh = array_values(array_filter($data->translations, fn (array $item) => ($item['language'] ?? '') === 'zh-CN'))[0] ?? [];
-        $requiredPoints = array_filter($data->points, fn (array $item) => (bool) ($item['is_required'] ?? false));
-        $levels = array_unique(array_map(fn (array $item) => (int) ($item['level'] ?? 0), $data->hints));
-        if (trim((string) ($zh['title'] ?? '')) === '' || trim((string) ($zh['surface'] ?? '')) === '' || trim((string) ($zh['bottom'] ?? '')) === '' || $requiredPoints === [] || array_diff([1, 2, 3], $levels) !== []) {
-            throw new ApiException('question.content_incomplete');
+        if (!QuestionPublishValidator::canPublishChinese($data)) {
+            throw new ApiException('question.translation_incomplete');
         }
     }
 }

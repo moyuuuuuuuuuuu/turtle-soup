@@ -76,19 +76,19 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 ## Milestone 2 — Question bank and management
 
-- [ ] Create reviewed migrations for questions, translations, reasoning points, point translations, hints, hint translations, tags, relations, and versions.
-- [ ] Implement Eloquent models and repositories.
-- [ ] Implement Business use cases for draft, review, publish, unpublish, copy, and version history.
-- [ ] Implement management pages for question content, answer, difficulty, tags, player range, points, required points, weights, and three-level hints.
-- [ ] Add Chinese and English content support through translation records.
-- [ ] Add content-risk metadata and authorization around protected answers.
+- [x] Create and execute reviewed migrations for questions, translations, reasoning points, point translations, hints, hint translations, tags, relations, and publish versions.
+- [x] Implement Eloquent models and repositories.
+- [x] Implement Business use cases for draft, publish, unpublish, copy, and publish-version history/restore.
+- [x] Implement management pages for question content, answer, difficulty, tags, player range, points, required points, weights, and three-level hints.
+- [x] Add Chinese and English content support through translation records.
+- [x] Add content-risk metadata, confirmation, and authorization around protected answers.
 - [ ] Prepare ten reviewed seed/test questions: three easy, four medium, and three hard.
 
 ### Acceptance
 
-- [ ] Authorized administrators can create, review, preview, publish, and unpublish questions.
+- [x] Authorized administrators can create, review, preview, publish, and unpublish questions.
 - [ ] Draft questions never appear in public APIs.
-- [ ] Protected answers are not exposed to unauthorized users.
+- [x] Protected answers are not exposed to unauthorized users in list, game preview, history detail, or write endpoints.
 
 ## Milestone 3 — Coze workflows
 

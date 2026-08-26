@@ -8,6 +8,7 @@ use App\Question\DTO\QuestionData;
 use App\Question\Models\Question;
 use App\Question\Models\QuestionHint;
 use App\Question\Models\QuestionPoint;
+use App\Question\Models\QuestionVersion;
 use Illuminate\Database\Eloquent\Builder;
 use support\Db;
 
@@ -55,6 +56,9 @@ final class QuestionRepository
                 'difficulty' => $data->difficulty,
                 'status' => 'draft',
                 'source_type' => $data->sourceType,
+                'risk_level' => $data->riskLevel,
+                'risk_types' => $data->riskTypes,
+                'risk_note' => $data->riskNote,
                 'min_players' => $data->minPlayers,
                 'max_players' => $data->maxPlayers,
                 'version' => 1,
@@ -76,10 +80,16 @@ final class QuestionRepository
                     'difficulty' => $data->difficulty,
                     'status' => 'draft',
                     'source_type' => $data->sourceType,
+                    'risk_level' => $data->riskLevel,
+                    'risk_types' => $data->riskTypes,
+                    'risk_note' => $data->riskNote,
+                    'risk_reviewed_by' => null,
+                    'risk_reviewed_at' => null,
                     'min_players' => $data->minPlayers,
                     'max_players' => $data->maxPlayers,
                     'version' => $data->version + 1,
                     'updated_by' => $adminId,
+                    'published_at' => null,
                 ]);
             if ($updated !== 1) {
                 return $question;
@@ -97,6 +107,59 @@ final class QuestionRepository
 
             return $this->find((int) $question->id);
         });
+    }
+
+    public function publish(Question $question, int $version, int $adminId, bool $reviewRisk): ?Question
+    {
+        return Db::transaction(function () use ($question, $version, $adminId, $reviewRisk): ?Question {
+            $now = date('Y-m-d H:i:s');
+            $newVersion = $version + 1;
+            $attributes = [
+                'status' => 'published',
+                'version' => $newVersion,
+                'published_at' => $now,
+                'updated_by' => $adminId,
+            ];
+            if ($reviewRisk) {
+                $attributes['risk_reviewed_by'] = $adminId;
+                $attributes['risk_reviewed_at'] = $now;
+            }
+            $questionId = (int) $question->getKey();
+            $updated = Question::whereKey($questionId)->where('version', $version)->update($attributes);
+            if ($updated !== 1) {
+                return null;
+            }
+            $published = $this->find($questionId);
+            QuestionVersion::create([
+                'question_id' => $questionId,
+                'version' => $newVersion,
+                'snapshot' => $published?->toArray() ?? [],
+                'published_by' => $adminId,
+                'published_at' => $now,
+            ]);
+
+            return $published;
+        });
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function history(int $questionId): array
+    {
+        return QuestionVersion::query()
+            ->where('question_id', $questionId)
+            ->orderByDesc('version')
+            ->get(['id', 'question_id', 'version', 'published_by', 'published_at'])
+            ->toArray();
+    }
+
+    public function findVersion(int $questionId, int $versionId): ?QuestionVersion
+    {
+        $version = QuestionVersion::query()
+            ->where('question_id', $questionId)
+            ->whereKey($versionId)
+            ->first();
+
+        return $version instanceof QuestionVersion ? $version : null;
     }
 
     private function replaceRelations(Question $question, QuestionData $data): void
