@@ -10,13 +10,14 @@ let accessToken = ''
 
 export function currentAccessToken() { return accessToken }
 export function currentDeviceId() { let id = uni.getStorageSync('turtle_device_id'); if (!id) { id = `${Date.now()}-${Math.random().toString(36).slice(2)}`; uni.setStorageSync('turtle_device_id', id) } return String(id) }
+function currentDevice() { const info = uni.getSystemInfoSync(); const rawPlatform = String(info.uniPlatform || info.platform || 'unknown'); return { name: [info.deviceBrand, info.model].filter(Boolean).join(' ') || '当前设备', platform: rawPlatform === 'web' ? 'h5' : rawPlatform } }
 
 async function call<T>(path: string, method: 'GET' | 'POST' | 'DELETE' = 'POST', data?: Record<string, unknown>, authenticated = false, retried = false): Promise<T> {
   return new Promise((resolve, reject) => uni.request({
     url: `${baseUrl}${path}`,
     method,
     data,
-    header: { 'Authorization': authenticated && accessToken ? `Bearer ${accessToken}` : '', 'X-Anonymous-Token': String(uni.getStorageSync('turtle_anonymous_token') || ''), 'X-Device-Id': currentDeviceId(), 'X-Device-Name': '当前设备', 'X-Platform': 'h5' },
+    header: { 'Authorization': authenticated && accessToken ? `Bearer ${accessToken}` : '', 'X-Anonymous-Token': String(uni.getStorageSync('turtle_anonymous_token') || ''), 'X-Device-Id': currentDeviceId(), 'X-Device-Name': currentDevice().name, 'X-Platform': currentDevice().platform },
     success: ({ data: raw }) => {
       const body = raw as Envelope<T>; if (body?.code === 'success')
         return resolve(body.data); if (authenticated && !retried && body?.code === 'auth.token_invalid')
