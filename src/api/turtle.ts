@@ -1,4 +1,5 @@
 import type { ApiEnvelope, GameSnapshot, PublicQuestion } from '@/types/game'
+import { currentAccessToken, playerApi } from '@/api/player'
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://hgt.test/api/v1'
 const tokenKey = 'turtle_anonymous_token'
@@ -11,8 +12,8 @@ function queryString(params: Record<string, unknown>) {
     .join('&')
 }
 
-async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', data?: Record<string, unknown>): Promise<T> {
-  const token = uni.getStorageSync(tokenKey)
+async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', data?: Record<string, unknown>, retried = false): Promise<T> {
+  const token = currentAccessToken() || uni.getStorageSync(tokenKey)
   return new Promise((resolve, reject) => uni.request({
     url: `${baseUrl}${path}`,
     method,
@@ -20,12 +21,18 @@ async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', data?: R
     header: { 'Authorization': token ? `Bearer ${token}` : '', 'X-Request-Id': requestId() },
     success: ({ data: raw, statusCode }: UniApp.RequestSuccessCallbackResult) => {
       const body = raw as ApiEnvelope<T>
-      return body?.code === 'success' ? resolve(body.data) : reject(new Error(body?.code || `http.${statusCode}`))
+      if (body?.code === 'success')
+        return resolve(body.data)
+      if (!retried && currentAccessToken() && body?.code === 'auth.token_invalid')
+        return playerApi.restore().then(result => result ? request<T>(path, method, data, true).then(resolve, reject) : reject(new Error(body.code)))
+      return reject(new Error(body?.code || `http.${statusCode}`))
     },
     fail: reject,
   }))
 }
 export async function ensureAnonymousSession() {
+  if (currentAccessToken())
+    return currentAccessToken()
   const token = uni.getStorageSync(tokenKey)
   if (token)
     return token

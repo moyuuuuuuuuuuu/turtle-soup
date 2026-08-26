@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /* eslint-disable style/max-statements-per-line */
-import { ensureAnonymousSession, gameApi, questionApi } from '@/api/turtle'; import { useGameStore } from '@/store/gameStore'
+import { ensureAnonymousSession, gameApi, questionApi } from '@/api/turtle'; import { useGameStore } from '@/store/gameStore'; import { usePlayerStore } from '@/store/playerStore'
 
-definePage({ name: 'home', layout: 'tabbar', style: { navigationBarTitleText: '海龟汤' } }); const router = useRouter(); const store = useGameStore(); const loading = ref(false); async function randomStart() {
+definePage({ name: 'home', layout: 'tabbar', style: { navigationBarTitleText: '海龟汤' } }); const router = useRouter(); const store = useGameStore(); const player = usePlayerStore(); const loading = ref(false); async function randomStart() {
   loading.value = true; try {
     await ensureAnonymousSession(); const q = await questionApi.random(); let confirmed = false; if (q.risk_level === 'caution') {
       confirmed = await new Promise(resolve => uni.showModal({ title: '内容提醒', content: q.risk_warning || '', success: r => resolve(r.confirm) })); if (!confirmed)
@@ -10,7 +10,7 @@ definePage({ name: 'home', layout: 'tabbar', style: { navigationBarTitleText: '�
     }store.setGame(await gameApi.create(q.id, confirmed)); router.push({ name: 'game', params: { id: store.current!.id } })
   }
   finally { loading.value = false }
-}onMounted(ensureAnonymousSession)
+}onMounted(async () => { await player.restore(); await ensureAnonymousSession() })
 </script>
 
 <template>
@@ -22,6 +22,12 @@ definePage({ name: 'home', layout: 'tabbar', style: { navigationBarTitleText: '�
         从一句离奇故事开始，问出隐藏的真相。
       </text>
     </view><view class="grid mt-8 gap-4">
+      <wd-button v-if="player.user" plain block @click="router.push({ name: 'player-account' })">
+        {{ player.user.username }} · 我的账号
+      </wd-button>
+      <wd-button v-else plain block @click="router.push({ name: 'player-login' })">
+        登录 / 注册
+      </wd-button>
       <wd-button block size="large" :loading="loading" @click="randomStart">
         随机开局
       </wd-button><wd-button plain block size="large" @click="router.push({ name: 'questions' })">

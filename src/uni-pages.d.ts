@@ -6,11 +6,15 @@
 type _LocationUrl =
   "/pages/index/index" |
   "/pages/about/index" |
+  "/pages/account/index" |
   "/pages/game/index" |
   "/pages/guess/index" |
   "/pages/history/index" |
+  "/pages/login/index" |
   "/pages/question-detail/index" |
   "/pages/questions/index" |
+  "/pages/register/index" |
+  "/pages/reset-password/index" |
   "/pages/result/index" |
   "/subPages/ci/index" |
   "/subPages/create-uni/index" |

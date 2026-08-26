@@ -36,6 +36,14 @@
     },
     // #endif
     {
+      "path": "pages/account/index",
+      "type": "page",
+      "name": "player-account",
+      "style": {
+        "navigationBarTitleText": "我的账号"
+      }
+    },
+    {
       "path": "pages/game/index",
       "type": "page",
       "name": "game",
@@ -60,6 +68,14 @@
       }
     },
     {
+      "path": "pages/login/index",
+      "type": "page",
+      "name": "player-login",
+      "style": {
+        "navigationBarTitleText": "玩家登录"
+      }
+    },
+    {
       "path": "pages/question-detail/index",
       "type": "page",
       "name": "question-detail",
@@ -73,6 +89,22 @@
       "name": "questions",
       "style": {
         "navigationBarTitleText": "选择题目"
+      }
+    },
+    {
+      "path": "pages/register/index",
+      "type": "page",
+      "name": "player-register",
+      "style": {
+        "navigationBarTitleText": "注册玩家"
+      }
+    },
+    {
+      "path": "pages/reset-password/index",
+      "type": "page",
+      "name": "player-reset-password",
+      "style": {
+        "navigationBarTitleText": "找回密码"
       }
     },
     {
