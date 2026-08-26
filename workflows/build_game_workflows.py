@@ -71,10 +71,6 @@ def build(kind: str, spec: dict) -> None:
     llm = data["nodes"][1]
     llm["title"] = "问题判定" if kind == "question" else "最终猜测判定"
     params = llm["parameters"]["llmParam"]
-    next(item for item in params if item["name"] == "thinkingType")["input"]["value"] = "disabled"
-    model_parameters = next(item for item in params if item["name"] == "parameters")["input"]["properties"]
-    model_parameters["max_completion_tokens"]["value"] = "1024"
-    model_parameters["reasoning_effort"]["value"] = "low"
     prompt = next(item for item in params if item["name"] == "prompt")
     prompt["input"]["value"] = (
         "汤面：{{surface}}\n汤底：{{bottom}}\n语言：{{language}}\n"
@@ -95,7 +91,11 @@ def build(kind: str, spec: dict) -> None:
 
     code = data["nodes"][2]
     code["title"] = "校验判定结果"
-    code["parameters"]["code"] = f'''import json\nimport re\n\nasync def main(args: Args) -> Output:\n    raw = str(args.params.get("raw") or "").strip()\n    raw = re.sub(r"^```(?:json)?\\s*|\\s*```$", "", raw, flags=re.I | re.S).strip()\n    try:\n        data = json.loads(raw)\n    except Exception:\n        return {{"result": ""}}\n    valid = {spec["validation"]}\n    keys = data.get("matched_point_keys")\n    if not valid or not isinstance(keys, list) or not all(isinstance(key, str) for key in keys):\n        return {{"result": ""}}\n    data["safety_note"] = str(data.get("safety_note") or "")\n    return {{"result": json.dumps(data, ensure_ascii=False, separators=(",", ":"))}}'''
+    code["parameters"]["code"] = f'''import json\nimport re\n\nasync def main(args: Args) -> Output:\n    raw = str(args.params.get("raw") or args.params.get("reasoning_raw") or "").strip()\n    raw = re.sub(r"^```(?:json)?\\s*|\\s*```$", "", raw, flags=re.I | re.S).strip()\n    try:\n        data = json.loads(raw)\n    except Exception:\n        return {{"result": ""}}\n    valid = {spec["validation"]}\n    keys = data.get("matched_point_keys")\n    if not valid or not isinstance(keys, list) or not all(isinstance(key, str) for key in keys):\n        return {{"result": ""}}\n    data["safety_note"] = str(data.get("safety_note") or "")\n    return {{"result": json.dumps(data, ensure_ascii=False, separators=(",", ":"))}}'''
+    code["parameters"]["node_inputs"].append({
+        "name": "reasoning_raw",
+        "input": {"value": {"path": "reasoning_content", "ref_node": "200001"}},
+    })
     data["nodes"][3]["description"] = "返回通过 Schema 校验的判定 JSON"
     workflow_yaml.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
 

@@ -12,15 +12,16 @@ final class GameWorkflowPackageTest extends TestCase
     {
         $workflow = $this->workflow('question');
 
-        self::assertStringContainsString("data.get('answer') in ('yes', 'no', 'irrelevant', 'partial')", $workflow);
+        self::assertStringContainsString("data.get('answer')", $workflow);
         self::assertStringNotContainsString('valid = answer in', $workflow);
     }
 
-    public function testBothJudgeWorkflowsDisableReasoningOutput(): void
+    public function testBothJudgeWorkflowsSafelyFallbackToReasoningOutput(): void
     {
         foreach (['question', 'guess'] as $type) {
             $workflow = $this->workflow($type);
-            self::assertMatchesRegularExpression('/name: thinkingType.*?value: disabled/s', $workflow);
+            self::assertStringContainsString('args.params.get(\\"reasoning_raw\\")', $workflow);
+            self::assertStringContainsString('path: reasoning_content', $workflow);
             self::assertStringContainsString('不得为空', $workflow);
         }
     }

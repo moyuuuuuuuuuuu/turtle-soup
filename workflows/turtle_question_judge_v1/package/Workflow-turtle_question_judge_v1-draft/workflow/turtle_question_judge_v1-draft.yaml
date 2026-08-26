@@ -81,7 +81,7 @@ nodes:
     - name: thinkingType
       input:
         type: string
-        value: disabled
+        value: enabled
     - name: responseFormat
       input:
         type: integer
@@ -104,10 +104,10 @@ nodes:
         properties:
           max_completion_tokens:
             type: integer
-            value: '1024'
+            value: '0'
           reasoning_effort:
             type: string
-            value: low
+            value: medium
         value: null
     - name: prompt
       input:
@@ -205,21 +205,27 @@ nodes:
     y: 120
   parameters:
     code: "import json\nimport re\n\nasync def main(args: Args) -> Output:\n    raw\
-      \ = str(args.params.get(\"raw\") or \"\").strip()\n    raw = re.sub(r\"^```(?:json)?\\\
-      s*|\\s*```$\", \"\", raw, flags=re.I | re.S).strip()\n    try:\n        data\
-      \ = json.loads(raw)\n    except Exception:\n        return {\"result\": \"\"\
-      }\n    valid = data.get('answer') in ('yes', 'no', 'irrelevant', 'partial')\
-      \ and isinstance(data.get('reply'), str)\n    keys = data.get(\"matched_point_keys\"\
-      )\n    if not valid or not isinstance(keys, list) or not all(isinstance(key,\
-      \ str) for key in keys):\n        return {\"result\": \"\"}\n    data[\"safety_note\"\
-      ] = str(data.get(\"safety_note\") or \"\")\n    return {\"result\": json.dumps(data,\
-      \ ensure_ascii=False, separators=(\",\", \":\"))}"
+      \ = str(args.params.get(\"raw\") or args.params.get(\"reasoning_raw\") or \"\
+      \").strip()\n    raw = re.sub(r\"^```(?:json)?\\s*|\\s*```$\", \"\", raw, flags=re.I\
+      \ | re.S).strip()\n    try:\n        data = json.loads(raw)\n    except Exception:\n\
+      \        return {\"result\": \"\"}\n    valid = data.get('answer') in ('yes',\
+      \ 'no', 'irrelevant', 'partial') and isinstance(data.get('reply'), str)\n  \
+      \  keys = data.get(\"matched_point_keys\")\n    if not valid or not isinstance(keys,\
+      \ list) or not all(isinstance(key, str) for key in keys):\n        return {\"\
+      result\": \"\"}\n    data[\"safety_note\"] = str(data.get(\"safety_note\") or\
+      \ \"\")\n    return {\"result\": json.dumps(data, ensure_ascii=False, separators=(\"\
+      ,\", \":\"))}"
     language: 3
     node_inputs:
     - name: raw
       input:
         value:
           path: output
+          ref_node: '200001'
+    - name: reasoning_raw
+      input:
+        value:
+          path: reasoning_content
           ref_node: '200001'
     node_outputs:
       result:
