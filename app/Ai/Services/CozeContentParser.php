@@ -29,6 +29,9 @@ final class CozeContentParser implements ContentParserInterface
         if (is_string($data)) {
             $data = json_decode($data, true, 512, JSON_THROW_ON_ERROR);
         }
+        if (is_array($data) && isset($data['result']) && is_string($data['result'])) {
+            $data = json_decode($data['result'], true, 512, JSON_THROW_ON_ERROR);
+        }
         if (!is_array($data)) {
             throw new RuntimeException('ai.invalid_response');
         }
