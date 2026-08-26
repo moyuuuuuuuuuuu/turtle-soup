@@ -51,7 +51,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$email\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 3
 			path: app/Auth/Business/PlayerAuthBusiness.php
 
 		-

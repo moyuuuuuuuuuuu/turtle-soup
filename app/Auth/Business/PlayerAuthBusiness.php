@@ -15,6 +15,7 @@ use App\Auth\Services\BosAvatarService;
 use App\Auth\Services\EmailCodeService;
 use App\Auth\Services\PlayerTokenService;
 use App\Common\Enums\ErrorCode;
+use App\Common\Exceptions\BaseException;
 use App\Common\Support\PublicId;
 use support\Db;
 use Throwable;
@@ -52,6 +53,7 @@ final class PlayerAuthBusiness
         $email = EmailCodeService::normalizeEmail((string) ($data['email'] ?? ''));
         $user = $this->repository->byEmail($email);
         if (!$user instanceof User || !password_verify((string) ($data['password'] ?? ''), (string) $user->password_hash)) {
+            $this->recordLogin($user, 'password', 'failed', $email, $device, ErrorCode::AUTH_CREDENTIALS_INVALID->value);
             ErrorCode::AUTH_CREDENTIALS_INVALID->throw();
         }
         return $this->loginResponse($user, $anonymousToken, $device, 'password');
@@ -60,10 +62,15 @@ final class PlayerAuthBusiness
     public function emailCodeLogin(array $data, string $anonymousToken, array $device): array
     {
         $email = EmailCodeService::normalizeEmail((string) ($data['email'] ?? ''));
-        $this->codes->verify($email, 'login', (string) ($data['email_code'] ?? ''));
         $user = $this->repository->byEmail($email);
-        if (!$user instanceof User) {
-            ErrorCode::AUTH_USER_NOT_FOUND->throw();
+        try {
+            $this->codes->verify($email, 'login', (string) ($data['email_code'] ?? ''));
+            if (!$user instanceof User) {
+                ErrorCode::AUTH_USER_NOT_FOUND->throw();
+            }
+        } catch (BaseException $exception) {
+            $this->recordLogin($user, 'email_code', 'failed', $email, $device, $exception->errorCode->code());
+            throw $exception;
         }
         return $this->loginResponse($user, $anonymousToken, $device, 'email_code');
     }
@@ -159,6 +166,7 @@ final class PlayerAuthBusiness
     private function loginResponse(User $user, string $anonymousToken, array $device, string $method): array
     {
         if ($user->status !== 'active') {
+            $this->recordLogin($user, $method, 'failed', (string) $user->email, $device, ErrorCode::AUTH_USER_DISABLED->value);
             ErrorCode::AUTH_USER_DISABLED->throw();
         } $merged = 0;
         if ($anonymousToken !== '') {
@@ -177,7 +185,7 @@ final class PlayerAuthBusiness
         }
         $user->update(['last_login_at' => date('Y-m-d H:i:s')]);
         $tokens = $this->tokens->issue($user, $device[0], $device[1], $device[2]);
-        UserLoginLog::create(['user_id' => $user->id, 'method' => $method, 'result' => 'succeeded', 'identifier_masked' => self::maskEmail((string) $user->email), 'device_name' => $device[1], 'ip_hash' => hash('sha256', $device[3] ?? '')]);
+        $this->recordLogin($user, $method, 'succeeded', (string) $user->email, $device);
         return array_merge($tokens, ['user' => PlayerFormat::user($user->refresh()), 'merged_games' => $merged]);
     }
 
@@ -225,5 +233,11 @@ final class PlayerAuthBusiness
     {
         [$a, $b] = array_pad(explode('@', $e, 2), 2, '');
         return mb_substr($a, 0, 1).'***@'.$b;
+    }
+
+    /** @param array<int,string> $device */
+    private function recordLogin(?User $user, string $method, string $result, string $email, array $device, ?string $errorCode = null): void
+    {
+        UserLoginLog::create(['user_id' => $user?->id, 'method' => $method, 'result' => $result, 'identifier_masked' => self::maskEmail($email), 'device_name' => mb_substr((string) ($device[1] ?? '未知设备'), 0, 100), 'ip_hash' => hash('sha256', (string) ($device[3] ?? '')), 'error_code' => $errorCode]);
     }
 }

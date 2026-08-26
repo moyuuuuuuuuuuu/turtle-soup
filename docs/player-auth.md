@@ -6,7 +6,7 @@
 
 ## 环境配置
 
-复制 `.env.example` 中 `PLAYER_AUTH_*` 与 `MAIL_*` 配置到本地 `.env`。JWT、验证码 HMAC 密钥和 SMTP 密码必须使用独立随机值，不得提交。修改配置后重启 Webman 与 `player_email` Redis Queue 消费进程。
+复制 `.env.example` 中 `PLAYER_*`、`MAIL_*` 与 `SMTP_*` 配置到本地 `.env`。JWT、令牌摘要、验证码 HMAC 密钥和 SMTP 密码必须使用独立随机值，不得提交。发件地址使用 `SMTP_FROM_ADDRESS`（兼容旧的 `MAIL_FROM_ADDRESS`）；修改配置后重启 Webman 与 `player_email` Redis Queue 消费进程。
 
 默认头像使用邮箱首字母生成 SVG，并由后端上传到百度 BOS。必须配置 `BOS_ACCESS_KEY`、`BOS_SECRET_KEY`、`BOS_ENDPOINT`、`BOS_BUCKET` 和公开访问基址 `BOS_PUBLIC_BASE_URL`。对象键为 `avatars/default/{sha256(玩家 ID 前两位/玩家公开 ID)}.svg`，不包含邮箱，也不直接暴露玩家 ID。
 
@@ -29,3 +29,7 @@
 ## 迁移状态
 
 迁移 `20260826010004_create_player_accounts.php` 与 `20260826010005_add_player_management_menu.php` 已于 2026-08-27 获授权后在本地 `turtle_soup` 数据库执行完成。
+
+## 本地真实链路验收
+
+2026-08-27 已完成邮箱验证码注册、邮箱密码/验证码登录、匿名游戏合并、BOS 默认头像、三设备限制、刷新令牌轮换与复用检测、指定会话撤销、全部退出、换绑邮箱、修改/找回密码及玩家 WebSocket 鉴权。测试账号保留；其最终密码为本地临时随机值，使用者应通过“忘记密码”页面设置自己的密码。

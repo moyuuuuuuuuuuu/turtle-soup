@@ -72,8 +72,8 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 - [ ] Anonymous users can access allowed single-player operations.
 - [ ] Anonymous multiplayer access returns `room.login_required`.
-- [ ] 邮箱密码、邮箱验证码两种登录方式及邮箱验证码注册在本地完成真实 SMTP/BOS 联调。
-- [ ] Token refresh and revocation work against the migrated local database.
+- [x] 邮箱密码、邮箱验证码两种登录方式及邮箱验证码注册在本地完成真实 SMTP/BOS 联调。
+- [x] Token refresh, rotation, reuse detection, device limits, and revocation work against the migrated local database.
 
 ## Milestone 2 — Question bank and management
 

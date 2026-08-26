@@ -62,4 +62,25 @@ final class PlayerAccountContractTest extends TestCase
         self::assertStringContainsString("hash('sha256', substr(\$publicId, 0, 2).'/'.\$publicId)", $service);
         self::assertStringNotContainsString("'/'.\$publicId.'.svg'", $service);
     }
+
+    public function testFailedLoginAuditAndEmailOnlyContractArePresent(): void
+    {
+        $business = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Business/PlayerAuthBusiness.php');
+        self::assertIsString($business);
+        self::assertStringContainsString("recordLogin(\$user, 'password', 'failed'", $business);
+        self::assertStringContainsString("recordLogin(\$user, 'email_code', 'failed'", $business);
+        self::assertStringContainsString("\$data['email']", $business);
+        self::assertStringNotContainsString("\$data['account']", $business);
+    }
+
+    public function testSmtpSenderConfigurationUsesCanonicalEnvironmentName(): void
+    {
+        $config = file_get_contents(dirname(__DIR__, 2).'/config/mail.php');
+        $mailer = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Services/SmtpMailer.php');
+        self::assertIsString($config);
+        self::assertIsString($mailer);
+        self::assertStringContainsString("env('SMTP_FROM_ADDRESS'", $config);
+        self::assertStringContainsString('SMTP configuration is incomplete', $mailer);
+        self::assertStringContainsString("'mail_from'", $mailer);
+    }
 }
