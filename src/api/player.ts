@@ -1,5 +1,5 @@
 /* eslint-disable style/max-statements-per-line */
-export interface PlayerUser { id: string, username: string, email: string, status: string }
+export interface PlayerUser { id: string, username: string, email: string, avatar_url?: string, status: string }
 export interface PlayerSession { id: string, device_name: string, platform: string, last_used_at?: string, expires_at: string }
 interface Envelope<T> { code: string, message: string, data: T }
 interface AuthResult { access_token: string, refresh_token: string, expires_in: number, session: PlayerSession, user: PlayerUser, merged_games: number }
@@ -38,7 +38,7 @@ async function restoreAccess() {
 export const playerApi = {
   sendCode: (email: string, purpose: string) => call<{ sent: boolean }>('/auth/email-code/send', 'POST', { email, purpose }),
   register: (data: Record<string, unknown>) => call<AuthResult>('/auth/register', 'POST', data).then(accept),
-  passwordLogin: (account: string, password: string) => call<AuthResult>('/auth/login/password', 'POST', { account, password }).then(accept),
+  passwordLogin: (email: string, password: string) => call<AuthResult>('/auth/login/password', 'POST', { email, password }).then(accept),
   codeLogin: (email: string, email_code: string) => call<AuthResult>('/auth/login/email-code', 'POST', { email, email_code }).then(accept),
   restore: restoreAccess,
   me: () => call<PlayerUser>('/me', 'GET', undefined, true),

@@ -14,7 +14,7 @@ async function submit() {
 <template>
   <view class="min-h-screen bg-[#f5efe5] p-5">
     <view class="rounded-5 bg-white p-5">
-      <wd-input v-model="username" label="用户名" placeholder="3-24 位字母、数字或下划线" /><wd-input v-model="email" label="邮箱" /><wd-input v-model="password" label="密码" show-password /><view class="flex items-center gap-2">
+      <wd-input v-model="username" label="显示名称" placeholder="可选；仅用于展示，不可用于登录" /><wd-input v-model="email" label="邮箱" /><wd-input v-model="password" label="密码" show-password /><view class="flex items-center gap-2">
         <wd-input v-model="code" label="验证码" /><wd-button size="small" plain @click="sendCode">
           发送
         </wd-button>

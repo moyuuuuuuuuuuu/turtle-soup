@@ -4,11 +4,11 @@ import { playerApi } from '@/api/player'
 import { usePlayerStore } from '@/store/playerStore'
 
 definePage({ name: 'player-login', style: { navigationBarTitleText: '玩家登录' } })
-const router = useRouter(); const store = usePlayerStore(); const mode = ref<'password' | 'code'>('password'); const account = ref(''); const password = ref(''); const email = ref(''); const code = ref(''); const busy = ref(false)
+const router = useRouter(); const store = usePlayerStore(); const mode = ref<'password' | 'code'>('password'); const email = ref(''); const password = ref(''); const code = ref(''); const busy = ref(false)
 async function sendCode() { await playerApi.sendCode(email.value, 'login'); uni.showToast({ title: '验证码已发送', icon: 'success' }) }
 async function submit() {
   busy.value = true; try {
-    const result = mode.value === 'password' ? await playerApi.passwordLogin(account.value, password.value) : await playerApi.codeLogin(email.value, code.value); store.accept(result); if (result.merged_games)
+    const result = mode.value === 'password' ? await playerApi.passwordLogin(email.value, password.value) : await playerApi.codeLogin(email.value, code.value); store.accept(result); if (result.merged_games)
       uni.showToast({ title: `已合并 ${result.merged_games} 局记录`, icon: 'none' }); uni.switchTab({ url: '/pages/index/index' })
   }
   catch (error) { uni.showToast({ title: (error as Error).message, icon: 'none' }) }
@@ -23,7 +23,7 @@ async function submit() {
         <wd-tab name="password" title="密码登录" /><wd-tab name="code" title="邮箱验证码" />
       </wd-tabs>
       <template v-if="mode === 'password'">
-        <wd-input v-model="account" label="账号" placeholder="用户名或邮箱" /><wd-input v-model="password" label="密码" show-password />
+        <wd-input v-model="email" label="邮箱" placeholder="请输入邮箱" /><wd-input v-model="password" label="密码" show-password />
       </template>
       <template v-else>
         <wd-input v-model="email" label="邮箱" /><view class="flex items-center gap-2">

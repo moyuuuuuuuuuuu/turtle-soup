@@ -19,6 +19,7 @@ async function logout(all = false) { await store.logout(all); uni.switchTab({ ur
   <view class="min-h-screen bg-[#f5efe5] p-4">
     <view v-if="store.user" class="grid gap-4">
       <view class="rounded-4 bg-white p-4">
+        <image v-if="store.user.avatar_url" :src="store.user.avatar_url" class="mb-3 h-16 w-16 rounded-full" mode="aspectFill" />
         <text class="text-5 font-bold">
           {{ store.user.username }}
         </text><text class="mt-1 block text-gray-500">
