@@ -14,6 +14,7 @@ use App\Game\Repositories\GameRepository;
 use App\Game\Services\GameJudgeFactory;
 use App\Question\Models\Question;
 use support\Db;
+use Throwable;
 
 final class GameBusiness
 {
@@ -56,21 +57,27 @@ final class GameBusiness
         if (trim($question) === '' || mb_strlen($question) > 500) {
             ErrorCode::PARAM_ERROR->throw();
         }
-        return Db::transaction(function () use ($session, $id, $requestId, $question) {
+        $game = $this->required($session, $id);
+        if ($this->repository->duplicate($game, $requestId)) {
+            return GameFormat::snapshot($this->repository->hydrated($game));
+        }
+        $this->assertCanAsk($game);
+        $context = (array)$game->question_snapshot;
+        $result = $this->runJudge($game, $requestId, 'turtle_question_judge_v1', fn () => $this->judge->judgeQuestion($context, $question));
+        $result['matched_point_keys'] = $this->validPointKeys($context, (array)$result['matched_point_keys']);
+
+        return Db::transaction(function () use ($session, $id, $requestId, $question, $result) {
             $game = $this->required($session, $id, true);
-            if ($duplicate = $this->repository->duplicate($game, $requestId)) {
+            if ($this->repository->duplicate($game, $requestId)) {
                 return GameFormat::snapshot($this->repository->hydrated($game));
-            } if (!in_array($game->status, ['created','playing'], true)) {
-                ErrorCode::GAME_STATUS_INVALID->throw();
-            } if ($game->question_count >= $game->question_limit) {
-                ErrorCode::GAME_QUESTION_LIMIT_REACHED->throw();
-            } $context = (array)$game->question_snapshot;
-            $result = $this->judge->judgeQuestion($context, $question);
+            }
+            $this->assertCanAsk($game);
             if (!in_array($result['answer'] ?? '', ['yes','no','irrelevant','partial'], true)) {
                 ErrorCode::AI_INVALID_RESPONSE->throw();
-            } $this->repository->message($game, $requestId.':q', 'player', 'question', $question);
+            }
+            $this->repository->message($game, $requestId.':q', 'player', 'question', $question);
             $this->repository->message($game, $requestId, 'host', 'answer', (string)$result['reply'], ['answer' => $result['answer']]);
-            $this->repository->discover($game, (array)($result['matched_point_keys'] ?? []));
+            $this->repository->discover($game, (array)$result['matched_point_keys']);
             $game->update(['status' => 'playing','question_count' => (int)$game->question_count + 1,'started_at' => $game->started_at ?: date('Y-m-d H:i:s')]);
             return GameFormat::snapshot($this->repository->hydrated($game));
         });
@@ -79,6 +86,9 @@ final class GameBusiness
     {
         return Db::transaction(function () use ($session, $id, $requestId, $level) {
             $game = $this->required($session, $id, true);
+            if ($this->repository->duplicateHint($game, $requestId)) {
+                return GameFormat::snapshot($this->repository->hydrated($game));
+            }
             if (!in_array($game->status, ['created','playing'], true)) {
                 ErrorCode::GAME_STATUS_INVALID->throw();
             }if ($level < 1 || $level > 3 || $game->hints()->where('level', $level)->exists()) {
@@ -96,15 +106,31 @@ final class GameBusiness
     {
         if (trim($guess) === '' || mb_strlen($guess) > 2000) {
             ErrorCode::PARAM_ERROR->throw();
-        }return Db::transaction(function () use ($session, $id, $requestId, $guess) {
+        }
+        $game = $this->required($session, $id);
+        if ($this->repository->duplicateGuess($game, $requestId)) {
+            return GameFormat::snapshot($this->repository->hydrated($game));
+        }
+        if (!in_array($game->status, ['created','playing'], true) || $game->guess()->exists()) {
+            ErrorCode::GAME_STATUS_INVALID->throw();
+        }
+        $context = (array)$game->question_snapshot;
+        $result = $this->runJudge($game, $requestId, 'turtle_guess_judge_v1', fn () => $this->judge->judgeGuess($context, $guess));
+        $result['matched_point_keys'] = $this->validPointKeys($context, (array)$result['matched_point_keys']);
+
+        return Db::transaction(function () use ($session, $id, $requestId, $guess, $result) {
             $game = $this->required($session, $id, true);
+            if ($this->repository->duplicateGuess($game, $requestId)) {
+                return GameFormat::snapshot($this->repository->hydrated($game));
+            }
             if (!in_array($game->status, ['created','playing'], true) || $game->guess()->exists()) {
                 ErrorCode::GAME_STATUS_INVALID->throw();
-            }$result = $this->judge->judgeGuess((array)$game->question_snapshot, $guess);
+            }
             if (!isset($result['is_solved'])) {
                 ErrorCode::AI_INVALID_RESPONSE->throw();
-            }$this->repository->guess($game, $requestId, $guess, $result);
-            $this->repository->discover($game, (array)($result['matched_point_keys'] ?? []));
+            }
+            $this->repository->guess($game, $requestId, $guess, $result);
+            $this->repository->discover($game, (array)$result['matched_point_keys']);
             $this->repository->message($game, $requestId, 'player', 'guess', $guess);
             $this->repository->message($game, $requestId.':result', 'host', 'result', (string)($result['summary'] ?? ''), ['is_solved' => (bool)$result['is_solved']]);
             $game->update(['status' => $result['is_solved'] ? 'solved' : 'finished','finished_at' => date('Y-m-d H:i:s')]);
@@ -114,13 +140,52 @@ final class GameBusiness
     public function abandon(AnonymousSession $session, string $id): array
     {
         $game = $this->required($session, $id);
-        if (!in_array($game->status, ['created','playing'], true)) {
+        if (!in_array($game->getAttribute('status'), ['created','playing'], true)) {
             ErrorCode::GAME_STATUS_INVALID->throw();
         }$game->update(['status' => 'abandoned','finished_at' => date('Y-m-d H:i:s')]);
         return GameFormat::snapshot($this->repository->hydrated($game));
     }
-    private function required(AnonymousSession $session,string $id,bool $lock = false): Game
+    private function required(AnonymousSession $session, string $id, bool $lock = false): Game
     {
-        return $this->repository->find($id,(int)$session->id,$lock) ?? ErrorCode::GAME_NOT_FOUND->throw();
+        return $this->repository->find($id, (int)$session->id, $lock) ?? ErrorCode::GAME_NOT_FOUND->throw();
+    }
+    private function assertCanAsk(Game $game): void
+    {
+        if (!in_array($game->status, ['created','playing'], true)) {
+            ErrorCode::GAME_STATUS_INVALID->throw();
+        }
+        if ($game->question_count >= $game->question_limit) {
+            ErrorCode::GAME_QUESTION_LIMIT_REACHED->throw();
+        }
+    }
+    /** @return array<string, mixed> */
+    private function runJudge(Game $game, string $requestId, string $workflow, callable $callback): array
+    {
+        $audit = $this->repository->startAiRequest($game, $requestId, $workflow);
+        $startedAt = microtime(true);
+        try {
+            $result = $callback();
+            $latency = (int)((microtime(true) - $startedAt) * 1000);
+            $safe = $workflow === 'turtle_question_judge_v1'
+                ? ['answer' => $result['answer'] ?? null,'matched_point_keys' => $result['matched_point_keys'] ?? [],'safety_note' => $result['safety_note'] ?? '']
+                : ['is_solved' => $result['is_solved'] ?? null,'matched_point_keys' => $result['matched_point_keys'] ?? [],'safety_note' => $result['safety_note'] ?? ''];
+            $this->repository->finishAiRequest($audit, $latency, $safe);
+            return $result;
+        } catch (Throwable $exception) {
+            $code = str_starts_with($exception->getMessage(), 'ai.') ? $exception->getMessage() : 'ai.workflow_failed';
+            $this->repository->failAiRequest($audit, (int)((microtime(true) - $startedAt) * 1000), $code);
+            $errorCode = ErrorCode::tryFrom($code) ?? ErrorCode::AI_WORKFLOW_FAILED;
+            $errorCode->throw(previous: $exception);
+        }
+    }
+    /**
+     * @param array<string, mixed> $context
+     * @param list<mixed> $candidateKeys
+     * @return list<string>
+     */
+    private function validPointKeys(array $context, array $candidateKeys): array
+    {
+        $allowed = array_map('strval', array_column((array)($context['points'] ?? []), 'key'));
+        return array_values(array_unique(array_intersect(array_map('strval', $candidateKeys), $allowed)));
     }
 }

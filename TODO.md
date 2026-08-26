@@ -101,24 +101,24 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 - [ ] Add anti-answer-leak, contradiction, irrelevant-question, malformed-output, and prompt-injection tests.
 - [x] Implement Coze configuration and service-token credentials through environment/config files.
 - [x] Implement AI contracts, Coze Service adapters, response validation, timeout, retry, and safe logging for single-player judging.
-- [ ] Persist workflow version, latency, attempts, and safe execution status after database permission is granted.
+- [x] Persist workflow version, latency, attempts, and safe execution status without protected content.
 
 ### Acceptance
 
-- [ ] Workflow ZIP files import into the target Coze workspace.
+- [x] Workflow ZIP files import into the target Coze workspace.
 - [x] Webman can execute the published content-parser workflow and reject invalid outputs.
 - [ ] AI failure cannot corrupt game state or expose the answer.
 
 ## Milestone 4 — Single-player MVP (`v0.3.0`)
 
-- [x] Create and dry-run reviewed migrations for anonymous sessions, games, messages, discovered points, guesses, hints, and AI requests (execution awaiting approval).
+- [x] Create, review, execute, and verify migrations for anonymous sessions, games, messages, discovered points, guesses, hints, and AI requests.
 - [x] Implement game states: `CREATED`, `PLAYING`, `SOLVED`, `FINISHED`, and `ABANDONED`.
 - [x] Implement create game, game detail, snapshot, history, and finish HTTP APIs.
 - [x] Implement versioned WebSocket authentication, join, snapshot, question, hint, guess, solved, finished, and error events.
-- [x] Enforce request ID idempotency for question commands; finish hint and guess duplicate-path verification after migration.
+- [x] Enforce request ID idempotency for question, hint, and final-guess commands.
 - [x] Persist message ordering and validate candidate reasoning points in PHP.
 - [x] Implement disconnect/reconnect snapshot recovery.
-- [x] Implement user pages for home, question list, game, final guess, result, and history; question detail remains to polish.
+- [x] Implement user pages for home, question list/detail, game, final guess, result, and history.
 - [x] Ensure clients cannot receive the answer before the game finishes.
 
 ### Acceptance
