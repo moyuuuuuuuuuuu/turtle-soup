@@ -97,8 +97,8 @@ final class CreateQuestionBankTables extends AbstractMigration
             ->create();
 
         $this->table('turtle_question_tags', ['id' => false, 'primary_key' => ['question_id', 'tag_id']])
-            ->addColumn('question_id', 'biginteger', ['signed' => false])
-            ->addColumn('tag_id', 'biginteger', ['signed' => false])
+            ->addColumn('question_id', 'biginteger', ['signed' => false, 'null' => false])
+            ->addColumn('tag_id', 'biginteger', ['signed' => false, 'null' => false])
             ->addForeignKey('question_id', 'turtle_questions', 'id', ['delete' => 'CASCADE'])
             ->addForeignKey('tag_id', 'turtle_tags', 'id', ['delete' => 'CASCADE'])
             ->create();

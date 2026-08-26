@@ -10,7 +10,7 @@ return [
         'seeds' => '%%PHINX_CONFIG_DIR%%/database/seeds',
     ],
     'environments' => [
-        'default_migration_table' => 'phinxlog',
+        'default_migration_table' => 'phinxlog_project',
         'default_environment' => 'development',
         'development' => [
             'adapter' => $value('DB_TYPE', 'mysql'),
