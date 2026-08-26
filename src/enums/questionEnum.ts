@@ -21,6 +21,25 @@ export enum QuestionLanguageEnum {
   English = 'en-US'
 }
 
+export enum QuestionRiskLevelEnum {
+  Safe = 'safe',
+  Caution = 'caution',
+  Restricted = 'restricted'
+}
+
+export enum QuestionRiskTypeEnum {
+  Death = 'death',
+  Violence = 'violence',
+  Gore = 'gore',
+  SelfHarm = 'self_harm',
+  Sexual = 'sexual',
+  ChildSafety = 'child_safety',
+  Discrimination = 'discrimination',
+  Illegal = 'illegal',
+  Substance = 'substance',
+  Other = 'other'
+}
+
 export const QUESTION_STATUS_LABELS: Record<QuestionStatusEnum, string> = {
   [QuestionStatusEnum.Draft]: '草稿',
   [QuestionStatusEnum.Published]: '已发布',
@@ -51,6 +70,35 @@ export const QUESTION_DIFFICULTY_LABELS: Record<number, string> = {
   4: '困难',
   5: '非常困难'
 }
+
+export const QUESTION_RISK_LEVEL_LABELS: Record<QuestionRiskLevelEnum, string> = {
+  [QuestionRiskLevelEnum.Safe]: '安全',
+  [QuestionRiskLevelEnum.Caution]: '谨慎发布',
+  [QuestionRiskLevelEnum.Restricted]: '限制内容'
+}
+
+export const QUESTION_RISK_TYPE_LABELS: Record<QuestionRiskTypeEnum, string> = {
+  [QuestionRiskTypeEnum.Death]: '死亡',
+  [QuestionRiskTypeEnum.Violence]: '暴力',
+  [QuestionRiskTypeEnum.Gore]: '血腥',
+  [QuestionRiskTypeEnum.SelfHarm]: '自伤',
+  [QuestionRiskTypeEnum.Sexual]: '性内容',
+  [QuestionRiskTypeEnum.ChildSafety]: '未成年人',
+  [QuestionRiskTypeEnum.Discrimination]: '歧视',
+  [QuestionRiskTypeEnum.Illegal]: '违法',
+  [QuestionRiskTypeEnum.Substance]: '成瘾物',
+  [QuestionRiskTypeEnum.Other]: '其他'
+}
+
+export const QUESTION_RISK_LEVEL_OPTIONS = Object.values(QuestionRiskLevelEnum).map((value) => ({
+  value,
+  label: QUESTION_RISK_LEVEL_LABELS[value]
+}))
+
+export const QUESTION_RISK_TYPE_OPTIONS = Object.values(QuestionRiskTypeEnum).map((value) => ({
+  value,
+  label: QUESTION_RISK_TYPE_LABELS[value]
+}))
 
 export const QUESTION_STATUS_OPTIONS = Object.values(QuestionStatusEnum).map((value) => ({
   value,
