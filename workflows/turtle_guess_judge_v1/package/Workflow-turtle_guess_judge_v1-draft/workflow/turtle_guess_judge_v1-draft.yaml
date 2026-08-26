@@ -206,8 +206,9 @@ nodes:
     code: "import json\nimport re\n\nasync def main(args: Args) -> Output:\n    raw\
       \ = str(args.params.get(\"raw\") or args.params.get(\"reasoning_raw\") or \"\
       \").strip()\n    raw = re.sub(r\"^```(?:json)?\\s*|\\s*```$\", \"\", raw, flags=re.I\
-      \ | re.S).strip()\n    try:\n        data = json.loads(raw)\n    except Exception:\n\
-      \        return {\"result\": \"\"}\n    valid = isinstance(data.get('is_solved'),\
+      \ | re.S).strip()\n    candidate = re.search(r\"\\{.*\\}\", raw, re.S)\n   \
+      \ try:\n        data = json.loads(candidate.group(0) if candidate else raw)\n\
+      \    except Exception:\n        return {\"result\": \"\"}\n    valid = isinstance(data.get('is_solved'),\
       \ bool) and isinstance(data.get('summary'), str)\n    keys = data.get(\"matched_point_keys\"\
       )\n    if not valid or not isinstance(keys, list) or not all(isinstance(key,\
       \ str) for key in keys):\n        return {\"result\": \"\"}\n    data[\"safety_note\"\

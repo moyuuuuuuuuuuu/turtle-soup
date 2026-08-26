@@ -26,6 +26,16 @@ final class GameWorkflowPackageTest extends TestCase
         }
     }
 
+    public function testQuestionWorkflowCanNormalizeExplicitFieldsFromReasoningText(): void
+    {
+        $workflow = $this->workflow('question');
+
+        self::assertStringContainsString('answer(?:字段)?', $workflow);
+        self::assertStringContainsString('matched_point_keys(?:字段)?', $workflow);
+        self::assertStringContainsString('answer.group(1).lower()', $workflow);
+        self::assertStringContainsString('json.loads(point_keys.group(1))', $workflow);
+    }
+
     private function workflow(string $type): string
     {
         $name = "turtle_{$type}_judge_v1";

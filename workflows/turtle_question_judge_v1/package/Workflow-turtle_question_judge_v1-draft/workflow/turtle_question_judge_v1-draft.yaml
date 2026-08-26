@@ -207,14 +207,25 @@ nodes:
     code: "import json\nimport re\n\nasync def main(args: Args) -> Output:\n    raw\
       \ = str(args.params.get(\"raw\") or args.params.get(\"reasoning_raw\") or \"\
       \").strip()\n    raw = re.sub(r\"^```(?:json)?\\s*|\\s*```$\", \"\", raw, flags=re.I\
-      \ | re.S).strip()\n    try:\n        data = json.loads(raw)\n    except Exception:\n\
-      \        return {\"result\": \"\"}\n    valid = data.get('answer') in ('yes',\
-      \ 'no', 'irrelevant', 'partial') and isinstance(data.get('reply'), str)\n  \
-      \  keys = data.get(\"matched_point_keys\")\n    if not valid or not isinstance(keys,\
-      \ list) or not all(isinstance(key, str) for key in keys):\n        return {\"\
-      result\": \"\"}\n    data[\"safety_note\"] = str(data.get(\"safety_note\") or\
-      \ \"\")\n    return {\"result\": json.dumps(data, ensure_ascii=False, separators=(\"\
-      ,\", \":\"))}"
+      \ | re.S).strip()\n    candidate = re.search(r\"\\{.*\\}\", raw, re.S)\n   \
+      \ try:\n        data = json.loads(candidate.group(0) if candidate else raw)\n\
+      \    except Exception:\n        answer = re.search(r\"answer(?:字段)?\\s*(?:是|为|[:：])\\\
+      s*[\\\"']?(yes|no|irrelevant|partial)\", raw, re.I)\n        reply = re.search(r\"\
+      reply(?:字段)?\\s*(?:是|为|说|[:：])\\s*[“\\\"']([^”\\\"']+)[”\\\"']\", raw, re.I)\n\
+      \        point_keys = re.search(r\"matched_point_keys(?:字段)?\\s*(?:是|为|[:：])\\\
+      s*(\\[[^\\]]*\\])\", raw, re.I)\n        if not answer or not reply or not point_keys:\n\
+      \            return {\"result\": \"\"}\n        try:\n            keys = json.loads(point_keys.group(1))\n\
+      \        except Exception:\n            return {\"result\": \"\"}\n        safety\
+      \ = re.search(r\"safety_note(?:字段)?\\s*(?:是|为|[:：])\\s*[“\\\"']([^”\\\"']+)[”\\\
+      \"']\", raw, re.I)\n        data = {\"answer\": answer.group(1).lower(), \"\
+      reply\": reply.group(1), \"matched_point_keys\": keys, \"safety_note\": safety.group(1)\
+      \ if safety else \"\"}\n    valid = data.get('answer') in ('yes', 'no', 'irrelevant',\
+      \ 'partial') and isinstance(data.get('reply'), str)\n    keys = data.get(\"\
+      matched_point_keys\")\n    if not valid or not isinstance(keys, list) or not\
+      \ all(isinstance(key, str) for key in keys):\n        return {\"result\": \"\
+      \"}\n    data[\"safety_note\"] = str(data.get(\"safety_note\") or \"\")\n  \
+      \  return {\"result\": json.dumps(data, ensure_ascii=False, separators=(\",\"\
+      , \":\"))}"
     language: 3
     node_inputs:
     - name: raw
