@@ -1,0 +1,1 @@
+{"type":"object","required":["answer","reply","matched_point_keys","safety_note"],"properties":{"answer":{"enum":["yes","no","irrelevant","partial"]},"reply":{"type":"string"},"matched_point_keys":{"type":"array","items":{"type":"string"},"uniqueItems":true},"safety_note":{"type":"string"}},"additionalProperties":false}

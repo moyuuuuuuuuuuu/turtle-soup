@@ -58,5 +58,11 @@ return [
                 'enable_memory_monitor' => DIRECTORY_SEPARATOR === '/',
             ]
         ]
-    ]
+    ],
+    'game.websocket' => [
+        'handler' => App\Game\WebSocket\GameWebSocket::class,
+        'listen' => env('GAME_WS_LISTEN', 'websocket://0.0.0.0:8790'),
+        'count' => 1,
+        'reusePort' => false,
+    ],
 ];

@@ -1,0 +1,409 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$expires_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Auth/Business/AnonymousSessionBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$public_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Auth/Business/AnonymousSessionBusiness.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$public_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Auth/Business/AnonymousSessionBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$create_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$difficulty\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$hint_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$public_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_count\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_limit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_snapshot\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$started_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Business\\GameBusiness\:\:abandon\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Business\\GameBusiness\:\:ask\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Business\\GameBusiness\:\:create\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Business\\GameBusiness\:\:guess\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Business\\GameBusiness\:\:hint\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Business\\GameBusiness\:\:history\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Business\\GameBusiness\:\:snapshot\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) expects callable\(stdClass, int\)\: array\{id\: mixed, status\: mixed, title\: mixed, difficulty\: int, question_count\: int, create_time\: mixed\}, Closure\(App\\Game\\Models\\Game\)\: array\{id\: mixed, status\: mixed, title\: mixed, difficulty\: int, question_count\: int, create_time\: mixed\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Parameter \#1 \$game of method App\\Game\\Repositories\\GameRepository\:\:hydrated\(\) expects App\\Game\\Models\\Game, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>content" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Game/Business/GameBusiness.php
+
+		-
+			message: '#^Method App\\Game\\Contracts\\GameJudgeInterface\:\:judgeGuess\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Contracts/GameJudgeInterface.php
+
+		-
+			message: '#^Method App\\Game\\Contracts\\GameJudgeInterface\:\:judgeGuess\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Contracts/GameJudgeInterface.php
+
+		-
+			message: '#^Method App\\Game\\Contracts\\GameJudgeInterface\:\:judgeQuestion\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Contracts/GameJudgeInterface.php
+
+		-
+			message: '#^Method App\\Game\\Contracts\\GameJudgeInterface\:\:judgeQuestion\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Contracts/GameJudgeInterface.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$difficulty\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$guess\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$hint_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$hints\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$messages\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$points\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$public_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_count\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_limit\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$question_snapshot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Method App\\Game\\Formats\\GameFormat\:\:snapshot\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Formats/GameFormat.php
+
+		-
+			message: '#^Method App\\Game\\Models\\Game\:\:guess\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Game/Models/Game.php
+
+		-
+			message: '#^Method App\\Game\\Models\\Game\:\:hints\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Game/Models/Game.php
+
+		-
+			message: '#^Method App\\Game\\Models\\Game\:\:messages\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Game/Models/Game.php
+
+		-
+			message: '#^Method App\\Game\\Models\\Game\:\:points\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Game/Models/Game.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Game/Repositories/GameRepository.php
+
+		-
+			message: '#^Access to an undefined property App\\Game\\Models\\Game\:\:\$next_sequence\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/Repositories/GameRepository.php
+
+		-
+			message: '#^Method App\\Game\\Repositories\\GameRepository\:\:discover\(\) has parameter \$keys with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Repositories/GameRepository.php
+
+		-
+			message: '#^Method App\\Game\\Repositories\\GameRepository\:\:guess\(\) has parameter \$result with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Repositories/GameRepository.php
+
+		-
+			message: '#^Method App\\Game\\Repositories\\GameRepository\:\:message\(\) has parameter \$metadata with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Repositories/GameRepository.php
+
+		-
+			message: '#^Method App\\Game\\Repositories\\GameRepository\:\:message\(\) should return App\\Game\\Models\\GameMessage but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Game/Repositories/GameRepository.php
+
+		-
+			message: '#^Method App\\Game\\Services\\CozeGameJudge\:\:judgeGuess\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/CozeGameJudge.php
+
+		-
+			message: '#^Method App\\Game\\Services\\CozeGameJudge\:\:judgeGuess\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/CozeGameJudge.php
+
+		-
+			message: '#^Method App\\Game\\Services\\CozeGameJudge\:\:judgeQuestion\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/CozeGameJudge.php
+
+		-
+			message: '#^Method App\\Game\\Services\\CozeGameJudge\:\:judgeQuestion\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/CozeGameJudge.php
+
+		-
+			message: '#^Method App\\Game\\Services\\MockGameJudge\:\:judgeGuess\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/MockGameJudge.php
+
+		-
+			message: '#^Method App\\Game\\Services\\MockGameJudge\:\:judgeGuess\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/MockGameJudge.php
+
+		-
+			message: '#^Method App\\Game\\Services\\MockGameJudge\:\:judgeQuestion\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/MockGameJudge.php
+
+		-
+			message: '#^Method App\\Game\\Services\\MockGameJudge\:\:judgeQuestion\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/Services/MockGameJudge.php
+
+		-
+			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/WebSocket/GameWebSocket.php
+
+		-
+			message: '#^Access to an undefined property App\\Auth\\Models\\AnonymousSession\:\:\$public_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Game/WebSocket/GameWebSocket.php
+
+		-
+			message: '#^Access to an undefined property Workerman\\Connection\\TcpConnection\:\:\$sessionId\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Game/WebSocket/GameWebSocket.php
+
+		-
+			message: '#^Method App\\Game\\WebSocket\\GameWebSocket\:\:send\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Game/WebSocket/GameWebSocket.php
+
+		-
+			message: '#^Method App\\Question\\Business\\PublicQuestionBusiness\:\:page\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/PublicQuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\PublicQuestionBusiness\:\:query\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Question/Business/PublicQuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\PublicQuestionBusiness\:\:query\(\) should return Illuminate\\Database\\Eloquent\\Builder but returns Illuminate\\Database\\Query\\Builder\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Question/Business/PublicQuestionBusiness.php
+
+		-
+			message: '#^Method App\\Question\\Business\\PublicQuestionBusiness\:\:random\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Question/Business/PublicQuestionBusiness.php

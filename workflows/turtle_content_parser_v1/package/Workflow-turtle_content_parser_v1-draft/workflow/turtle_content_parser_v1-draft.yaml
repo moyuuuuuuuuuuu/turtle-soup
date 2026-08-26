@@ -131,7 +131,7 @@ nodes:
 
                     任务：把故事整理为逻辑自洽、可人工审核的海龟汤草稿。不得补造解题必需事实。汤面制造公平悬念但不得泄露汤底；汤底必须解释汤面的全部异常。关键推理点应原子化，只有不可缺少的点标记为必需。生成恰好三级、逐步增强但不直接泄底的提示。
 
-                    针对每个目标语言独立自然地改写。zh-CN 与 en-US 都被请求时必须同时返回；英语文本按输入 CEFR 调整，但不能牺牲事实准确性。发现逻辑矛盾、信息不足、不安全内容、答案过于明显或不可公平推理时，写入 quality_warnings，禁止静默修补。
+                    针对每个目标语言独立自然地改写。zh-CN 与 en-US 都被请求时必须同时返回；英语文本按输入 CEFR 调整，但不能牺牲事实准确性。发现逻辑矛盾、信息不足、不安全内容、答案过于明显或不可公平推理时，写入 quality_warnings，禁止静默修补。必须独立评估内容风险：safe 为通常适合公开；caution 为含死亡、暴力等需提醒玩家的内容；restricted 为不应进入公开题库的高风险内容。风险判断只是给管理员的建议，不能代替人工审核。
 
                     只返回合法 JSON 对象，不得使用 Markdown。结构必须为：
                     {
@@ -140,10 +140,13 @@ nodes:
                       "points": [{"weight":1到100的整数,"is_required":true或false,"sort":1起的整数,"translations":[{"language":"zh-CN","content":"..."}]}],
                       "hints": [{"level":1,"translations":[{"language":"zh-CN","content":"..."}]},{"level":2,"translations":[...]},{"level":3,"translations":[...]}],
                       "suggested_tags": ["标签"],
-                      "quality_warnings": ["警告"]
+                      "quality_warnings": ["警告"],
+                      "risk_level": "safe或caution或restricted",
+                      "risk_types": ["death|violence|gore|self_harm|sexual|child_safety|discrimination|illegal|substance|other"],
+                      "risk_note": "风险判断依据，safe时可为空字符串"
                     }
 
-                    每个目标语言都必须出现在 translations、每个 point.translations 和每个 hint.translations 中。至少一个 point 的 is_required 为 true。suggested_tags 与 quality_warnings 没有内容时返回空数组。
+                    每个目标语言都必须出现在 translations、每个 point.translations 和每个 hint.translations 中。至少一个 point 的 is_required 为 true。suggested_tags、quality_warnings 和 risk_types 没有内容时返回空数组。caution 或 restricted 的 risk_note 必须非空。
             - name: stableSystemPrompt
               input:
                 type: string
@@ -219,7 +222,7 @@ nodes:
                 except Exception:
                     return {"result": ""}
 
-                required = ('difficulty', 'translations', 'points', 'hints', 'suggested_tags', 'quality_warnings')
+                required = ('difficulty', 'translations', 'points', 'hints', 'suggested_tags', 'quality_warnings', 'risk_level', 'risk_types', 'risk_note')
                 if not isinstance(data, dict) or any(key not in data for key in required):
                     return {"result": ""}
                 if not isinstance(data['difficulty'], int) or not 1 <= data['difficulty'] <= 5:
@@ -234,6 +237,12 @@ nodes:
                     if not isinstance(translation, dict) or any(not str(translation.get(key, '')).strip() for key in ('language', 'title', 'surface', 'bottom')):
                         return {"result": ""}
                 if not any(point.get('is_required') is True for point in data['points'] if isinstance(point, dict)):
+                    return {"result": ""}
+                risk_levels = ('safe', 'caution', 'restricted')
+                risk_types = ('death', 'violence', 'gore', 'self_harm', 'sexual', 'child_safety', 'discrimination', 'illegal', 'substance', 'other')
+                if data['risk_level'] not in risk_levels or not isinstance(data['risk_types'], list) or any(item not in risk_types for item in data['risk_types']):
+                    return {"result": ""}
+                if data['risk_level'] != 'safe' and not str(data.get('risk_note', '')).strip():
                     return {"result": ""}
 
                 return {"result": json.dumps(data, ensure_ascii=False, separators=(',', ':'))}

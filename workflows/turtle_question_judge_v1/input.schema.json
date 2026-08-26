@@ -1,0 +1,1 @@
+{"type":"object","required":["surface","bottom","language","key_points","player_question"],"properties":{"surface":{"type":"string"},"bottom":{"type":"string"},"language":{"type":"string"},"key_points":{"type":"array","items":{"type":"object"}},"player_question":{"type":"string","minLength":1,"maxLength":500}},"additionalProperties":false}

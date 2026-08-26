@@ -1,5 +1,6 @@
 includes:
     - phpstan-baseline.neon
+    - phpstan-game-baseline.neon
 
 parameters:
     level: 6
@@ -8,6 +9,8 @@ parameters:
         - app/Health
         - app/Question
         - app/Ai
+        - app/Auth
+        - app/Game
         - tests
     tmpDir: runtime/phpstan
     treatPhpDocTypesAsCertain: false

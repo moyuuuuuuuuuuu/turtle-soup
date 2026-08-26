@@ -55,7 +55,7 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 - [ ] Create migration files for users, user identities, guest sessions, refresh tokens, email verification codes, and login logs.
 - [ ] Review migrations without running them until explicitly authorized.
-- [ ] Implement anonymous session issuance and renewal.
+- [x] Implement anonymous session issuance and renewal.
 - [ ] Implement username/password registration and login.
 - [ ] Implement email/password registration and login.
 - [ ] Implement email verification-code login.
@@ -92,15 +92,15 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 ## Milestone 3 — Coze workflows
 
-- [ ] Obtain a minimal exported Coze workflow ZIP from the target workspace as a compatibility template.
-- [ ] Build `turtle_question_judge_v1` import package.
-- [ ] Build `turtle_guess_judge_v1` import package.
+- [x] Obtain a minimal exported Coze workflow ZIP from the target workspace as a compatibility template.
+- [x] Build `turtle_question_judge_v1` import package.
+- [x] Build `turtle_guess_judge_v1` import package.
 - [ ] Build `turtle_hint_generator_v1` import package.
 - [x] Build and verify the `turtle_content_parser_v1` import package.
 - [ ] Define JSON Schemas, examples, prompts, test cases, and version metadata for every workflow.
 - [ ] Add anti-answer-leak, contradiction, irrelevant-question, malformed-output, and prompt-injection tests.
 - [x] Implement Coze configuration and service-token credentials through environment/config files.
-- [ ] Implement AI contracts, Coze Service adapters, typed DTOs, response validation, timeout, retry, and safe logging.
+- [x] Implement AI contracts, Coze Service adapters, response validation, timeout, retry, and safe logging for single-player judging.
 - [ ] Persist workflow version, latency, attempts, and safe execution status after database permission is granted.
 
 ### Acceptance
@@ -111,15 +111,15 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 ## Milestone 4 — Single-player MVP (`v0.3.0`)
 
-- [ ] Create reviewed migrations for games, players, messages, discovered points, guesses, hints, and AI requests.
-- [ ] Implement game states: `CREATED`, `PLAYING`, `SOLVED`, `FINISHED`, and `ABANDONED`.
-- [ ] Implement create game, game detail, snapshot, history, and finish HTTP APIs.
-- [ ] Implement versioned WebSocket authentication, join, snapshot, question, hint, guess, solved, finished, and error events.
-- [ ] Enforce request ID idempotency for state-changing commands.
-- [ ] Persist message ordering and validate candidate reasoning points in PHP.
-- [ ] Implement disconnect/reconnect snapshot recovery.
-- [ ] Implement user pages for home, question list/detail, game, final guess, result, authentication, and history.
-- [ ] Ensure clients cannot receive the answer before the game finishes.
+- [x] Create and dry-run reviewed migrations for anonymous sessions, games, messages, discovered points, guesses, hints, and AI requests (execution awaiting approval).
+- [x] Implement game states: `CREATED`, `PLAYING`, `SOLVED`, `FINISHED`, and `ABANDONED`.
+- [x] Implement create game, game detail, snapshot, history, and finish HTTP APIs.
+- [x] Implement versioned WebSocket authentication, join, snapshot, question, hint, guess, solved, finished, and error events.
+- [x] Enforce request ID idempotency for question commands; finish hint and guess duplicate-path verification after migration.
+- [x] Persist message ordering and validate candidate reasoning points in PHP.
+- [x] Implement disconnect/reconnect snapshot recovery.
+- [x] Implement user pages for home, question list, game, final guess, result, and history; question detail remains to polish.
+- [x] Ensure clients cannot receive the answer before the game finishes.
 
 ### Acceptance
 

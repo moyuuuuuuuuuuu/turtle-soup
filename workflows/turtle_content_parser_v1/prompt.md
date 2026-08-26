@@ -14,3 +14,5 @@ consistent puzzle draft for human review.
 - Generate every requested language independently and naturally; do not translate mechanically.
 - Return only the JSON object matching the supplied output schema.
 - Put contradictions, ambiguity, unsafe content, or weak solvability in `quality_warnings`.
+- Classify content risk as `safe`, `caution`, or `restricted`; return only the fixed risk type values.
+- `caution` and `restricted` must include a concise `risk_note` for human review. Risk classification never replaces human approval.

@@ -4,5 +4,7 @@
   { "name": "contradictory_story", "expect": "quality_warning" },
   { "name": "missing_causal_chain", "expect": "quality_warning" },
   { "name": "answer_leak_in_hint", "expect": "reject_or_regenerate" },
+  { "name": "death_and_violence", "expect": { "risk_level": "caution", "risk_types": ["death", "violence"], "risk_note": "non_empty" } },
+  { "name": "restricted_sexual_child_safety", "expect": { "risk_level": "restricted", "risk_types": ["sexual", "child_safety"], "risk_note": "non_empty" } },
   { "name": "malformed_model_output", "expect": "ai.invalid_response" }
 ]

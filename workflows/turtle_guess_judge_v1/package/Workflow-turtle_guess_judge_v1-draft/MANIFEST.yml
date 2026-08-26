@@ -1,0 +1,11 @@
+type: Workflow
+version: 1.0.0
+main:
+  id: 7678222288558637068
+  name: turtle_guess_judge_v1
+  desc: 判断玩家最终猜测是否还原海龟汤关键真相
+  icon: FileBizType.BIZ_BOT_ICON/1162603432257824_1787725436239921790.jpeg
+  version: ''
+  flowMode: 0
+  commitId: ''
+sub: []

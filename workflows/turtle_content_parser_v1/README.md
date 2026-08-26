@@ -6,6 +6,11 @@ The PHP adapter sends the fields documented in `input.schema.json` to Coze and e
 `output.schema.json`. The result is always validated server-side and can only be adopted as
 a draft. It is never published automatically.
 
+The result also includes the structured risk suggestion `risk_level`, `risk_types`, and
+`risk_note`. `caution` and `restricted` require a non-empty explanation. These values are
+shown to administrators and copied into the draft, but they never count as human review or
+publish approval.
+
 The importable package is generated from the target workspace compatibility template at:
 
 `dist/Workflow-turtle_content_parser_v1-draft.zip`

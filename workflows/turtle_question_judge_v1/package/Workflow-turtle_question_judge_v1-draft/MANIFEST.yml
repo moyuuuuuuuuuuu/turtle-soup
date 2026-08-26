@@ -1,0 +1,11 @@
+type: Workflow
+version: 1.0.0
+main:
+  id: 7678222288558637067
+  name: turtle_question_judge_v1
+  desc: 判断玩家问题与海龟汤真相的关系，不泄露汤底
+  icon: FileBizType.BIZ_BOT_ICON/1162603432257824_1787725436239921790.jpeg
+  version: ''
+  flowMode: 0
+  commitId: ''
+sub: []

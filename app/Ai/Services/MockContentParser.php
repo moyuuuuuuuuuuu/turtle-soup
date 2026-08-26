@@ -30,6 +30,9 @@ final class MockContentParser implements ContentParserInterface
             ], [1, 2, 3]),
             'suggested_tags' => [],
             'quality_warnings' => ['当前使用 Mock 解析器，结果仅用于联调。'],
+            'risk_level' => 'safe',
+            'risk_types' => [],
+            'risk_note' => '',
         ];
     }
 }

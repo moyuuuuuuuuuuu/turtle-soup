@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["difficulty", "translations", "points", "hints", "suggested_tags", "quality_warnings"],
+  "required": ["difficulty", "translations", "points", "hints", "suggested_tags", "quality_warnings", "risk_level", "risk_types", "risk_note"],
   "properties": {
     "difficulty": { "type": "integer", "minimum": 1, "maximum": 5 },
     "translations": {
@@ -32,6 +32,13 @@
       "items": { "type": "object", "required": ["level", "translations"] }
     },
     "suggested_tags": { "type": "array", "items": { "type": "string" } },
-    "quality_warnings": { "type": "array", "items": { "type": "string" } }
+    "quality_warnings": { "type": "array", "items": { "type": "string" } },
+    "risk_level": { "enum": ["safe", "caution", "restricted"] },
+    "risk_types": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["death", "violence", "gore", "self_harm", "sexual", "child_safety", "discrimination", "illegal", "substance", "other"] }
+    },
+    "risk_note": { "type": "string" }
   }
 }

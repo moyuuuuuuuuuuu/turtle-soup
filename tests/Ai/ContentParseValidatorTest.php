@@ -27,4 +27,26 @@ final class ContentParseValidatorTest extends TestCase
         $this->expectExceptionMessage('ai.invalid_response');
         ContentParseValidator::validate($result);
     }
+
+    public function testAcceptsReviewedRiskSuggestion(): void
+    {
+        $result = (new MockContentParser())->parse(['story' => str_repeat('测试故事', 10)]);
+        $result['risk_level'] = 'caution';
+        $result['risk_types'] = ['death', 'violence', 'death'];
+        $result['risk_note'] = '包含死亡与暴力情节。';
+
+        $validated = ContentParseValidator::validate($result);
+
+        self::assertSame(['death', 'violence'], $validated['risk_types']);
+    }
+
+    public function testRejectsRiskWithoutReviewNote(): void
+    {
+        $result = (new MockContentParser())->parse(['story' => str_repeat('测试故事', 10)]);
+        $result['risk_level'] = 'restricted';
+        $result['risk_types'] = ['child_safety'];
+
+        $this->expectException(RuntimeException::class);
+        ContentParseValidator::validate($result);
+    }
 }

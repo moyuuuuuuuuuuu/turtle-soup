@@ -1,0 +1,1 @@
+{"type":"object","required":["surface","bottom","language","key_points","player_guess"],"properties":{"surface":{"type":"string"},"bottom":{"type":"string"},"language":{"type":"string"},"key_points":{"type":"array","items":{"type":"object"}},"player_guess":{"type":"string","minLength":1,"maxLength":2000}},"additionalProperties":false}

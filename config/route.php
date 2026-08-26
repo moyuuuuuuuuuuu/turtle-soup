@@ -15,3 +15,15 @@
 use Webman\Route;
 
 Route::get('/api/v1/health', [App\Health\Controllers\HealthController::class, 'index']);
+Route::post('/api/v1/anonymous/session', [App\Auth\Controllers\AnonymousSessionController::class, 'issue']);
+Route::post('/api/v1/anonymous/session/renew', [App\Auth\Controllers\AnonymousSessionController::class, 'renew']);
+Route::get('/api/v1/questions', [App\Question\Controllers\PublicQuestionController::class, 'index']);
+Route::get('/api/v1/questions/read', [App\Question\Controllers\PublicQuestionController::class, 'read']);
+Route::get('/api/v1/questions/random', [App\Question\Controllers\PublicQuestionController::class, 'random']);
+Route::post('/api/v1/games', [App\Game\Controllers\GameController::class, 'create']);
+Route::get('/api/v1/games/read', [App\Game\Controllers\GameController::class, 'read']);
+Route::get('/api/v1/games/history', [App\Game\Controllers\GameController::class, 'history']);
+Route::post('/api/v1/games/ask', [App\Game\Controllers\GameController::class, 'ask']);
+Route::post('/api/v1/games/hint', [App\Game\Controllers\GameController::class, 'hint']);
+Route::post('/api/v1/games/guess', [App\Game\Controllers\GameController::class, 'guess']);
+Route::post('/api/v1/games/abandon', [App\Game\Controllers\GameController::class, 'abandon']);

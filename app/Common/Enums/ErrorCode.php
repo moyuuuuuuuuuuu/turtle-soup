@@ -22,6 +22,12 @@ enum ErrorCode: string implements ErrorCodeInterface
     case DATA_STATUS_ERROR = 'data.status_invalid';
     case THIRD_PARTY_ERROR = 'third_party.error';
     case CONFIG_ERROR = 'system.config_error';
+    case AUTH_ANONYMOUS_INVALID = 'auth.anonymous_invalid';
+    case GAME_NOT_FOUND = 'game.not_found';
+    case GAME_STATUS_INVALID = 'game.status_invalid';
+    case GAME_QUESTION_LIMIT_REACHED = 'game.question_limit_reached';
+    case GAME_HINT_UNAVAILABLE = 'game.hint_unavailable';
+    case GAME_REQUEST_DUPLICATE = 'game.request_duplicate';
     case QUESTION_NOT_FOUND = 'question.not_found';
     case QUESTION_CONTENT_INCOMPLETE = 'question.content_incomplete';
     case QUESTION_STATUS_INVALID = 'question.status_invalid';
@@ -59,6 +65,12 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::DATA_STATUS_ERROR => '数据状态异常，无法操作',
             self::THIRD_PARTY_ERROR => '第三方服务异常',
             self::CONFIG_ERROR => '系统配置错误，请联系管理员',
+            self::AUTH_ANONYMOUS_INVALID => '匿名会话无效或已过期',
+            self::GAME_NOT_FOUND => '游戏不存在',
+            self::GAME_STATUS_INVALID => '当前游戏状态不允许此操作',
+            self::GAME_QUESTION_LIMIT_REACHED => '提问次数已用完，请提交最终猜测',
+            self::GAME_HINT_UNAVAILABLE => '该级提示不可用或已经使用',
+            self::GAME_REQUEST_DUPLICATE => '请求已处理，请勿重复提交',
             self::QUESTION_NOT_FOUND => '题目不存在',
             self::QUESTION_CONTENT_INCOMPLETE => '题目内容不完整',
             self::QUESTION_STATUS_INVALID => '题目状态不允许当前操作',
@@ -86,9 +98,15 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::REQUEST_METHOD_ERROR => 405,
             self::REQUEST_FREQUENCY => 429,
             self::DATA_NOT_FOUND => 404,
+            self::GAME_NOT_FOUND => 404,
+            self::AUTH_ANONYMOUS_INVALID => 401,
             self::QUESTION_NOT_FOUND => 404,
             self::DATA_ALREADY_EXISTS,
             self::DATA_STATUS_ERROR => 409,
+            self::GAME_STATUS_INVALID,
+            self::GAME_QUESTION_LIMIT_REACHED,
+            self::GAME_HINT_UNAVAILABLE,
+            self::GAME_REQUEST_DUPLICATE => 409,
             self::QUESTION_STATUS_INVALID,
             self::QUESTION_VERSION_CONFLICT,
             self::QUESTION_COPY_FAILED,
@@ -129,6 +147,12 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::TAG_NOT_FOUND,
             self::TAG_IN_USE,
             self::TAG_SLUG_INVALID => ErrorModule::QUESTION,
+            self::AUTH_ANONYMOUS_INVALID => ErrorModule::AUTH,
+            self::GAME_NOT_FOUND,
+            self::GAME_STATUS_INVALID,
+            self::GAME_QUESTION_LIMIT_REACHED,
+            self::GAME_HINT_UNAVAILABLE,
+            self::GAME_REQUEST_DUPLICATE => ErrorModule::GAME,
             self::AI_WORKFLOW_TIMEOUT,
             self::AI_INVALID_RESPONSE,
             self::AI_AUTH_FAILED,
@@ -147,6 +171,12 @@ enum ErrorCode: string implements ErrorCodeInterface
             self::DATA_NOT_FOUND,
             self::DATA_ALREADY_EXISTS,
             self::DATA_STATUS_ERROR => ErrorSeverity::INFO,
+            self::AUTH_ANONYMOUS_INVALID,
+            self::GAME_NOT_FOUND,
+            self::GAME_STATUS_INVALID,
+            self::GAME_QUESTION_LIMIT_REACHED,
+            self::GAME_HINT_UNAVAILABLE,
+            self::GAME_REQUEST_DUPLICATE => ErrorSeverity::INFO,
             self::QUESTION_NOT_FOUND,
             self::QUESTION_CONTENT_INCOMPLETE,
             self::QUESTION_STATUS_INVALID,

@@ -3,7 +3,15 @@
 declare(strict_types=1);
 
 $finder = PhpCsFixer\Finder::create()
-    ->in([__DIR__ . '/app/Common', __DIR__ . '/app/Health', __DIR__ . '/app/Question', __DIR__ . '/app/Ai', __DIR__ . '/tests']);
+    ->in([
+        __DIR__ . '/app/Common',
+        __DIR__ . '/app/Health',
+        __DIR__ . '/app/Question',
+        __DIR__ . '/app/Ai',
+        __DIR__ . '/app/Auth',
+        __DIR__ . '/app/Game',
+        __DIR__ . '/tests',
+    ]);
 
 return (new PhpCsFixer\Config())
     ->setRiskyAllowed(true)
