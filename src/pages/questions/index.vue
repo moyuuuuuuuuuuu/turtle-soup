@@ -13,7 +13,7 @@ const viewMode = ref<'grid' | 'list'>('grid')
 const loading = ref(false)
 const loadError = ref(false)
 const page = ref(1)
-const pageSize = 20
+const pageSize = 21
 const total = ref(0)
 const activeRiskId = ref<string | null>(null)
 const filtered = computed(() => items.value.filter(item => !keyword.value || item.title.includes(keyword.value) || item.surface.includes(keyword.value)))
