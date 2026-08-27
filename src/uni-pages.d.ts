@@ -5,19 +5,17 @@
 
 type _LocationUrl =
   "/pages/index/index" |
-  "/pages/about/index" |
   "/pages/account/index" |
   "/pages/donate/index" |
   "/pages/game/index" |
   "/pages/guess/index" |
   "/pages/history/index" |
   "/pages/login/index" |
+  "/pages/public-rooms/index" |
   "/pages/question-detail/index" |
   "/pages/questions/index" |
   "/pages/register/index" |
   "/pages/reset-password/index" |
-  "/pages/result/index" |
-  "/pages/room/index" |
   "/pages/rooms/index" |
   "/subPages/ci/index" |
   "/subPages/create-uni/index" |
@@ -45,7 +43,7 @@ interface NavigateToOptions {
 interface RedirectToOptions extends NavigateToOptions {}
 
 interface SwitchTabOptions {
-  url: "/pages/index/index" | "/pages/about/index"
+  url: "/pages/index/index"
 }
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;

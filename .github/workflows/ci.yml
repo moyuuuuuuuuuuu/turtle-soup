@@ -2,9 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, ui]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, ui]
 
 jobs:
   build-and-test:
@@ -44,6 +44,15 @@ jobs:
 
       - name: Install dependencies (workspace recursive)
         run: pnpm -r install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: pnpm --registry=https://registry.npmjs.org audit --prod
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm type-check
 
       - name: Test WeChat Mini Program dev mode
         shell: bash

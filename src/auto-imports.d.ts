@@ -9,10 +9,13 @@ declare global {
   const Apis: typeof import('./api/index')['Apis']
   const CommonUtil: typeof import('@wot-ui/ui')['CommonUtil']
   const EffectScope: typeof import('vue')['EffectScope']
+  const TurtleApiError: typeof import('./api/turtle')['TurtleApiError']
   const acceptHMRUpdate: typeof import('pinia')['acceptHMRUpdate']
   const alovaInstance: typeof import('./api/index')['alovaInstance']
   const api: typeof import('./api/index')['default']
   const apiDefinitions: typeof import('./api/apiDefinitions')['default']
+  const applyRootTheme: typeof import('./utils/theme')['applyRootTheme']
+  const applyStoredTheme: typeof import('./utils/theme')['applyStoredTheme']
   const asyncComputed: typeof import('@vueuse/core')['asyncComputed']
   const autoResetRef: typeof import('@vueuse/core')['autoResetRef']
   const computed: typeof import('vue')['computed']
@@ -46,6 +49,7 @@ declare global {
   const eagerComputed: typeof import('@vueuse/core')['eagerComputed']
   const effectScope: typeof import('vue')['effectScope']
   const ensureAnonymousSession: typeof import('./api/turtle')['ensureAnonymousSession']
+  const ensurePlayerAccessToken: typeof import('./api/player')['ensurePlayerAccessToken']
   const extendRef: typeof import('@vueuse/core')['extendRef']
   const gameApi: typeof import('./api/turtle')['gameApi']
   const getActivePinia: typeof import('pinia')['getActivePinia']
@@ -54,6 +58,7 @@ declare global {
   const getCurrentScope: typeof import('vue')['getCurrentScope']
   const getSystemTheme: typeof import('./utils/systemTheme')['getSystemTheme']
   const h: typeof import('vue')['h']
+  const homeApi: typeof import('./api/turtle')['homeApi']
   const ignorableWatch: typeof import('@vueuse/core')['ignorableWatch']
   const initializeThemeOnce: typeof import('./utils/systemTheme')['initializeThemeOnce']
   const inject: typeof import('vue')['inject']
@@ -142,6 +147,7 @@ declare global {
   const shallowReadonly: typeof import('vue')['shallowReadonly']
   const shallowRef: typeof import('vue')['shallowRef']
   const storeToRefs: typeof import('pinia')['storeToRefs']
+  const storedTheme: typeof import('./utils/theme')['storedTheme']
   const subscribeSystemThemeChange: typeof import('./utils/systemTheme')['subscribeSystemThemeChange']
   const syncRef: typeof import('@vueuse/core')['syncRef']
   const syncRefs: typeof import('@vueuse/core')['syncRefs']
@@ -374,10 +380,13 @@ declare module 'vue' {
     readonly Apis: UnwrapRef<typeof import('./api/index')['Apis']>
     readonly CommonUtil: UnwrapRef<typeof import('@wot-ui/ui')['CommonUtil']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
+    readonly TurtleApiError: UnwrapRef<typeof import('./api/turtle')['TurtleApiError']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly alovaInstance: UnwrapRef<typeof import('./api/index')['alovaInstance']>
     readonly api: UnwrapRef<typeof import('./api/index')['default']>
     readonly apiDefinitions: UnwrapRef<typeof import('./api/apiDefinitions')['default']>
+    readonly applyRootTheme: UnwrapRef<typeof import('./utils/theme')['applyRootTheme']>
+    readonly applyStoredTheme: UnwrapRef<typeof import('./utils/theme')['applyStoredTheme']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
@@ -411,6 +420,7 @@ declare module 'vue' {
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
     readonly ensureAnonymousSession: UnwrapRef<typeof import('./api/turtle')['ensureAnonymousSession']>
+    readonly ensurePlayerAccessToken: UnwrapRef<typeof import('./api/player')['ensurePlayerAccessToken']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
     readonly gameApi: UnwrapRef<typeof import('./api/turtle')['gameApi']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
@@ -419,6 +429,7 @@ declare module 'vue' {
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getSystemTheme: UnwrapRef<typeof import('./utils/systemTheme')['getSystemTheme']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
+    readonly homeApi: UnwrapRef<typeof import('./api/turtle')['homeApi']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly initializeThemeOnce: UnwrapRef<typeof import('./utils/systemTheme')['initializeThemeOnce']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
@@ -507,6 +518,7 @@ declare module 'vue' {
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
+    readonly storedTheme: UnwrapRef<typeof import('./utils/theme')['storedTheme']>
     readonly subscribeSystemThemeChange: UnwrapRef<typeof import('./utils/systemTheme')['subscribeSystemThemeChange']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>

@@ -70,7 +70,7 @@ function getIconBg(color: string) {
 </script>
 
 <template>
-  <view class="pb-safe box-border min-h-screen wot-bg-bg">
+  <view class="pb-safe wot-bg-bg box-border min-h-screen">
     <!-- Header -->
     <view class="px-6 pb-6 pt-8">
       <view class="mb-2 text-3xl font-bold leading-tight wot-text-text-main">

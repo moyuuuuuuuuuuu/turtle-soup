@@ -13,6 +13,8 @@ declare module 'vue' {
     GlobalToast: typeof import('./components/GlobalToast.vue')['default']
     HgtParticleBackground: typeof import('./components/HgtParticleBackground.vue')['default']
     HgtShell: typeof import('./components/HgtShell.vue')['default']
+    PlayerAuthParticleBackground: typeof import('./components/player/AuthParticleBackground.vue')['default']
+    PlayerPlayerAuth: typeof import('./components/player/PlayerAuth.vue')['default']
     PrivacyPopup: typeof import('./components/PrivacyPopup.vue')['default']
     UniEcharts: typeof import('uni-echarts')['default']
     WdButton: typeof import('@wot-ui/ui/components/wd-button/wd-button.vue')['default']
@@ -25,9 +27,6 @@ declare module 'vue' {
     WdLoading: typeof import('@wot-ui/ui/components/wd-loading/wd-loading.vue')['default']
     WdNotify: typeof import('@wot-ui/ui/components/wd-notify/wd-notify.vue')['default']
     WdPopup: typeof import('@wot-ui/ui/components/wd-popup/wd-popup.vue')['default']
-    WdTab: typeof import('@wot-ui/ui/components/wd-tab/wd-tab.vue')['default']
-    WdTabs: typeof import('@wot-ui/ui/components/wd-tabs/wd-tabs.vue')['default']
-    WdTag: typeof import('@wot-ui/ui/components/wd-tag/wd-tag.vue')['default']
     WdTextarea: typeof import('@wot-ui/ui/components/wd-textarea/wd-textarea.vue')['default']
     WdToast: typeof import('@wot-ui/ui/components/wd-toast/wd-toast.vue')['default']
   }

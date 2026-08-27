@@ -33,7 +33,10 @@ export default defineConfig({
        * 排除的页面，相对于 dir 和 subPackages
        * @default []
        */
-      exclude: ['**/components/**/*.*'],
+      exclude: [
+        '**/components/**/*.*',
+        'about/**/*.*',
+      ],
     }),
     // https://github.com/uni-helper/vite-plugin-uni-layouts
     UniHelperLayouts(),

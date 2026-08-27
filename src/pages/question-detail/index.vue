@@ -1,7 +1,6 @@
 <script setup lang="ts">
-/* eslint-disable style/max-statements-per-line */
 import type { PublicQuestion } from '@/types/game'
-import { gameApi, questionApi } from '@/api/turtle'
+import { gameApi, questionApi, roomApi } from '@/api/turtle'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 
@@ -14,6 +13,8 @@ const question = ref<PublicQuestion | null>(null)
 const loading = ref(true)
 const starting = ref(false)
 const questionId = computed(() => String(route.params.id || route.query.id || ''))
+const roomId = computed(() => String(route.query.room_id || ''))
+const difficultyStars = (value: number) => `${'★'.repeat(Math.max(0, Math.min(5, value)))}${'☆'.repeat(Math.max(0, 5 - value))}`
 
 async function load() {
   try {
@@ -41,6 +42,13 @@ async function start() {
   }
   starting.value = true
   try {
+    if (roomId.value) {
+      const room = await roomApi.next(roomId.value, question.value.id, confirmed)
+      if (!room.game_id)
+        throw new Error('房间尚未关联游戏，请稍后重试')
+      router.replace({ name: 'game', params: { id: room.game_id } })
+      return
+    }
     store.setGame(await gameApi.create(question.value.id, confirmed))
     router.replace({ name: 'game', params: { id: store.current!.id } })
   }
@@ -49,46 +57,60 @@ async function start() {
   }
 }
 
-function createRoom() {
-  if (!player.user) {
-    router.push({ name: 'player-login', query: { redirect: `/pages/question-detail/index?id=${questionId.value}` } })
-    return
-  }
-  router.push({ name: 'rooms', query: { question_id: questionId.value } })
+function joinRoom() {
+  router.push({ name: 'public-rooms' })
 }
 
-onMounted(async () => { await player.restore(); await load() })
+onMounted(async () => {
+  await Promise.all([load(), player.restore()])
+})
 </script>
 
 <template>
-  <view class="min-h-screen bg-[#f5efe5] p-5">
-    <wd-loading v-if="loading" />
+  <view class="question-page">
+    <wd-loading v-if="loading" class="loading" />
     <template v-else-if="question">
-      <view class="rounded-5 bg-white p-5 shadow-sm">
-        <view class="flex items-center justify-between gap-3">
-          <text class="text-6 font-bold">
-            {{ question.title }}
+      <view class="question-shell">
+        <text class="hgt-mono eyebrow">
+          ◉ 谜题档案 · <text class="stars" :aria-label="`难度 ${question.difficulty} 星`">
+            {{ difficultyStars(question.difficulty) }}
           </text>
-          <wd-tag v-if="question.risk_level === 'caution'" type="warning">
+        </text>
+        <view class="title-row">
+          <text class="hgt-display title">
+            {{ question.title }}
+          </text><text v-if="question.risk_level === 'caution'" class="risk hgt-mono">
             内容提醒
-          </wd-tag>
+          </text>
         </view>
-        <text class="mt-5 block whitespace-pre-wrap text-4 leading-7">
+        <view class="rule" />
+        <text class="surface">
           {{ question.surface }}
         </text>
-        <view class="mt-5 flex flex-wrap gap-2 text-3 text-gray-500">
-          <text>难度 {{ question.difficulty }}</text>
+        <view class="meta hgt-mono">
           <text v-for="tag in question.tags" :key="tag.id">
-            #{{ tag.name }}
+            # {{ tag.name }}
           </text>
         </view>
+        <view class="actions">
+          <button class="start hgt-mono" :loading="starting" @click="start">
+            {{ starting ? '正在进入…' : roomId ? '与原队伍继续 →' : '开始推理 →' }}
+          </button>
+          <view v-if="player.user && !roomId" class="room-actions">
+            <button class="room-action hgt-mono" @click="joinRoom">
+              加入房间
+            </button>
+          </view>
+        </view>
+        <text class="invite-note hgt-mono">
+          {{ roomId ? '将保留原房间成员并直接开始下一题' : '默认单人模式 · 进入后可邀请队友' }}
+        </text>
       </view>
-      <wd-button block size="large" class="mt-6" :loading="starting" @click="start">
-        单人推理
-      </wd-button>
-      <wd-button size="large" plain block class="mt-3" @click="createRoom">
-        创建多人房间
-      </wd-button>
     </template>
   </view>
 </template>
+
+<style scoped>
+.question-page{box-sizing:border-box;display:flex;min-height:100vh;padding:72px 8vw;align-items:center;background:var(--background);color:var(--foreground)}.loading{margin:auto}.question-shell{width:min(760px,100%)}.eyebrow,.meta,.invite-note{font-size:11px;letter-spacing:.17em;color:var(--muted-foreground)}.title-row{display:flex;margin-top:24px;gap:20px;align-items:flex-start}.title{font-size:clamp(38px,5vw,68px);line-height:1.15;letter-spacing:.03em}.risk{margin-top:10px;padding:5px 8px;border:1px solid #8a6b35;color:#c79b51;font-size:10px;white-space:nowrap}.rule{width:72px;height:1px;margin:30px 0;background:var(--foreground)}.surface{display:block;max-width:680px;font-size:16px;line-height:2;color:var(--muted-foreground);white-space:pre-wrap}.meta{display:flex;margin-top:26px;gap:18px}.actions{display:flex;margin-top:44px;gap:14px}.start,.room-action{display:flex;height:48px;margin:0;padding:0;border:1px solid var(--foreground);border-radius:0;align-items:center;justify-content:center;font-size:12px;letter-spacing:.16em}.start{width:220px;background:var(--foreground);color:var(--background);letter-spacing:.2em}.room-actions{display:flex;flex:1}.room-action{width:100%;background:transparent;color:var(--foreground)}.start::after,.room-action::after{border:0}.invite-note{display:block;margin-top:14px;font-size:10px}@media(max-width:767px){.question-page{padding:52px 28px;align-items:flex-start}.title-row{display:block}.title{font-size:42px}.risk{display:inline-flex;margin-top:16px}.surface{font-size:14px}.actions{flex-direction:column}.start{width:100%}.room-actions{width:100%}}
+.stars{color:var(--foreground);letter-spacing:.08em}
+</style>

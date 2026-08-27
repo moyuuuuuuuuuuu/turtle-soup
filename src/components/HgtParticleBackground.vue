@@ -32,6 +32,8 @@ onMounted(() => {
   }
   const spawn = (): Particle => ({ x: Math.random() * canvas.width, y: canvas.height + 4, vx: (Math.random() - 0.5) * 0.3, vy: -Math.random() * 0.5 - 0.1, size: Math.random() * 1.5 + 0.3, life: 0, maxLife: Math.random() * 300 + 200 })
   const draw = () => {
+    const lightTheme = document.documentElement.classList.contains('hgt-light-theme')
+    const particleRgb = lightTheme ? '28,28,26' : '255,255,255'
     context.clearRect(0, 0, canvas.width, canvas.height)
     particles.forEach((particle, index) => {
       particle.x += particle.vx
@@ -40,7 +42,7 @@ onMounted(() => {
       const opacity = Math.sin((particle.life / particle.maxLife) * Math.PI) * 0.5
       context.beginPath()
       context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-      context.fillStyle = `rgba(255,255,255,${Math.max(0, opacity)})`
+      context.fillStyle = `rgba(${particleRgb},${Math.max(0, opacity)})`
       context.fill()
       if (particle.life >= particle.maxLife)
         particles[index] = spawn()
@@ -54,7 +56,7 @@ onMounted(() => {
           context.beginPath()
           context.moveTo(particles[i].x, particles[i].y)
           context.lineTo(particles[j].x, particles[j].y)
-          context.strokeStyle = `rgba(255,255,255,${(1 - distance / 80) * 0.06})`
+          context.strokeStyle = `rgba(${particleRgb},${(1 - distance / 80) * 0.08})`
           context.lineWidth = 0.5
           context.stroke()
         }

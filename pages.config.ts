@@ -10,12 +10,20 @@
 import { defineUniPages } from '@uni-helper/vite-plugin-uni-pages'
 
 export default defineUniPages({
-  pages: [],
+  pages: [{
+    path: 'pages/index/index',
+    type: 'home',
+    name: 'home',
+    layout: 'tabbar',
+    style: {
+      navigationStyle: 'custom',
+    },
+  }],
   globalStyle: {
     // 导航栏配置
     navigationBarBackgroundColor: '@navBgColor',
     navigationBarTextStyle: '@navTxtStyle',
-    navigationBarTitleText: 'Wot Starter',
+    navigationBarTitleText: '海龟汤',
 
     // 页面背景配置
     backgroundColor: '@bgColor',
@@ -45,8 +53,6 @@ export default defineUniPages({
     borderStyle: '@tabBorderStyle',
     list: [{
       pagePath: 'pages/index/index',
-    }, {
-      pagePath: 'pages/about/index',
     }],
   },
 })

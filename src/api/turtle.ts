@@ -1,9 +1,16 @@
-import type { ApiEnvelope, DonationPage, GameSnapshot, PublicQuestion, RoomSnapshot } from '@/types/game'
+import type { ApiEnvelope, DonationPage, GameSnapshot, HomeStats, PublicQuestion, RoomSnapshot } from '@/types/game'
 import { currentAccessToken, playerApi } from '@/api/player'
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://hgt.test/api/v1'
 const tokenKey = 'turtle_anonymous_token'
 const requestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+export class TurtleApiError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(message)
+    this.name = 'TurtleApiError'
+  }
+}
 
 function queryString(params: Record<string, unknown>) {
   return Object.entries(params)
@@ -24,10 +31,10 @@ async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', data?: R
       if (body?.code === 'success')
         return resolve(body.data)
       if (!retried && currentAccessToken() && body?.code === 'auth.token_invalid')
-        return playerApi.restore().then(result => result ? request<T>(path, method, data, true).then(resolve, reject) : reject(new Error(body.code)))
-      return reject(new Error(body?.code || `http.${statusCode}`))
+        return playerApi.restore().then(result => result ? request<T>(path, method, data, true).then(resolve, reject) : reject(new TurtleApiError(body.code, body.message || body.code)))
+      return reject(new TurtleApiError(body?.code || 'system.error', body?.message || body?.code || `请求失败（HTTP ${statusCode}）`))
     },
-    fail: reject,
+    fail: () => reject(new Error('网络请求失败，请检查网络连接')),
   }))
 }
 export async function ensureAnonymousSession() {
@@ -50,15 +57,18 @@ export const questionApi = {
   read: (id: string, language = 'zh-CN') => request<PublicQuestion>(`/questions/read?id=${encodeURIComponent(id)}&language=${encodeURIComponent(language)}`),
   random: (difficulty?: number) => request<PublicQuestion>(`/questions/random${difficulty ? `?difficulty=${difficulty}` : ''}`),
 }
+export const homeApi = { stats: () => request<HomeStats>('/home/stats') }
 export const gameApi = { create: (question_id: string, risk_confirmed = false) => request<GameSnapshot>('/games', 'POST', { question_id, language: 'zh-CN', risk_confirmed }), read: (id: string) => request<GameSnapshot>(`/games/read?id=${id}`), history: () => request<Array<{ id: string, status: string, title: string, difficulty: number }>>('/games/history'), ask: (id: string, question: string) => request<GameSnapshot>('/games/ask', 'POST', { id, question, request_id: requestId() }), hint: (id: string, level: number) => request<GameSnapshot>('/games/hint', 'POST', { id, level, request_id: requestId() }), guess: (id: string, guess: string) => request<GameSnapshot>('/games/guess', 'POST', { id, guess, request_id: requestId() }), abandon: (id: string) => request<GameSnapshot>('/games/abandon', 'POST', { id }) }
 export const roomApi = {
   list: () => request<RoomSnapshot[]>('/rooms'),
   mine: () => request<RoomSnapshot[]>('/rooms/mine'),
   read: (id: string) => request<RoomSnapshot>(`/rooms/read?id=${encodeURIComponent(id)}`),
-  create: (data: { question_id: string, name: string, max_players: number, visibility: 'private' | 'public', language?: string, risk_confirmed?: boolean }) => request<RoomSnapshot>('/rooms', 'POST', data),
+  create: (data: { game_id: string, max_players?: number, visibility?: 'private' | 'public', language?: string }) => request<RoomSnapshot>('/rooms', 'POST', data),
   join: (data: { id?: string, invite_code?: string }) => request<RoomSnapshot>('/rooms/join', 'POST', data),
+  resolveQuestion: (invite_code: string) => request<{ question_id: string, status: string }>(`/rooms/resolve-question?invite_code=${encodeURIComponent(invite_code)}`),
   ready: (id: string, ready: boolean) => request<RoomSnapshot>('/rooms/ready', 'POST', { id, ready }),
   start: (id: string) => request<RoomSnapshot>('/rooms/start', 'POST', { id }),
+  next: (id: string, question_id: string, risk_confirmed = false) => request<RoomSnapshot>('/rooms/next', 'POST', { id, question_id, risk_confirmed }),
   leave: (id: string) => request<void>('/rooms/leave', 'POST', { id }),
   close: (id: string) => request<void>('/rooms/close', 'POST', { id }),
 }

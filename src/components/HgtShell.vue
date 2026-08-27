@@ -1,18 +1,35 @@
 <script setup lang="ts">
 /* eslint-disable style/max-statements-per-line */
+import { usePlayerStore } from '@/store/playerStore'
+import { applyRootTheme, storedTheme } from '@/utils/theme'
+
 const router = useRouter()
 const route = useRoute()
+const player = usePlayerStore()
 const menuOpen = ref(false)
-const light = ref(uni.getStorageSync('hgt_theme') === 'light')
-const nav = [
-  { name: 'home', label: '首页', icon: '◈' },
-  { name: 'questions', label: '题库', icon: '◉' },
-  { name: 'history', label: '记录', icon: '◎' },
-  { name: 'player-account', label: '我的', icon: '◇' },
-  { name: 'donate', label: '捐赠', icon: '◆' },
+const light = ref(storedTheme() === 'light')
+const navItems = [
+  { name: 'home', path: '/pages/index/index', label: '首页', icon: '◈' },
+  { name: 'questions', path: '/pages/questions/index', label: '题库', icon: '◉' },
+  { name: 'public-rooms', path: '/pages/public-rooms/index', label: '公共房间', icon: '◐', authenticated: true },
+  { name: 'history', path: '/pages/history/index', label: '记录', icon: '◎' },
+  { name: 'player-account', path: '/pages/account/index', label: '我的', icon: '◇' },
+  { name: 'donate', path: '/pages/donate/index', label: '捐赠', icon: '◆' },
 ]
-function go(name: string) { menuOpen.value = false; router.push({ name }) }
-function toggleTheme() { light.value = !light.value; uni.setStorageSync('hgt_theme', light.value ? 'light' : 'dark') }
+const nav = computed(() => navItems.filter(item => !item.authenticated || player.user))
+function go(item: typeof navItems[number]) {
+  menuOpen.value = false
+  if (item.name === 'home') {
+    uni.switchTab({ url: item.path })
+    return
+  }
+  router.push(item.path)
+}
+function toggleTheme() { light.value = !light.value; const theme = light.value ? 'light' : 'dark'; uni.setStorageSync('hgt_theme', theme); applyRootTheme(theme) }
+onMounted(async () => {
+  if (!player.ready)
+    await player.restore()
+})
 </script>
 
 <template>
@@ -28,7 +45,7 @@ function toggleTheme() { light.value = !light.value; uni.setStorageSync('hgt_the
         </text>
       </view>
       <view class="hgt-nav">
-        <view v-for="item in nav" :key="item.name" class="hgt-nav-item" :class="{ active: route.name === item.name }" @click="go(item.name)">
+        <view v-for="item in nav" :key="item.name" class="hgt-nav-item" :class="{ active: route.name === item.name }" @click="go(item)">
           <text class="hgt-mono hgt-nav-icon">
             {{ item.icon }}
           </text><text>{{ item.label }}</text>
@@ -55,7 +72,7 @@ function toggleTheme() { light.value = !light.value; uni.setStorageSync('hgt_the
       </view>
     </header>
     <view v-if="menuOpen" class="hgt-mobile-menu">
-      <view v-for="item in nav" :key="item.name" class="hgt-mobile-nav" @click="go(item.name)">
+      <view v-for="item in nav" :key="item.name" class="hgt-mobile-nav" @click="go(item)">
         <text class="hgt-mono">
           {{ item.icon }}
         </text><text class="hgt-display">
@@ -70,7 +87,7 @@ function toggleTheme() { light.value = !light.value; uni.setStorageSync('hgt_the
 </template>
 
 <style scoped>
-.hgt-app { --background:#080808;--foreground:#f0f0f0;--card:#111;--secondary:#1a1a1a;--muted-foreground:#666;--accent:#d4d4d4;--border:#222;min-height:100vh;background:var(--background);color:var(--foreground);font-family:Arial,sans-serif; }
+.hgt-app { --background:#080808;--foreground:#f0f0f0;--card:#111;--secondary:#1a1a1a;--muted-foreground:#666;--accent:#d4d4d4;--border:#222;position:relative;isolation:isolate;min-height:100vh;background:var(--background);color:var(--foreground);font-family:Arial,sans-serif; }
 .hgt-app.hgt-light { --background:#edeae4;--foreground:#1c1c1a;--card:#e4e0d9;--secondary:#d9d5ce;--muted-foreground:#7a7972;--accent:#2e2e2c;--border:#c8c4bc; }
 .hgt-sidebar { position:fixed;left:0;top:0;bottom:0;width:224px;z-index:20;display:flex;flex-direction:column;background:var(--card);border-right:1px solid var(--border); }
 .hgt-brand { padding:24px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px; }.hgt-brand-title{font-size:18px;letter-spacing:.2em}.hgt-brand-subtitle{font-size:10px;letter-spacing:.15em;color:var(--muted-foreground)}

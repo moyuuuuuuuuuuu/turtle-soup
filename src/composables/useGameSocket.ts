@@ -1,6 +1,7 @@
 import type { GameSnapshot, RoomSnapshot } from '@/types/game'
 /* eslint-disable style/max-statements-per-line */
-import { ensureAnonymousSession } from '@/api/turtle'
+import { ensurePlayerAccessToken } from '@/api/player'
+import { ensureAnonymousSession, roomApi } from '@/api/turtle'
 
 interface PendingRequest { resolve: (value: unknown) => void, reject: (reason: Error) => void }
 interface SocketEnvelope { event?: string, request_id?: string, data?: Record<string, unknown> }
@@ -11,11 +12,13 @@ const reconnecting = ref(false)
 const gameSnapshot = shallowRef<GameSnapshot | null>(null)
 const roomSnapshot = shallowRef<RoomSnapshot | null>(null)
 const typingMembers = ref<Array<{ user_id: number, username: string, expiresAt: number }>>([])
+const kickedRoomId = ref('')
 const pending = new Map<string, PendingRequest>()
 let socket: UniApp.SocketTask | null = null
 let connecting: Promise<void> | null = null
 let heartbeat: ReturnType<typeof setInterval> | null = null
 let attempts = 0
+const maxReconnectAttempts = 5
 
 const createRequestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
 function stopHeartbeat() {
@@ -36,7 +39,7 @@ export function useGameSocket() {
       return
     if (connecting)
       return connecting
-    const token = await ensureAnonymousSession()
+    const token = await ensurePlayerAccessToken() || await ensureAnonymousSession()
     connecting = new Promise<void>((resolve, reject) => {
       const authRequestId = createRequestId()
       socket = uni.connectSocket({ url: wsUrl, complete: () => {} })
@@ -51,6 +54,14 @@ export function useGameSocket() {
           resolve(); return
         }
         if (message.event === 'v1.room.member.typing') { updateTyping(message.data || {}); return }
+        if (message.event === 'v1.room.member.kicked') {
+          const data = message.data || {}
+          const selfId = roomSnapshot.value?.members.find(item => item.is_self)?.user_id
+          if (Number(data.user_id) === selfId) {
+            kickedRoomId.value = String(data.room_id || '')
+            roomSnapshot.value = null
+          }
+        }
         if (message.event === 'v1.room.snapshot')
           roomSnapshot.value = message.data as unknown as RoomSnapshot
         if (['v1.game.snapshot', 'v1.game.answer', 'v1.game.solved', 'v1.game.finished'].includes(String(message.event)))
@@ -73,6 +84,14 @@ export function useGameSocket() {
   function reconnect() {
     if (reconnecting.value)
       return
+    if (attempts >= maxReconnectAttempts) {
+      const roomId = roomSnapshot.value?.id
+      if (roomId)
+        roomApi.leave(roomId).catch(() => {})
+      roomSnapshot.value = null
+      typingMembers.value = []
+      return
+    }
     reconnecting.value = true
     setTimeout(async () => {
       reconnecting.value = false; try { await connect() }
@@ -97,15 +116,20 @@ export function useGameSocket() {
     gameSnapshot,
     roomSnapshot,
     typingMembers,
+    kickedRoomId,
     connect,
     join: (game_id: string) => send<GameSnapshot>('v1.game.join', { game_id }),
     ask: (game_id: string, question: string) => send<GameSnapshot>('v1.game.question', { game_id, question }),
     hint: (game_id: string, level: number) => send<GameSnapshot>('v1.game.hint', { game_id, level }),
     guess: (game_id: string, guess: string) => send<GameSnapshot>('v1.game.guess', { game_id, guess }),
+    abandon: (game_id: string) => send<GameSnapshot>('v1.game.abandon', { game_id }),
     roomJoin: (room_id: string) => send<RoomSnapshot>('v1.room.join', { room_id }),
     roomChat: (room_id: string, content: string) => send<RoomSnapshot>('v1.room.chat', { room_id, content }),
     roomReady: (room_id: string, ready: boolean) => send<RoomSnapshot>('v1.room.ready', { room_id, ready }),
     roomStart: (room_id: string) => send<RoomSnapshot>('v1.room.start', { room_id }),
+    roomLeave: (room_id: string) => send<void>('v1.room.leave', { room_id }),
+    roomMute: (room_id: string, user_id: number, muted: boolean) => send<RoomSnapshot>('v1.room.member.mute', { room_id, user_id, muted }),
+    roomKick: (room_id: string, user_id: number) => send<void>('v1.room.member.kick', { room_id, user_id }),
     typing: (room_id: string, active: boolean) => send<void>(active ? 'v1.room.typing.start' : 'v1.room.typing.stop', { room_id }, false),
   }
 }
