@@ -115,6 +115,9 @@ importers:
       pinia:
         specifier: ^2.3.1
         version: 2.3.1(typescript@5.5.4)(vue@3.4.38(typescript@5.5.4))
+      tslib:
+        specifier: 2.3.0
+        version: 2.3.0
       uni-echarts:
         specifier: ^2.2.5
         version: 2.2.5(echarts@6.1.0)(vue@3.4.38(typescript@5.5.4))
