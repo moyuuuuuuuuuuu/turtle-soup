@@ -39,6 +39,30 @@ async function call<T>(path: string, method: 'GET' | 'POST' | 'DELETE' = 'POST',
     fail: () => reject(new Error('网络请求失败，请检查网络连接')),
   }))
 }
+
+async function uploadAvatarFile(filePath: string, retried = false): Promise<PlayerUser> {
+  await ensurePlayerAccessToken()
+  return new Promise((resolve, reject) => uni.uploadFile({
+    url: `${baseUrl}/me/avatar`,
+    filePath,
+    name: 'avatar',
+    header: { 'Authorization': accessToken ? `Bearer ${accessToken}` : '', 'X-Device-Id': currentDeviceId(), 'X-Device-Name': currentDevice().name, 'X-Platform': currentDevice().platform },
+    success: ({ data: raw }) => {
+      try {
+        const body = JSON.parse(raw) as Envelope<PlayerUser>
+        if (body?.code === 'success')
+          return resolve(body.data)
+        if (!retried && body?.code === 'auth.token_invalid')
+          return restoreAccess().then(result => result ? uploadAvatarFile(filePath, true).then(resolve, reject) : reject(new Error(body.message || body.code)))
+        reject(new Error(body?.message || body?.code || '头像上传失败'))
+      }
+      catch {
+        reject(new Error('头像上传响应格式异常'))
+      }
+    },
+    fail: () => reject(new Error('头像上传失败，请检查网络连接')),
+  }))
+}
 function accept(result: AuthResult) { accessToken = result.access_token; uni.setStorageSync(refreshKey, result.refresh_token); uni.removeStorageSync('turtle_anonymous_token'); return result }
 
 async function performRestore() {
@@ -82,6 +106,7 @@ export const playerApi = {
   revokeSession: (session_id: string) => call('/me/sessions', 'DELETE', { session_id }, true),
   changeUsername: (username: string) => call<PlayerUser>('/me/username', 'POST', { username }, true),
   updateProfile: (username: string, bio: string) => call<PlayerUser>('/me/profile', 'POST', { username, bio }, true),
+  uploadAvatar: uploadAvatarFile,
   changeEmail: (email: string, password: string, email_code: string) => call<PlayerUser>('/me/email/change', 'POST', { email, password, email_code }, true),
   changePassword: (current_password: string, password: string) => call<AuthResult>('/auth/password/change', 'POST', { current_password, password }, true).then(accept),
   resetPassword: (email: string, email_code: string, password: string) => call<AuthResult>('/auth/password/reset', 'POST', { email, email_code, password }).then(accept),

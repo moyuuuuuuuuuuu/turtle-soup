@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PublicQuestion } from '@/types/game'
 import { gameApi, questionApi, roomApi } from '@/api/turtle'
+import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 
@@ -9,6 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useGameStore()
 const player = usePlayerStore()
+const socket = useGameSocket()
 const question = ref<PublicQuestion | null>(null)
 const loading = ref(true)
 const starting = ref(false)
@@ -63,6 +65,11 @@ async function start() {
         throw new Error('房间尚未关联游戏，请稍后重试')
       router.replace({ name: 'game', params: { id: room.game_id } })
       return
+    }
+    if (player.user) {
+      const joinedRooms = await roomApi.mine()
+      for (const joinedRoom of joinedRooms)
+        await socket.roomLeave(joinedRoom.id, 'switch_question')
     }
     store.setGame(await gameApi.create(question.value.id, confirmed))
     router.replace({ name: 'game', params: { id: store.current!.id } })

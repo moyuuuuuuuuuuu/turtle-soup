@@ -29,6 +29,7 @@ declare module 'vue' {
     WdLoading: typeof import('@wot-ui/ui/components/wd-loading/wd-loading.vue')['default']
     WdNotify: typeof import('@wot-ui/ui/components/wd-notify/wd-notify.vue')['default']
     WdPopup: typeof import('@wot-ui/ui/components/wd-popup/wd-popup.vue')['default']
+    WdSwitch: typeof import('@wot-ui/ui/components/wd-switch/wd-switch.vue')['default']
     WdTextarea: typeof import('@wot-ui/ui/components/wd-textarea/wd-textarea.vue')['default']
     WdToast: typeof import('@wot-ui/ui/components/wd-toast/wd-toast.vue')['default']
   }

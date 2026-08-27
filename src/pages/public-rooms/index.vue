@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { RoomSnapshot } from '@/types/game'
 import { gameApi, roomApi, TurtleApiError } from '@/api/turtle'
+import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 
@@ -8,6 +9,7 @@ definePage({ name: 'public-rooms', layout: 'tabbar', style: { navigationStyle: '
 const router = useRouter()
 const player = usePlayerStore()
 const gameStore = useGameStore()
+const socket = useGameSocket()
 const rooms = ref<RoomSnapshot[]>([])
 const loading = ref(true)
 const joiningId = ref('')
@@ -17,6 +19,7 @@ const joiningCode = ref(false)
 function enterRoomGame(room: RoomSnapshot) {
   if (!room.game_id)
     throw new Error('房间尚未关联游戏，请稍后重试')
+  socket.adoptRoom(room)
   router.push({ name: 'game', params: { id: room.game_id } })
 }
 

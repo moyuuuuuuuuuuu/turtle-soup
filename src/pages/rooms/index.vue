@@ -2,6 +2,7 @@
 /* eslint-disable style/max-statements-per-line */
 import type { RoomSnapshot } from '@/types/game'
 import { gameApi, roomApi, TurtleApiError } from '@/api/turtle'
+import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 
@@ -10,6 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const player = usePlayerStore()
 const gameStore = useGameStore()
+const socket = useGameSocket()
 const mine = ref<RoomSnapshot[]>([])
 const inviteCode = ref('')
 const fallbackQuestionId = ref('')
@@ -27,6 +29,7 @@ function backToQuestion() {
 function enterRoomGame(room: RoomSnapshot) {
   if (!room.game_id)
     throw new Error('房间尚未关联游戏，请稍后重试')
+  socket.adoptRoom(room)
   router.push({ name: 'game', params: { id: room.game_id } })
 }
 async function startFallbackGame(questionId: string) {

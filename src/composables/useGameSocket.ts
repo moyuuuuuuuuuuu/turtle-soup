@@ -13,6 +13,7 @@ const gameSnapshot = shallowRef<GameSnapshot | null>(null)
 const roomSnapshot = shallowRef<RoomSnapshot | null>(null)
 const typingMembers = ref<Array<{ user_id: number, username: string, expiresAt: number }>>([])
 const kickedRoomId = ref('')
+const memberLeftNotice = shallowRef<{ room_id: string, user_id: number, username: string, reason: 'manual' | 'switch_question', nonce: number } | null>(null)
 const pending = new Map<string, PendingRequest>()
 let socket: UniApp.SocketTask | null = null
 let connecting: Promise<void> | null = null
@@ -60,6 +61,21 @@ export function useGameSocket() {
           if (Number(data.user_id) === selfId) {
             kickedRoomId.value = String(data.room_id || '')
             roomSnapshot.value = null
+          }
+        }
+        if (message.event === 'v1.room.left') {
+          const data = message.data || {}
+          if (String(data.room_id || '') === roomSnapshot.value?.id)
+            roomSnapshot.value = null
+        }
+        if (message.event === 'v1.room.member.left') {
+          const data = message.data || {}
+          memberLeftNotice.value = {
+            room_id: String(data.room_id || ''),
+            user_id: Number(data.user_id),
+            username: String(data.username || '玩家'),
+            reason: data.reason === 'switch_question' ? 'switch_question' : 'manual',
+            nonce: Date.now(),
           }
         }
         if (message.event === 'v1.room.snapshot')
@@ -117,6 +133,7 @@ export function useGameSocket() {
     roomSnapshot,
     typingMembers,
     kickedRoomId,
+    memberLeftNotice,
     connect,
     join: (game_id: string) => send<GameSnapshot>('v1.game.join', { game_id }),
     ask: (game_id: string, question: string) => send<GameSnapshot>('v1.game.question', { game_id, question }),
@@ -127,9 +144,12 @@ export function useGameSocket() {
     roomChat: (room_id: string, content: string) => send<RoomSnapshot>('v1.room.chat', { room_id, content }),
     roomReady: (room_id: string, ready: boolean) => send<RoomSnapshot>('v1.room.ready', { room_id, ready }),
     roomStart: (room_id: string) => send<RoomSnapshot>('v1.room.start', { room_id }),
-    roomLeave: (room_id: string) => send<void>('v1.room.leave', { room_id }),
+    roomLeave: (room_id: string, reason: 'manual' | 'switch_question' = 'manual') => send<void>('v1.room.leave', { room_id, reason }),
     roomMute: (room_id: string, user_id: number, muted: boolean) => send<RoomSnapshot>('v1.room.member.mute', { room_id, user_id, muted }),
     roomKick: (room_id: string, user_id: number) => send<void>('v1.room.member.kick', { room_id, user_id }),
+    roomVisibility: (room_id: string, visibility: 'private' | 'public') => send<RoomSnapshot>('v1.room.visibility.update', { room_id, visibility }),
     typing: (room_id: string, active: boolean) => send<void>(active ? 'v1.room.typing.start' : 'v1.room.typing.stop', { room_id }, false),
+    adoptRoom: (room: RoomSnapshot) => { roomSnapshot.value = room },
+    clearRoom: () => { roomSnapshot.value = null; typingMembers.value = [] },
   }
 }
