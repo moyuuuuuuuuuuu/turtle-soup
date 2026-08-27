@@ -78,6 +78,10 @@
   "vueVersion": "3",
   "h5": {
     "darkmode": true,
-    "themeLocation": "theme.json"
+    "themeLocation": "theme.json",
+    "router": {
+      "mode": "history",
+      "base": "/"
+    }
   }
 }

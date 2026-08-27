@@ -1,3 +1,4 @@
+import process from 'node:process'
 import Uni from '@uni-helper/plugin-uni'
 import { isMpWeixin } from '@uni-helper/uni-env'
 import UniHelperComponents from '@uni-helper/vite-plugin-uni-components'
@@ -14,7 +15,7 @@ import { defineConfig } from 'vite'
 import { WotResolver } from './src/resolver'
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './',
+  base: process.env.UNI_PLATFORM === 'h5' ? '/' : './',
   optimizeDeps: {
     exclude: ['@wot-ui/ui', 'uni-echarts'],
   },
