@@ -178,15 +178,6 @@
   }
 
   /**
-   * 判断是否为外部链接
-   * @param item 菜单项数据
-   * @returns 是否为外部链接
-   */
-  const isExternalLink = (item: AppRouteRecord): boolean => {
-    return !!(item.meta.link && !item.meta.isIframe)
-  }
-
-  /**
    * 生成唯一的 key
    * 使用 path、title 和 index 组合确保唯一性
    * @param item 菜单项数据
