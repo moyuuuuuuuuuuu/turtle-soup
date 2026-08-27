@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /* eslint-disable style/max-statements-per-line */
 import { playerApi } from '@/api/player'
+import { useAnimatedTheme } from '@/composables/useAnimatedTheme'
 import { usePlayerStore } from '@/store/playerStore'
-import { applyRootTheme, storedTheme } from '@/utils/theme'
 import AuthParticleBackground from './AuthParticleBackground.vue'
 
 type AuthMode = 'password' | 'code' | 'register' | 'reset'
@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<{ initialMode?: AuthMode }>(), { initialM
 const route = useRoute()
 const store = usePlayerStore()
 const mode = ref<AuthMode>(props.initialMode)
-const light = ref(storedTheme() === 'light')
+const { light, overlay, toggleTheme } = useAnimatedTheme()
 const busy = ref(false)
 const codeBusy = reactive<Record<EmailCodePurpose, boolean>>({ login: false, register: false, reset_password: false })
 const codeCountdown = reactive<Record<EmailCodePurpose, number>>({ login: 0, register: 0, reset_password: 0 })
@@ -31,7 +31,6 @@ const tabs: Array<{ key: AuthMode, label: string }> = [
 ]
 
 watch(mode, () => { emailCode.value = '' })
-function toggleTheme() { light.value = !light.value; const theme = light.value ? 'light' : 'dark'; uni.setStorageSync('hgt_theme', theme); applyRootTheme(theme) }
 
 onUnmounted(() => {
   Object.values(codeTimers).forEach(timer => timer && clearInterval(timer))
@@ -103,8 +102,9 @@ async function submit() {
 
 <template>
   <view class="auth-page" :class="{ light }">
+    <HgtThemeTransition v-bind="overlay" />
     <AuthParticleBackground />
-    <button class="theme-toggle" @click="toggleTheme">
+    <button class="theme-toggle hgt-theme-trigger" @click="toggleTheme">
       {{ light ? '☾' : '☀' }}
     </button>
 
@@ -113,8 +113,9 @@ async function submit() {
         ◈ LATERAL THINKING
       </text>
       <view class="brand-copy">
+        <image class="brand-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
         <text class="brand-title">
-          海龟汤
+          墨鱼海龟汤
         </text>
         <view class="brand-rule">
           <text>推理 · 探索 · 解谜</text>
@@ -232,7 +233,7 @@ async function submit() {
           </template>
         </view>
         <text class="copyright">
-          © 2024 海龟汤 · 公益项目
+          © 2024 墨鱼海龟汤 · 公益项目
         </text>
       </view>
     </view>
@@ -243,6 +244,6 @@ async function submit() {
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
 .auth-page{--bg:#080808;--fg:#f0f0f0;--card:#111;--muted:#707070;--border:#292929;position:relative;display:flex;min-height:100vh;overflow:hidden;background:var(--bg);color:var(--fg);transition:.25s}.auth-page.light{--bg:#edeae4;--fg:#1c1c1a;--card:#e4e0d9;--muted:#74736e;--border:#c8c4bc}.particles{position:absolute;inset:0;opacity:.32;background-image:radial-gradient(circle at 15% 20%,var(--muted) 0 1px,transparent 1.5px),radial-gradient(circle at 82% 68%,var(--muted) 0 1px,transparent 1.5px),linear-gradient(115deg,transparent 48%,var(--border) 49%,transparent 50%);background-size:38px 38px,54px 54px,100% 100%;pointer-events:none}.theme-toggle{position:absolute;z-index:4;top:max(20px,env(safe-area-inset-top));right:20px;width:34px;height:34px;padding:0;border:1px solid var(--border);border-radius:0;background:var(--card);color:var(--muted);font:14px 'Courier New',monospace}.theme-toggle::after,.tab::after,.ghost::after{border:0}.brand-panel{position:relative;z-index:1;box-sizing:border-box;display:flex;width:42%;min-height:100vh;padding:58px 64px 42px;flex-direction:column;justify-content:space-between;border-right:1px solid var(--border)}.eyebrow,.brand-rule,.brand-footer,.field>text,.label-row,.tab,.primary,.ghost,.agreement,.copyright{font-family:'Courier New',monospace}.eyebrow{font-size:11px;letter-spacing:.38em;color:var(--muted)}.brand-title{display:block;font-family:Georgia,'Times New Roman',serif;font-size:clamp(52px,7vw,88px);line-height:1;letter-spacing:.08em}.brand-rule{display:flex;align-items:center;gap:14px;margin-top:24px;font-size:11px;letter-spacing:.25em;color:var(--muted)}.brand-rule::before{width:64px;height:1px;background:var(--border);content:''}.brand-description{display:block;max-width:270px;margin-top:26px;font-size:14px;line-height:1.9;color:var(--muted)}.brand-footer{display:flex;align-items:flex-end;justify-content:space-between;font-size:11px;color:var(--muted)}.brand-footer view{display:flex;gap:10px;flex-direction:column}.form-panel{position:relative;z-index:1;box-sizing:border-box;display:flex;min-height:100vh;padding:72px 64px;flex:1;align-items:center;justify-content:center}.form-card{width:100%;max-width:448px}.tabs{width:100%;border-bottom:1px solid var(--border);white-space:nowrap}.tabs-inner{display:flex}.tab{position:relative;margin-right:24px;padding:0 0 14px;border:0;border-radius:0;background:transparent;color:var(--muted);font-size:11px;line-height:1.4;letter-spacing:.1em}.tab.active{color:var(--fg)}.tab.active::before{position:absolute;right:0;bottom:-1px;left:0;height:1px;background:var(--fg);content:''}.form-body{display:flex;margin-top:38px;gap:20px;flex-direction:column;animation:auth-in .4s ease}.field{display:flex;gap:7px;flex-direction:column}.field>text,.label-row{font-size:11px;letter-spacing:.16em;color:var(--muted)}.label-row{display:flex;align-items:center;justify-content:space-between}.label-row button{padding:0;border:0;background:transparent;color:var(--muted);font-size:11px}.field input,.code-row input{box-sizing:border-box;width:100%;height:46px;padding:0 15px;border:1px solid var(--border);border-radius:0;background:transparent;color:var(--fg);font-size:14px;outline:none}.field input:focus,.code-row input:focus{border-color:var(--fg)}.code-row{display:flex;gap:9px}.code-row input{flex:1}.code-row button{min-width:100px;padding:0 15px;border:1px solid var(--fg);border-radius:0;background:transparent;color:var(--fg);font:11px 'Courier New',monospace;letter-spacing:.12em}.code-row button[disabled]{border-color:var(--border);color:var(--muted)}.password-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.primary{height:48px;margin-top:4px;border:1px solid var(--fg);border-radius:0;background:var(--fg);color:var(--bg);font-size:11px;letter-spacing:.24em}.primary[disabled]{opacity:.6}.ghost{height:34px;padding:0;border:0;background:transparent;color:var(--muted);font-size:11px;letter-spacing:.12em}.divider{display:flex;align-items:center;gap:16px;color:var(--muted);font:11px 'Courier New',monospace}.divider::before,.divider::after{height:1px;background:var(--border);content:'';flex:1}.agreement,.copyright{font-size:10px;line-height:1.7;color:var(--muted)}.notice{padding:2px 0 2px 15px;border-left:2px solid var(--border);font-size:12px;line-height:1.7;color:var(--muted)}.copyright{display:block;margin-top:36px;text-align:center}@keyframes auth-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}@media(max-width:767px){.auth-page{display:block;min-height:100vh}.brand-panel{width:100%;min-height:auto;padding:calc(54px + env(safe-area-inset-top)) 28px 34px;border-right:0;border-bottom:1px solid var(--border)}.eyebrow{margin-bottom:34px}.brand-title{font-size:50px}.brand-description,.brand-footer{display:none}.form-panel{min-height:auto;padding:38px 24px calc(40px + env(safe-area-inset-bottom))}.tabs{margin-right:-24px;width:calc(100% + 24px)}.password-grid{grid-template-columns:1fr}.form-body{margin-top:30px}}
 .theme-toggle,.tab,.code-row button,.primary,.ghost{display:flex;box-sizing:border-box;align-items:center;justify-content:center;line-height:1}.primary{width:100%}
-.auth-page{--muted:#666;--border:#222;font-family:Inter,sans-serif}.auth-page.light{--muted:#7a7972}.theme-toggle{width:32px;height:32px;font:13px/1 'JetBrains Mono',monospace}.brand-panel{padding:64px}.eyebrow,.brand-rule,.brand-footer,.field>text,.label-row,.tab,.primary,.ghost,.agreement,.copyright{font-family:'JetBrains Mono',monospace}.eyebrow{font-size:12px;letter-spacing:.4em}.brand-title{font-family:Cinzel,serif;letter-spacing:.06em}.brand-rule{gap:12px;margin-top:20px;font-size:12px;letter-spacing:.28em}.brand-description{margin-top:24px;line-height:1.625}.brand-footer{font-size:12px}.tabs-inner{justify-content:flex-start}.tab{margin-right:24px;margin-left:0;padding-bottom:12px;font-size:12px;line-height:16px;letter-spacing:.05em}.form-body{margin-top:40px}.field{width:100%;gap:6px}.field>text,.label-row{font-size:12px;letter-spacing:.18em}.label-row{box-sizing:border-box;width:100%}.label-row button{margin-right:0;margin-left:auto;font:12px/16px 'JetBrains Mono',monospace;letter-spacing:normal}.field input,.code-row input{padding:0 16px;font-family:Inter,sans-serif;line-height:20px}.password-grid{gap:16px}.primary{height:44px;margin-top:0;font-size:12px;line-height:16px;letter-spacing:.25em}.ghost{width:100%;height:36px;font-size:12px;line-height:16px;letter-spacing:.15em}.action-stack{display:flex;margin-top:8px;gap:12px;flex-direction:column}.register-actions{display:flex;margin-top:4px;gap:12px;flex-direction:column}.divider{font:12px/16px 'JetBrains Mono',monospace}.agreement{font-size:12px;line-height:1.625}.agreement-link{color:var(--fg)}.copyright{margin-top:40px;font-size:12px;line-height:16px}
-@media(max-width:767px){.brand-panel{padding:48px 40px}.eyebrow{margin-bottom:0}.brand-copy{margin:40px 0}.brand-title{font-size:51.2px}.form-panel{padding:48px 32px}.tabs{margin-right:0;width:100%}.password-grid{grid-template-columns:1fr 1fr}.form-body{margin-top:40px}}
+.auth-page{--muted:#666;--border:#222;font-family:Inter,sans-serif}.auth-page.light{--muted:#7a7972}.theme-toggle{width:32px;height:32px;font:13px/1 'JetBrains Mono',monospace}.brand-panel{padding:64px}.eyebrow,.brand-rule,.brand-footer,.field>text,.label-row,.tab,.primary,.ghost,.agreement,.copyright{font-family:'JetBrains Mono',monospace}.eyebrow{font-size:12px;letter-spacing:.4em}.brand-logo{display:block;width:150px;height:150px;margin-bottom:18px}.brand-title{font-family:Cinzel,serif;letter-spacing:.06em}.brand-rule{gap:12px;margin-top:20px;font-size:12px;letter-spacing:.28em}.brand-description{margin-top:24px;line-height:1.625}.brand-footer{font-size:12px}.tabs-inner{justify-content:flex-start}.tab{margin-right:24px;margin-left:0;padding-bottom:12px;font-size:12px;line-height:16px;letter-spacing:.05em}.form-body{margin-top:40px}.field{width:100%;gap:6px}.field>text,.label-row{font-size:12px;letter-spacing:.18em}.label-row{box-sizing:border-box;width:100%}.label-row button{margin-right:0;margin-left:auto;font:12px/16px 'JetBrains Mono',monospace;letter-spacing:normal}.field input,.code-row input{padding:0 16px;font-family:Inter,sans-serif;line-height:20px}.password-grid{gap:16px}.primary{height:44px;margin-top:0;font-size:12px;line-height:16px;letter-spacing:.25em}.ghost{width:100%;height:36px;font-size:12px;line-height:16px;letter-spacing:.15em}.action-stack{display:flex;margin-top:8px;gap:12px;flex-direction:column}.register-actions{display:flex;margin-top:4px;gap:12px;flex-direction:column}.divider{font:12px/16px 'JetBrains Mono',monospace}.agreement{font-size:12px;line-height:1.625}.agreement-link{color:var(--fg)}.copyright{margin-top:40px;font-size:12px;line-height:16px}
+@media(max-width:767px){.brand-panel{padding:48px 40px}.eyebrow{margin-bottom:0}.brand-copy{margin:32px 0}.brand-logo{width:96px;height:96px;margin-bottom:14px}.brand-title{font-size:42px}.form-panel{padding:48px 32px}.tabs{margin-right:0;width:100%}.password-grid{grid-template-columns:1fr 1fr}.form-body{margin-top:40px}}
 </style>

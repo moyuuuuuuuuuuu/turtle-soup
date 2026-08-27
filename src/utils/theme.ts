@@ -8,6 +8,9 @@ export function applyRootTheme(theme: HgtTheme): void {
   // #ifdef H5
   document.documentElement.classList.toggle('hgt-light-theme', theme === 'light')
   document.documentElement.style.colorScheme = theme
+  const favicon = document.querySelector<HTMLLinkElement>('#app-favicon')
+  if (favicon)
+    favicon.href = `/static/brand/favicon-${theme}.png`
   // #endif
 }
 

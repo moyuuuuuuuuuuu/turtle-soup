@@ -19,7 +19,13 @@ const busy = ref(false)
 const creatingRoom = ref(false)
 const inviteOpen = ref(false)
 const resultOpen = ref(false)
-const mobileSurfaceOpen = ref(false)
+const confirmOpen = ref(false)
+const confirmTitle = ref('')
+const confirmDescription = ref('')
+const confirmEyebrow = ref('请确认')
+const confirmTone = ref<'default' | 'warning' | 'danger'>('default')
+let confirmAction: (() => void | Promise<void>) | undefined
+const mobileSurfaceOpen = ref(true)
 const mobileTeamOpen = ref(false)
 const mobileSurfaceRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null)
 const mobileSurfaceOverflow = ref(false)
@@ -27,9 +33,16 @@ const errorMessage = ref('')
 const unreadTeam = ref(0)
 const game = computed(() => store.current)
 const room = socket.roomSnapshot
+const sortedRoomMembers = computed(() => [...(room.value?.members || [])].sort((left, right) => {
+  if (left.role === right.role)
+    return 0
+  return left.role === 'owner' ? -1 : 1
+}))
 const canControlResult = computed(() => game.value?.mode !== 'multiplayer' || room.value?.is_owner === true)
 const typingMembers = socket.typingMembers
 const gameId = computed(() => String(route.params.id || route.query.id || ''))
+const riskTypeLabels: Record<string, string> = { death: '死亡', violence: '暴力', gore: '血腥', self_harm: '自伤', sexual: '性内容', child_safety: '未成年人', discrimination: '歧视', illegal: '违法', substance: '成瘾物', other: '其他' }
+const riskTypeLabel = (value: string) => riskTypeLabels[value] || value
 watch(socket.gameSnapshot, (value) => {
   if (!value) {
     return
@@ -104,18 +117,33 @@ async function toggleMute(member: { user_id: number, is_muted?: boolean }) {
     await socket.roomMute(room.value.id, member.user_id, !member.is_muted)
   }
 }
+function openConfirm(options: { title: string, description: string, eyebrow?: string, tone?: 'default' | 'warning' | 'danger', action: () => void | Promise<void> }) {
+  confirmTitle.value = options.title
+  confirmDescription.value = options.description
+  confirmEyebrow.value = options.eyebrow || '请确认'
+  confirmTone.value = options.tone || 'default'
+  confirmAction = options.action
+  confirmOpen.value = true
+}
+async function runConfirmAction() {
+  const action = confirmAction
+  confirmAction = undefined
+  if (action)
+    await action()
+}
+function cancelConfirmAction() {
+  confirmAction = undefined
+}
 function kickMember(member: { user_id: number, username: string }) {
   if (!room.value) {
     return
   }
-  uni.showModal({
+  openConfirm({
+    eyebrow: '房间管理',
     title: '移出队友',
-    content: `确认将 ${member.username} 移出房间？`,
-    success: async (result) => {
-      if (result.confirm) {
-        await socket.roomKick(room.value!.id, member.user_id)
-      }
-    },
+    description: `确认将 ${member.username} 移出房间？`,
+    tone: 'danger',
+    action: () => socket.roomKick(room.value!.id, member.user_id),
   })
 }
 async function leaveRoom() {
@@ -214,12 +242,12 @@ function abandon() {
     uni.showToast({ title: '仅房主可以放弃游戏', icon: 'none' })
     return
   }
-  uni.showModal({
+  openConfirm({
+    eyebrow: '结束本局',
     title: '确认放弃？',
-    content: '放弃后会立即结束本局并展示汤底。',
-    success: async (result) => {
-      if (!result.confirm)
-        return
+    description: '放弃后会立即结束本局并展示汤底。',
+    tone: 'danger',
+    action: async () => {
       try {
         store.setGame(game.value?.mode === 'multiplayer'
           ? await socket.abandon(game.value!.id)
@@ -236,12 +264,15 @@ watch(() => game.value?.surface, async () => {
   mobileSurfaceOpen.value = false
   await nextTick()
   measureMobileSurface()
+  mobileSurfaceOpen.value = true
 })
 onMounted(async () => {
   await player.restore()
   await refresh()
+  mobileSurfaceOpen.value = false
   await nextTick()
   measureMobileSurface()
+  mobileSurfaceOpen.value = true
   if (typeof window !== 'undefined')
     window.addEventListener('resize', measureMobileSurface)
 })
@@ -266,6 +297,16 @@ onUnmounted(() => {
       </text><text class="surface">
         {{ game.surface }}
       </text>
+      <view v-if="game.risk_types?.length || game.tags?.length" class="puzzle-metadata">
+        <view v-if="game.risk_types?.length" class="metadata-group">
+          <text class="hgt-mono metadata-label">风险类型</text>
+          <view class="metadata-items"><text v-for="riskType in game.risk_types" :key="riskType" class="metadata-chip risk-chip">{{ riskTypeLabel(riskType) }}</text></view>
+        </view>
+        <view v-if="game.tags?.length" class="metadata-group">
+          <text class="hgt-mono metadata-label">标签</text>
+          <view class="metadata-items"><text v-for="tag in game.tags" :key="tag.id" class="metadata-chip">{{ tag.name }}</text></view>
+        </view>
+      </view>
       <view v-if="game.mode === 'multiplayer' && room" class="team-block">
         <view class="section-row">
           <text class="hgt-mono label">
@@ -273,7 +314,7 @@ onUnmounted(() => {
           </text><text class="hgt-mono label">
             {{ room.member_count }}/{{ room.max_players }}
           </text>
-        </view><view v-for="member in room.members" :key="member.user_id" class="member">
+        </view><view v-for="member in sortedRoomMembers" :key="member.user_id" class="member">
           <image v-if="member.avatar_url" :src="member.avatar_url" class="avatar" /><view v-else class="avatar avatar-fallback">
             {{ member.username.slice(0, 1) }}
           </view><view class="member-info">
@@ -336,12 +377,12 @@ onUnmounted(() => {
             {{ mobileSurfaceOpen ? '▴' : '▾' }}
           </button>
         </view>
-        <view v-if="game.mode === 'multiplayer' && room" class="mobile-team">
+        <view v-if="(game.mode === 'multiplayer' && room) || game.risk_types?.length || game.tags?.length" class="mobile-team">
           <button class="mobile-team-toggle" @click="mobileTeamOpen = !mobileTeamOpen">
             <view class="section-row">
               <text class="hgt-mono label">
-                队伍
-              </text><text class="hgt-mono label">
+                {{ game.mode === 'multiplayer' && room ? '队伍与题目信息' : '题目信息' }}
+              </text><text v-if="game.mode === 'multiplayer' && room" class="hgt-mono label">
                 {{ room.member_count }}/{{ room.max_players }}
               </text>
             </view>
@@ -350,7 +391,17 @@ onUnmounted(() => {
             </text>
           </button>
           <view v-if="mobileTeamOpen" class="mobile-team-details">
-            <view v-for="member in room.members" :key="member.user_id" class="member">
+            <view v-if="game.risk_types?.length || game.tags?.length" class="puzzle-metadata mobile-team-metadata">
+              <view v-if="game.risk_types?.length" class="metadata-group">
+                <text class="hgt-mono metadata-label">风险类型</text>
+                <view class="metadata-items"><text v-for="riskType in game.risk_types" :key="riskType" class="metadata-chip risk-chip">{{ riskTypeLabel(riskType) }}</text></view>
+              </view>
+              <view v-if="game.tags?.length" class="metadata-group">
+                <text class="hgt-mono metadata-label">标签</text>
+                <view class="metadata-items"><text v-for="tag in game.tags" :key="tag.id" class="metadata-chip">{{ tag.name }}</text></view>
+              </view>
+            </view>
+            <view v-for="member in (game.mode === 'multiplayer' && room ? sortedRoomMembers : [])" :key="member.user_id" class="member">
               <image v-if="member.avatar_url" :src="member.avatar_url" class="avatar" /><view v-else class="avatar avatar-fallback">
                 {{ member.username.slice(0, 1) }}
               </view>
@@ -362,7 +413,7 @@ onUnmounted(() => {
               <text class="member-role hgt-mono">
                 {{ member.role === 'owner' ? '房主' : (member.is_muted ? '已禁言' : '') }}
               </text>
-              <view v-if="room.is_owner && !member.is_self" class="member-actions mobile-member-actions">
+              <view v-if="room?.is_owner && !member.is_self" class="member-actions mobile-member-actions">
                 <button @click="toggleMute(member)">
                   {{ member.is_muted ? '解除禁言' : '禁言' }}
                 </button><button class="kick" @click="kickMember(member)">
@@ -370,7 +421,7 @@ onUnmounted(() => {
                 </button>
               </view>
             </view>
-            <button v-if="player.user && (!room || room.member_count < room.max_players)" class="hgt-mono outline" :loading="creatingRoom" @click="invite">
+            <button v-if="game.mode === 'multiplayer' && room && player.user && room.member_count < room.max_players" class="hgt-mono outline" :loading="creatingRoom" @click="invite">
               {{ creatingRoom ? '正在创建房间…' : '+ 邀请队友' }}
             </button>
             <button v-if="game.mode === 'multiplayer' && room && !room.is_owner" class="danger hgt-mono" @click="leaveRoom">
@@ -450,7 +501,7 @@ onUnmounted(() => {
         </view>
       </template>
     </main>
-    <view v-if="inviteOpen && room" class="invite-mask" @click.self="inviteOpen = false">
+    <wd-popup v-if="room" v-model="inviteOpen" position="center" :root-portal="true" custom-class="invite-popup">
       <view class="invite-modal">
         <text class="hgt-mono label">
           邀请队友
@@ -467,7 +518,7 @@ onUnmounted(() => {
         <text class="hgt-mono invite-members-title">
           当前队伍 ({{ room.member_count }}/{{ room.max_players }})
         </text>
-        <view v-for="member in room.members" :key="member.user_id" class="invite-member">
+        <view v-for="member in sortedRoomMembers" :key="member.user_id" class="invite-member">
           <view class="avatar avatar-fallback">
             {{ member.username.slice(0, 1) }}
           </view><text>{{ member.username }}</text><text class="member-role hgt-mono">
@@ -478,8 +529,8 @@ onUnmounted(() => {
           关闭
         </button>
       </view>
-    </view>
-    <view v-if="resultOpen" class="result-mask">
+    </wd-popup>
+    <wd-popup v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
       <view class="result-modal">
         <text class="hgt-mono label">
           本局结束
@@ -507,7 +558,17 @@ onUnmounted(() => {
           </button>
         </view>
       </view>
-    </view>
+    </wd-popup>
+    <HgtConfirmDialog
+      v-model="confirmOpen"
+      :eyebrow="confirmEyebrow"
+      :title="confirmTitle"
+      :description="confirmDescription"
+      :tone="confirmTone"
+      confirm-text="确认"
+      @confirm="runConfirmAction"
+      @cancel="cancelConfirmAction"
+    />
   </view>
 </template>
 
@@ -515,6 +576,9 @@ onUnmounted(() => {
 .back-question{display:flex;width:max-content;height:30px;margin:0 0 18px;padding:0;border:0;border-radius:0;align-items:center;background:transparent;color:var(--muted-foreground);font-size:10px;line-height:1;letter-spacing:.12em}.back-question::after{border:0}
 .game-page{position:relative;height:100vh;display:grid;grid-template-columns:330px 1fr}.puzzle-panel{border-right:1px solid var(--border);background:var(--card);padding:32px;display:flex;flex-direction:column}.puzzle-id,.label,.message-role,.typing{font-size:10px;color:var(--muted-foreground);letter-spacing:.15em}.puzzle-title{font-size:28px;margin:16px 0}.surface{font-size:14px;line-height:1.9;color:var(--accent);padding-bottom:28px;border-bottom:1px solid var(--border)}.team-block,.question-count{padding:25px 0;border-bottom:1px solid var(--border)}.section-row{display:flex;justify-content:space-between;align-items:center}.member{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12px}.member-info{display:flex;min-width:0;flex-direction:column;gap:3px}.avatar{width:32px;height:32px;border-radius:50%}.avatar-fallback{display:flex;align-items:center;justify-content:center;background:var(--secondary)}.member-role{margin-left:auto;font-size:9px;color:var(--muted-foreground)}.member-actions{display:flex;gap:4px}.member-actions button{display:flex;height:24px;margin:0;padding:0 7px;border:1px solid var(--border);border-radius:0;align-items:center;background:transparent;color:var(--muted-foreground);font-size:9px}.member-actions .kick{color:#ef4444}.count{font-size:20px}.progress{height:2px;background:var(--border);margin-top:12px}.progress>view{height:100%;background:var(--foreground)}.panel-actions{margin-top:auto;display:flex;flex-direction:column;gap:10px}.outline,.danger{margin:0;border-radius:0;background:transparent;border:1px solid var(--border);color:var(--muted-foreground);font-size:11px}.danger{color:#f87171}.conversation{position:relative;min-width:0;display:flex;flex-direction:column}.mobile-puzzle-summary{display:none}.tabs{height:65px;border-bottom:1px solid var(--border);display:flex}.tabs button{display:flex;margin:0;padding:0 28px;border-radius:0;flex:1;flex-direction:column;align-items:flex-start;justify-content:center;background:transparent;color:var(--muted-foreground);font-size:13px}.tabs button+button{border-left:1px solid var(--border)}.tabs button text{font-size:9px;display:block}.tabs button.active{color:var(--foreground);border-bottom:1px solid var(--foreground)}.tab-title{display:flex;align-items:center;gap:7px}.tab-title .unread-badge{display:inline-flex;min-width:17px;height:17px;padding:0 4px;border-radius:9px;align-items:center;justify-content:center;background:#ef4444;color:#fff;box-sizing:border-box;font-size:9px;line-height:17px}.message-author{display:flex;align-items:center;gap:8px}.message-avatar{width:24px;height:24px;border-radius:50%;font-size:10px}button::after{display:none}.solo-head{height:64px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;color:#4ade80}.messages{height:0;flex:1;padding:24px;box-sizing:border-box}.message{max-width:75%;padding:14px 16px;margin-bottom:14px;border:1px solid var(--border);display:flex;flex-direction:column;gap:7px;line-height:1.6;font-size:13px}.message.player{margin-left:auto;background:var(--secondary)}.message.host,.message.team{background:var(--card)}.composer{border-top:1px solid var(--border);padding:16px 22px;background:var(--card)}.error{color:#facc15;font-size:11px;margin-bottom:10px}.hints{display:flex;gap:8px;margin-bottom:10px}.hints button{margin:0;padding:0 12px;height:30px;line-height:28px;border-radius:0;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);font-size:10px}.hints .bottom-mode{margin-left:auto}.hints .bottom-mode.active{border-color:var(--foreground);background:var(--foreground);color:var(--background)}.input-row{display:flex}.input-row input{height:46px;flex:1;border:1px solid var(--border);padding:0 15px}.input-row button{margin:0;width:100px;border-radius:0;background:var(--foreground);color:var(--background)}.invite-mask{position:fixed;z-index:50;inset:0;display:flex;padding:24px;align-items:center;justify-content:center;background:#000a}.invite-modal{box-sizing:border-box;width:min(520px,100%);padding:28px;border:1px solid var(--border);background:var(--card);box-shadow:0 24px 80px #0008}.invite-heading{display:block;margin:8px 0 22px;font-size:27px}.invite-link-row{display:flex;margin-bottom:24px}.invite-code{display:flex;min-height:44px;padding:0 14px;border:1px solid var(--border);flex:1;align-items:center;color:var(--foreground)}.copy-button,.close-invite{display:flex;height:44px;margin:0;padding:0 18px;border:1px solid var(--foreground);border-radius:0;align-items:center;justify-content:center;background:var(--foreground);color:var(--background);font-size:11px}.invite-members-title{display:block;margin-bottom:10px;color:var(--muted-foreground)}.invite-member{display:flex;padding:11px 0;border-bottom:1px solid var(--border);align-items:center;gap:10px;font-size:12px}.close-invite{width:100%;margin-top:22px;background:transparent;color:var(--foreground)}
 .result-mask{position:fixed;z-index:60;inset:0;display:flex;padding:24px;align-items:center;justify-content:center;background:#000b}.result-modal{box-sizing:border-box;width:min(620px,100%);max-height:85vh;padding:34px;border:1px solid var(--border);overflow-y:auto;background:var(--card);box-shadow:0 24px 80px #0008}.result-heading{display:block;margin:10px 0 24px;font-size:32px}.result-bottom{display:block;padding:20px;border-left:2px solid var(--foreground);background:var(--secondary);font-size:15px;line-height:1.9}.result-points{display:flex;margin-top:24px;gap:10px;flex-direction:column}.result-point{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.6}.result-actions{display:flex;margin-top:28px;gap:12px}.result-actions button{display:flex;height:44px;margin:0;padding:0;flex:1;align-items:center;justify-content:center;border-radius:0}.continue-button{border:1px solid var(--foreground);background:var(--foreground);color:var(--background);font-size:11px}
+:deep(.invite-popup){box-sizing:border-box;width:min(520px,calc(100vw - 48px));border:1px solid var(--border);border-radius:0;background:var(--card);color:var(--foreground)}:deep(.result-popup){box-sizing:border-box;width:min(620px,calc(100vw - 48px));border:1px solid var(--border);border-radius:0;background:var(--card);color:var(--foreground)}:deep(.invite-popup) .invite-modal,:deep(.result-popup) .result-modal{width:100%;border:0;box-shadow:none}
+.puzzle-metadata{display:flex;padding:18px 0;border-bottom:1px solid var(--border);gap:14px;flex-direction:column}.metadata-group{display:flex;gap:8px;flex-direction:column}.metadata-label{color:var(--muted-foreground);font-size:9px;letter-spacing:.14em}.metadata-items{display:flex;flex-wrap:wrap;gap:6px}.metadata-chip{flex:none;padding:3px 7px;border:1px solid var(--border);color:var(--muted-foreground);font-size:9px;line-height:1.35;white-space:nowrap}.risk-chip{border-color:color-mix(in srgb,#d97706 55%,var(--border));color:#d97706}
 @media(max-width:767px){.game-page{height:calc(100vh - 56px);grid-template-columns:1fr}.puzzle-panel{display:none}.mobile-puzzle-summary{display:block;max-height:55vh;overflow-y:auto;border-bottom:1px solid var(--border);background:var(--card)}.mobile-puzzle-row{display:flex;height:58px;padding:0 14px;align-items:center;gap:12px}.mobile-help,.mobile-expand{display:flex;width:30px;height:30px;margin:0;padding:0;border:1px solid var(--border);border-radius:0;align-items:center;justify-content:center;background:transparent;color:var(--foreground);line-height:1}.mobile-puzzle-title{overflow:hidden;flex:1;font-size:20px;text-overflow:ellipsis;white-space:nowrap}.mobile-question-count{font-size:11px;color:var(--muted-foreground)}.mobile-surface-wrap{position:relative;padding:12px 52px 14px 16px;border-top:1px solid var(--border)}.mobile-surface{display:-webkit-box;padding:0;border:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3}.mobile-surface.expanded{display:block;overflow:visible}.mobile-surface-wrap .mobile-expand{position:absolute;right:14px;bottom:14px}.mobile-team{padding:0 16px;border-top:1px solid var(--border)}.mobile-team-toggle{display:flex;width:100%;height:46px;margin:0;padding:0;border:0;border-radius:0;align-items:center;gap:12px;background:transparent;color:var(--foreground)}.mobile-team-toggle .section-row{flex:1}.mobile-team-details{padding:0 0 14px}.mobile-team-details>.outline,.mobile-team-details>.danger{display:flex;width:100%;min-height:38px;margin-top:10px;align-items:center;justify-content:center}.mobile-actions{display:flex;padding:12px 16px;border-top:1px solid var(--border);gap:8px}.mobile-actions button{display:flex;min-height:38px;margin:0;padding:0 10px;flex:1;align-items:center;justify-content:center}.tabs{height:58px}.messages{padding:16px}.message{max-width:88%}.composer{padding:12px}}
+@media(max-width:767px){.mobile-team-metadata{padding:12px 0}.mobile-team-metadata .metadata-group{gap:6px}}
 @media(max-width:767px){.mobile-team-details .member{flex-wrap:wrap}.mobile-member-actions{width:100%;margin-left:42px}.mobile-member-actions button{height:30px;padding:0 12px;flex:1;justify-content:center}}
 </style>

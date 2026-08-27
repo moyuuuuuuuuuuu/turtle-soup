@@ -10,9 +10,9 @@
 import { defineManifestConfig } from '@uni-helper/vite-plugin-uni-manifest'
 
 export default defineManifestConfig({
-  'name': 'wot-starter',
+  'name': '墨鱼海龟汤',
   'appid': '__UNI__1208592',
-  'description': '',
+  'description': '墨鱼海龟汤推理解谜游戏',
   'versionName': '1.0.0',
   'versionCode': '100',
   'transformPx': false,

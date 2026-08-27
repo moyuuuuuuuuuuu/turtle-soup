@@ -34,7 +34,7 @@ function relative(value: string) {
     <view class="donate-grid">
       <view class="donate-main">
         <view class="message">
-          海龟汤是一个由爱好者维护的公益项目。你的每一份捐赠都将直接用于服务器维护、内容创作和功能开发。感谢你让更多人能够享受推理的乐趣。
+          墨鱼海龟汤是一个由爱好者维护的公益项目。你的每一份捐赠都将直接用于服务器维护、内容创作和功能开发。感谢你让更多人能够享受推理的乐趣。
         </view>
         <template v-if="!done">
           <view>

@@ -4,7 +4,9 @@ export interface PublicQuestion {
   surface: string
   difficulty: number
   language: string
-  risk_level: 'safe' | 'caution'
+  risk_level: 'safe' | 'caution' | 'restricted'
+  risk_types: string[]
+  risk_note?: string | null
   risk_warning?: string | null
   tags: Array<{ id: number, name: string }>
   play_count: number
@@ -13,7 +15,7 @@ export interface PublicQuestion {
 export interface HomeStats { question_count: number, today_online: number, success_rate: number, average_duration_seconds: number | null }
 
 export interface GameMessage { sequence: number, user_id?: number | null, username?: string | null, avatar_url?: string | null, role: 'player' | 'host', type: string, content: string, metadata?: Record<string, unknown> }
-export interface GameSnapshot { id: string, question_id?: string | null, mode: 'single' | 'multiplayer', room_id?: string | null, status: 'created' | 'playing' | 'solved' | 'finished' | 'abandoned', difficulty: number, question_limit: number, question_count: number, remaining_questions: number, hint_count: number, title: string, surface: string, risk_level: string, messages: GameMessage[], used_hints: number[], discovered_points: string[], bottom?: string | null, points?: Array<{ key: string, content: string, required: boolean, weight: number }> | null, guess?: { content: string, is_solved: boolean, summary: string } | null }
+export interface GameSnapshot { id: string, question_id?: string | null, mode: 'single' | 'multiplayer', room_id?: string | null, status: 'created' | 'playing' | 'solved' | 'finished' | 'abandoned', difficulty: number, question_limit: number, question_count: number, remaining_questions: number, hint_count: number, title: string, surface: string, risk_level: string, risk_types: string[], risk_note?: string | null, tags: Array<{ id: number, name: string }>, messages: GameMessage[], used_hints: number[], discovered_points: string[], bottom?: string | null, points?: Array<{ key: string, content: string, required: boolean, weight: number }> | null, guess?: { content: string, is_solved: boolean, summary: string } | null }
 export interface RoomMember { user_id: number, username: string, avatar_url?: string | null, role: 'owner' | 'member', is_ready: boolean, is_self: boolean, is_muted?: boolean }
 export interface RoomMessage { sequence: number, user_id: number, username: string, avatar_url?: string | null, content: string, create_time: string }
 export interface RoomSnapshot { id: string, invite_code: string, name: string, status: 'waiting' | 'playing' | 'finished' | 'closed', visibility: 'private' | 'public', max_players: number, member_count: number, owner_user_id: number, is_owner: boolean, question_id?: string | null, question?: PublicQuestion | null, game_id?: string | null, members: RoomMember[], messages: RoomMessage[], create_time: string }

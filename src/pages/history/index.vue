@@ -107,8 +107,8 @@ onMounted(async () => {
         未登录仍可从题库开始单人推理
       </text>
     </view>
-    <view v-if="selectedResult" class="result-mask" @click.self="selectedResult = null">
-      <view class="result-modal">
+    <wd-popup :model-value="Boolean(selectedResult)" position="center" :root-portal="true" custom-class="history-result-popup" @update:model-value="!$event && (selectedResult = null)">
+      <view v-if="selectedResult" class="result-modal">
         <text class="result-label">
           {{ selectedResult.status === 'solved' ? '推理成功' : selectedResult.status === 'abandoned' ? '本局已放弃' : '本局结束' }}
         </text>
@@ -141,7 +141,7 @@ onMounted(async () => {
           </button>
         </view>
       </view>
-    </view>
+    </wd-popup>
   </view>
 </template>
 
@@ -150,6 +150,7 @@ onMounted(async () => {
 .history-page{min-height:100vh;color:var(--hgt-fg,var(--foreground,#f0f0f0));background:var(--hgt-bg,var(--background,#080808))}.login-guide{display:flex;box-sizing:border-box;width:min(620px,calc(100% - 56px));min-height:390px;margin:70px auto;padding:56px;border:1px solid var(--hgt-border,var(--border,#222));align-items:center;justify-content:center;background:var(--hgt-panel,var(--card,#111));text-align:center;flex-direction:column}.guide-symbol{display:flex;width:64px;height:64px;border:1px solid var(--hgt-border,var(--border,#222));align-items:center;justify-content:center;color:var(--hgt-muted,var(--muted-foreground,#666));font-size:26px}.guide-title{margin-top:28px;font:28px Georgia,serif}.guide-copy{max-width:440px;margin-top:16px;color:var(--hgt-muted,var(--muted-foreground,#666));font-size:13px;line-height:1.9}.guide-actions{display:flex;width:100%;margin-top:30px;gap:12px}.guide-actions button{display:flex;height:44px;min-height:44px;margin:0;padding:0 20px;border:1px solid var(--hgt-fg,var(--foreground,#f0f0f0));border-radius:0;align-items:center;justify-content:center;background:transparent;color:var(--hgt-fg,var(--foreground,#f0f0f0));font:11px monospace;letter-spacing:.14em;line-height:normal;flex:1 1 0}.guide-actions .primary{background:var(--hgt-fg,var(--foreground,#f0f0f0));color:var(--hgt-bg,var(--background,#080808))}.guide-note{margin-top:20px;color:var(--hgt-muted,var(--muted-foreground,#666));font:9px monospace;letter-spacing:.14em}
 .stars{letter-spacing:.08em;white-space:nowrap}
 .result-mask{position:fixed;z-index:60;inset:0;display:flex;padding:24px;align-items:center;justify-content:center;background:#000b}.result-modal{box-sizing:border-box;width:min(640px,100%);max-height:86vh;padding:32px;border:1px solid var(--hgt-border);overflow-y:auto;background:var(--hgt-panel);box-shadow:0 24px 80px #0008}.result-label,.result-section-label{display:block;color:var(--hgt-muted);font:10px monospace;letter-spacing:.18em}.result-title{display:block;margin:10px 0 22px;font:30px Georgia,serif}.result-summary{display:block;margin-bottom:18px;color:var(--hgt-muted);font-size:12px;line-height:1.8}.result-bottom{display:flex;padding:20px;border-left:2px solid var(--hgt-fg);background:var(--hgt-bg);gap:12px;flex-direction:column;font-size:14px;line-height:1.9}.result-points{display:flex;margin-top:22px;gap:8px;flex-direction:column}.result-point{padding:10px 0;border-bottom:1px solid var(--hgt-border);font-size:12px;line-height:1.7}.result-actions{display:flex;margin-top:26px;gap:12px}.result-actions button{display:flex;height:44px;margin:0;border:1px solid var(--hgt-fg);border-radius:0;align-items:center;justify-content:center;background:transparent;color:var(--hgt-fg);font:11px monospace;flex:1}.result-actions .primary{background:var(--hgt-fg);color:var(--hgt-bg)}
+:deep(.history-result-popup){box-sizing:border-box;width:min(640px,calc(100vw - 48px));border:1px solid var(--border);border-radius:0;background:var(--card);color:var(--foreground)}:deep(.history-result-popup) .result-modal{width:100%;border:0;background:var(--card);box-shadow:none}
 .records{border:1px solid var(--border,#222);background:var(--card,#111)}.table-head,.record{border-bottom:1px solid var(--border,#222)}.record{background:var(--background,#080808)}
 .stats{border:1px solid var(--border,#222)}.stats view{border-right:1px solid var(--border,#222)}.stats view:last-child{border-right:0}
 @media(max-width:600px){.page-head{padding:24px 18px}.title{font-size:29px}.stats{grid-template-columns:repeat(2,1fr)}.stats view{padding:16px 18px;border-bottom:1px solid var(--hgt-border)}.filters{padding:12px 18px}.records{display:flex;margin:18px;border:0;gap:10px;flex-direction:column;background:transparent}.table-head{display:none}.record{grid-template-columns:minmax(0,1fr) auto auto auto auto;padding:14px 12px;border:1px solid var(--hgt-border);gap:8px}.record:last-child{border-bottom:1px solid var(--hgt-border)}.record-title{overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.record .status{padding:2px 5px;font-size:10px}.record .stars{font-size:10px}.record>:nth-child(3),.record>:nth-child(4){color:var(--hgt-muted)}.record button{padding:5px 7px;white-space:nowrap}.login-guide{margin:36px auto;padding:38px 24px}.guide-actions{flex-direction:column}}
