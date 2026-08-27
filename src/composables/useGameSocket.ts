@@ -16,6 +16,7 @@ const typingMembers = ref<Array<{ user_id: number, username: string, expiresAt: 
 const kickedRoomId = ref('')
 const memberLeftNotice = shallowRef<{ room_id: string, user_id: number, username: string, reason: 'manual' | 'switch_question', nonce: number } | null>(null)
 const roomNextStarted = shallowRef<{ room_id: string, question_id: string, game_id: string, nonce: number } | null>(null)
+const gameNextStarted = shallowRef<{ room_id: string, question_id: string, game_id: string, nonce: number } | null>(null)
 const pending = new Map<string, PendingRequest>()
 let socket: UniApp.SocketTask | null = null
 let connecting: Promise<void> | null = null
@@ -89,6 +90,15 @@ export function useGameSocket() {
             nonce: Date.now(),
           }
         }
+        if (message.event === 'v1.game.next.started') {
+          const data = message.data || {}
+          gameNextStarted.value = {
+            room_id: String(data.room_id || ''),
+            question_id: String(data.question_id || ''),
+            game_id: String(data.game_id || ''),
+            nonce: Date.now(),
+          }
+        }
         if (message.event === 'v1.room.snapshot')
           roomSnapshot.value = message.data as unknown as RoomSnapshot
         if (['v1.game.snapshot', 'v1.game.answer', 'v1.game.solved', 'v1.game.finished'].includes(String(message.event)))
@@ -146,12 +156,14 @@ export function useGameSocket() {
     kickedRoomId,
     memberLeftNotice,
     roomNextStarted,
+    gameNextStarted,
     connect,
     join: (game_id: string) => send<GameSnapshot>('v1.game.join', { game_id }),
     ask: (game_id: string, question: string) => send<GameSnapshot>('v1.game.question', { game_id, question }),
     hint: (game_id: string, level: number) => send<GameSnapshot>('v1.game.hint', { game_id, level }),
     guess: (game_id: string, guess: string) => send<GameSnapshot>('v1.game.guess', { game_id, guess }),
     abandon: (game_id: string) => send<GameSnapshot>('v1.game.abandon', { game_id }),
+    next: (game_id: string) => send<{ room_id: string, question_id: string, game_id: string }>('v1.game.next', { game_id }),
     roomJoin: (room_id: string) => send<RoomSnapshot>('v1.room.join', { room_id }),
     roomChat: (room_id: string, content: string) => send<RoomSnapshot>('v1.room.chat', { room_id, content }),
     roomReady: (room_id: string, ready: boolean) => send<RoomSnapshot>('v1.room.ready', { room_id, ready }),

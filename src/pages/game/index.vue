@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /* eslint-disable style/max-statements-per-line */
-import { gameApi, questionApi, roomApi } from '@/api/turtle'
+import { gameApi, roomApi } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
@@ -58,7 +58,7 @@ watch(socket.gameSnapshot, (value) => {
     resultOpen.value = true
   }
 })
-async function switchToGame(nextGameId: string) {
+async function switchToGame(nextGameId: string, nextQuestionId = '') {
   if (!nextGameId || nextGameId === game.value?.id || nextGameId === switchingGameId)
     return
   switchingGameId = nextGameId
@@ -68,7 +68,10 @@ async function switchToGame(nextGameId: string) {
   inputMode.value = 'question'
   try {
     store.setGame(await socket.join(nextGameId))
-    await router.replace({ name: 'game', params: { id: nextGameId } })
+    const currentQuery = { ...route.query }
+    Reflect.deleteProperty(currentQuery, 'show_result')
+    const nextQuery = { ...currentQuery, id: nextGameId, ...(nextQuestionId ? { question_id: nextQuestionId } : {}) }
+    await router.replace({ path: route.path, query: nextQuery })
   }
   catch (error) {
     uni.showToast({ title: (error as Error).message, icon: 'none' })
@@ -80,11 +83,16 @@ async function switchToGame(nextGameId: string) {
 watch(() => socket.roomNextStarted.value?.nonce, () => {
   const next = socket.roomNextStarted.value
   if (next && next.room_id === room.value?.id)
-    void switchToGame(next.game_id)
+    void switchToGame(next.game_id, next.question_id)
+})
+watch(() => socket.gameNextStarted.value?.nonce, () => {
+  const next = socket.gameNextStarted.value
+  if (next && (!next.room_id || next.room_id === room.value?.id))
+    void switchToGame(next.game_id, next.question_id)
 })
 watch(() => room.value?.game_id, (nextGameId) => {
   if (nextGameId)
-    void switchToGame(nextGameId)
+    void switchToGame(nextGameId, String(room.value?.question_id || ''))
 })
 watch(() => room.value?.messages.length || 0, (count, previous) => {
   if (count > previous && tab.value !== 'team') {
@@ -287,13 +295,7 @@ async function continuePlaying() {
   resultOpen.value = false
   busy.value = true
   try {
-    if (game.value?.room_id && room.value?.is_owner) {
-      await socket.roomNext(game.value.room_id)
-      return
-    }
-    const nextQuestion = await questionApi.random(undefined, 'safe')
-    const nextGame = await gameApi.create(nextQuestion.id)
-    await switchToGame(nextGame.id)
+    await socket.next(game.value!.id)
   }
   catch (error) {
     resultOpen.value = true
