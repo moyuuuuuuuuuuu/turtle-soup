@@ -57,6 +57,14 @@ final class PublicQuestionBusiness
             $query->whereHas('translations', fn ($item) => $item->where('language', (string) ($filters['language'] ?? 'zh-CN'))->where(fn ($text) => $text->whereLike('title', $keyword)->orWhereLike('surface', $keyword)));
         }
 
+        if (filter_var($filters['featured'] ?? false, FILTER_VALIDATE_BOOL)) {
+            $now = date('Y-m-d H:i:s');
+            $query->where('is_featured', true)
+                ->whereRaw('(featured_starts_at IS NULL OR featured_starts_at <= ?)', [$now])
+                ->whereRaw('(featured_ends_at IS NULL OR featured_ends_at > ?)', [$now])
+                ->orderBy('featured_sort');
+        }
+
         return $query->orderByDesc('published_at');
     }
 
@@ -67,6 +75,8 @@ final class PublicQuestionBusiness
         $tags = $question->getRelation('tags');
         $translation = $translations->firstWhere('language', $language) ?? $translations->firstWhere('language', 'zh-CN');
 
-        return ['id' => $question->getAttribute('public_id'), 'title' => $translation?->title, 'surface' => $translation?->surface, 'difficulty' => (int) $question->getAttribute('difficulty'), 'language' => $translation?->language, 'risk_level' => $question->getAttribute('risk_level'), 'risk_warning' => $question->getAttribute('risk_level') === 'caution' ? '该题目包含可能令人不适的情节，请确认后继续。' : null, 'tags' => $tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])->values()->all(), 'play_count' => (int) $question->getAttribute('games_count')];
+        $riskNote = trim((string) $question->getAttribute('risk_note')) ?: null;
+
+        return ['id' => $question->getAttribute('public_id'), 'title' => $translation?->title, 'surface' => $translation?->surface, 'difficulty' => (int) $question->getAttribute('difficulty'), 'language' => $translation?->language, 'risk_level' => $question->getAttribute('risk_level'), 'risk_types' => array_values((array) $question->getAttribute('risk_types')), 'risk_note' => $riskNote, 'risk_warning' => $riskNote, 'tags' => $tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])->values()->all(), 'play_count' => (int) $question->getAttribute('games_count')];
     }
 }

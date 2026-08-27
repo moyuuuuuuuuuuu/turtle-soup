@@ -37,4 +37,16 @@ final class CorsMiddlewareTest extends TestCase
 
         self::assertNull($response->getHeader('Access-Control-Allow-Origin'));
     }
+
+    public function testConfiguredLanDevelopmentOriginReceivesCorsHeaders(): void
+    {
+        $origin = 'http://192.168.31.248:5173';
+        $request = new Request("OPTIONS /api/v1/auth/login/password HTTP/1.1\r\nHost: hgt.test\r\nOrigin: {$origin}\r\n\r\n");
+        $middleware = new CorsMiddleware([$origin]);
+
+        $response = $middleware->process($request, static fn () => new Response(500));
+
+        self::assertSame(204, $response->getStatusCode());
+        self::assertSame($origin, $response->getHeader('Access-Control-Allow-Origin'));
+    }
 }

@@ -23,7 +23,7 @@ final class QuestionController extends BaseController
     #[Permission('题目列表', 'question:index')]
     public function index(Request $request): Response
     {
-        $filters = $request->only(['status', 'difficulty', 'source_type', 'language', 'tag_id', 'keyword']);
+        $filters = $request->only(['status', 'difficulty', 'source_type', 'language', 'tag_id', 'keyword', 'is_featured']);
         $data = $this->business->page($filters, max(1, (int) $request->get('page', 1)), min(100, max(1, (int) $request->get('pageSize', 20))));
 
         return $this->success($data);

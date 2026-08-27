@@ -1,7 +1,7 @@
 type: Workflow
 version: 1.0.0
 main:
-    id: 7678222288558637066
+    id: 7678688982159589382
     name: turtle_content_parser_v1
     desc: 将原始故事解析为可人工审核的双语海龟汤题目、关键推理点与三级提示
     icon: FileBizType.BIZ_BOT_ICON/1162603432257824_1787725436239921790.jpeg

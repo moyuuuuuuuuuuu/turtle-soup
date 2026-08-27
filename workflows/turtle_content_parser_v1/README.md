@@ -11,6 +11,17 @@ The result also includes the structured risk suggestion `risk_level`, `risk_type
 shown to administrators and copied into the draft, but they never count as human review or
 publish approval.
 
+The workflow also returns title, surface, protected bottom, difficulty, recommended player
+range, localized reasoning points, exactly three progressive hints, quality warnings, and
+structured tag suggestions. Tag slugs are restricted to the reviewed taxonomy installed by
+the `SeedQuestionTags` migration. PHP resolves only tags that exist in MySQL before creating
+the draft; the model cannot create arbitrary taxonomy entries.
+
+Every new workflow result must choose exactly one mutually exclusive soup-type marker:
+`clear-soup` (清汤，无死亡或血腥), `red-soup` (红汤，包含死亡或恐怖), or `black-soup`
+(黑汤，人性黑暗或压抑). These markers are installed by the follow-up
+`SeedQuestionSoupTypeTags` migration.
+
 The importable package is generated from the target workspace compatibility template at:
 
 `dist/Workflow-turtle_content_parser_v1-draft.zip`

@@ -6,41 +6,28 @@ namespace Tests\Question;
 
 use App\Question\Formats\QuestionFormat;
 use App\Question\Models\Question;
-use App\Question\Models\QuestionTranslation;
+use App\Question\Models\Tag;
 use Illuminate\Database\Eloquent\Collection;
 use PHPUnit\Framework\TestCase;
 
 final class QuestionFormatTest extends TestCase
 {
-    public function testProtectedBottomIsRemovedFromPreview(): void
+    public function testDetailIncludesTagIdsForTheManagementEditor(): void
     {
-        $question = new Question(['id' => 1, 'status' => 'draft']);
-        $question->setRelation('translations', new Collection([
-            new QuestionTranslation([
-                'language' => 'zh-CN',
-                'title' => '标题',
-                'surface' => '汤面',
-                'bottom' => '受保护的汤底',
-            ]),
-        ]));
+        $first = new Tag();
+        $first->setAttribute('id', 3);
+        $second = new Tag();
+        $second->setAttribute('id', 8);
+        $question = new Question();
+        $question->setAttribute('risk_types', ['death', 'violence']);
+        $question->setAttribute('risk_note', '包含死亡与暴力情节。');
+        $question->setRelation('tags', new Collection([$first, $second]));
+        $question->setRelation('translations', new Collection());
 
-        $formatted = QuestionFormat::detail($question, false);
+        $data = QuestionFormat::detail($question, true);
 
-        self::assertArrayNotHasKey('bottom', $formatted['translations'][0]);
-    }
-
-    public function testAuthorizedDetailIncludesBottom(): void
-    {
-        $question = new Question(['id' => 1, 'status' => 'draft']);
-        $question->setRelation('translations', new Collection([
-            new QuestionTranslation([
-                'language' => 'zh-CN',
-                'bottom' => '受保护的汤底',
-            ]),
-        ]));
-
-        $formatted = QuestionFormat::detail($question, true);
-
-        self::assertSame('受保护的汤底', $formatted['translations'][0]['bottom']);
+        self::assertSame([3, 8], $data['tag_ids']);
+        self::assertSame(['death', 'violence'], $data['risk_types']);
+        self::assertSame('包含死亡与暴力情节。', $data['risk_note']);
     }
 }

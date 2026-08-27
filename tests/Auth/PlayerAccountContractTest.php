@@ -32,6 +32,16 @@ final class PlayerAccountContractTest extends TestCase
         self::assertFalse(ErrorCode::AUTH_CREDENTIALS_INVALID->isReportable());
     }
 
+    public function testNewDeviceReplacesOldestActiveSessionAtTheLimit(): void
+    {
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Services/PlayerTokenService.php');
+        self::assertIsString($service);
+        self::assertStringContainsString("['create_time', 'asc']", $service);
+        self::assertStringContainsString("['id', 'asc']", $service);
+        self::assertStringContainsString("'revoke_reason' => 'device_limit_replaced'", $service);
+        self::assertStringNotContainsString('AUTH_DEVICE_LIMIT_REACHED->throw()', $service);
+    }
+
     public function testMigrationContainsNoSeederOrRawSql(): void
     {
         $migration = file_get_contents(dirname(__DIR__, 2).'/database/migrations/20260826010004_create_player_accounts.php');

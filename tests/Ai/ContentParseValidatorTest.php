@@ -49,4 +49,43 @@ final class ContentParseValidatorTest extends TestCase
         $this->expectException(RuntimeException::class);
         ContentParseValidator::validate($result);
     }
+
+    public function testNormalizesStructuredTags(): void
+    {
+        $result = (new MockContentParser())->parse(['story' => str_repeat('测试故事', 10)]);
+        $result['suggested_tags'] = [
+            ['name' => '悬疑', 'slug' => 'mystery'],
+            ['name' => '悬疑重复', 'slug' => 'mystery'],
+        ];
+
+        $validated = ContentParseValidator::validate($result);
+
+        self::assertSame([['name' => '悬疑重复', 'slug' => 'mystery']], $validated['suggested_tags']);
+    }
+
+    public function testRejectsInvalidPlayerRange(): void
+    {
+        $result = (new MockContentParser())->parse(['story' => str_repeat('测试故事', 10)]);
+        $result['min_players'] = 5;
+        $result['max_players'] = 3;
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('ai.invalid_response');
+        ContentParseValidator::validate($result);
+    }
+
+    public function testRejectsIncompletePointTranslation(): void
+    {
+        $result = (new MockContentParser())->parse(['story' => str_repeat('测试故事', 10)]);
+        $result['translations'][] = [
+            'language' => 'en-US',
+            'title' => 'Title',
+            'surface' => 'Surface',
+            'bottom' => 'Bottom',
+        ];
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('ai.invalid_response');
+        ContentParseValidator::validate($result);
+    }
 }

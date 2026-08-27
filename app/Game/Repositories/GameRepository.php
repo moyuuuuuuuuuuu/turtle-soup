@@ -32,7 +32,7 @@ final class GameRepository
     }
     public function hydrated(Game $game): Game
     {
-        return $game->fresh(['messages.user','hints','points','guess','room','question']) ?? $game;
+        return $game->fresh(['messages.user','hints','points','guess','room','question.tags']) ?? $game;
     }
     public function duplicate(Game $game, string $requestId): ?GameMessage
     {

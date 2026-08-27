@@ -12,6 +12,7 @@ use App\Question\Formats\QuestionFormat;
 use App\Question\Models\Question;
 use App\Question\Repositories\QuestionRepository;
 use App\Question\Support\QuestionPublishValidator;
+use DateTimeImmutable;
 use plugin\saiadmin\exception\ApiException;
 use Throwable;
 
@@ -52,6 +53,10 @@ final class QuestionBusiness
         $payload['source_type'] = 'manual';
         $payload['risk_reviewed_by'] = null;
         $payload['risk_reviewed_at'] = null;
+        $payload['is_featured'] = false;
+        $payload['featured_sort'] = 0;
+        $payload['featured_starts_at'] = null;
+        $payload['featured_ends_at'] = null;
         $data = QuestionData::fromArray($payload);
 
         try {
@@ -189,11 +194,28 @@ final class QuestionBusiness
         if ($data->difficulty < 1 || $data->difficulty > 5 || $data->minPlayers < 1 || $data->maxPlayers < $data->minPlayers) {
             throw new ApiException('question.content_incomplete');
         }
+        $featuredStart = $this->dateTime($data->featuredStartsAt);
+        $featuredEnd = $this->dateTime($data->featuredEndsAt);
+        if (($data->featuredStartsAt !== null && $featuredStart === null)
+            || ($data->featuredEndsAt !== null && $featuredEnd === null)
+            || ($featuredStart !== null && $featuredEnd !== null && $featuredStart >= $featuredEnd)) {
+            throw new ApiException('question.content_incomplete');
+        }
         if (!$forPublish) {
             return;
         }
         if (!QuestionPublishValidator::canPublishChinese($data)) {
             throw new ApiException('question.translation_incomplete');
         }
+    }
+
+    private function dateTime(?string $value): ?DateTimeImmutable
+    {
+        if ($value === null) {
+            return null;
+        }
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value);
+
+        return $date instanceof DateTimeImmutable && $date->format('Y-m-d H:i:s') === $value ? $date : null;
     }
 }

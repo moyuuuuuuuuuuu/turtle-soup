@@ -48,8 +48,24 @@ final class PlayerTokenService
 
                 return $this->response($user, $session->refresh(), $refresh);
             }
-            if ($sessions->count() >= max(1, (int) config('player_auth.max_sessions', 3))) {
-                ErrorCode::AUTH_DEVICE_LIMIT_REACHED->throw();
+            $maxSessions = max(1, (int) config('player_auth.max_sessions', 3));
+            $revokeCount = max(0, $sessions->count() - $maxSessions + 1);
+            if ($revokeCount > 0) {
+                $oldestSessionIds = $sessions
+                    ->sortBy([
+                        ['create_time', 'asc'],
+                        ['id', 'asc'],
+                    ])
+                    ->take($revokeCount)
+                    ->pluck('id')
+                    ->map(static fn (mixed $id): int => (int) $id)
+                    ->all();
+                if ($oldestSessionIds !== []) {
+                    RefreshSession::query()->whereIn('id', $oldestSessionIds)->update([
+                        'revoked_at' => $now,
+                        'revoke_reason' => 'device_limit_replaced',
+                    ]);
+                }
             }
             $session = new RefreshSession();
             $session->fill([

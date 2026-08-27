@@ -12,10 +12,15 @@ final class GameFormat
     {
         $finished = in_array($game->status, ['solved', 'finished', 'abandoned'], true);
         $snapshot = (array) $game->question_snapshot;
+        $question = $game->relationLoaded('question') ? $game->question : null;
+        $questionTags = $question?->tags->map(static fn ($tag): array => [
+            'id' => (int) $tag->id,
+            'name' => (string) $tag->name,
+        ])->values()->all() ?? [];
 
         return [
             'id' => $game->public_id,
-            'question_id' => $game->relationLoaded('question') ? $game->question?->public_id : null,
+            'question_id' => $question?->public_id,
             'mode' => $game->room_id ? 'multiplayer' : 'single',
             'room_id' => $game->relationLoaded('room') ? $game->room?->public_id : null,
             'status' => $game->status,
@@ -27,6 +32,9 @@ final class GameFormat
             'title' => $snapshot['title'] ?? '',
             'surface' => $snapshot['surface'] ?? '',
             'risk_level' => $snapshot['risk_level'] ?? 'safe',
+            'risk_types' => array_values((array) ($snapshot['risk_types'] ?? ($question ? $question->risk_types : []))),
+            'risk_note' => $snapshot['risk_note'] ?? $question?->risk_note,
+            'tags' => array_values((array) ($snapshot['tags'] ?? $questionTags)),
             'messages' => $game->messages->map(static fn ($message): array => [
                 'sequence' => (int) $message->sequence,
                 'user_id' => $message->user_id ? (int) $message->user_id : null,

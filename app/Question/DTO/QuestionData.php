@@ -26,6 +26,10 @@ final readonly class QuestionData
         public string $riskLevel = 'safe',
         public array $riskTypes = [],
         public ?string $riskNote = null,
+        public bool $isFeatured = false,
+        public int $featuredSort = 0,
+        public ?string $featuredStartsAt = null,
+        public ?string $featuredEndsAt = null,
     ) {
     }
 
@@ -44,6 +48,10 @@ final readonly class QuestionData
             riskLevel: (string) ($data['risk_level'] ?? 'safe'),
             riskTypes: array_values(array_unique(array_map('strval', (array) ($data['risk_types'] ?? [])))),
             riskNote: trim((string) ($data['risk_note'] ?? '')) ?: null,
+            isFeatured: filter_var($data['is_featured'] ?? false, FILTER_VALIDATE_BOOL),
+            featuredSort: max(0, (int) ($data['featured_sort'] ?? 0)),
+            featuredStartsAt: trim((string) ($data['featured_starts_at'] ?? '')) ?: null,
+            featuredEndsAt: trim((string) ($data['featured_ends_at'] ?? '')) ?: null,
         );
     }
 

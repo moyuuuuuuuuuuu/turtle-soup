@@ -22,6 +22,9 @@ final class QuestionRepository
                 $query->where($field, $filters[$field]);
             }
         }
+        if (($filters['is_featured'] ?? '') !== '') {
+            $query->where('is_featured', filter_var($filters['is_featured'], FILTER_VALIDATE_BOOL));
+        }
         if (($filters['language'] ?? '') !== '') {
             $query->whereHas('translations', fn (Builder $item) => $item->where('language', $filters['language']));
         }
@@ -59,6 +62,10 @@ final class QuestionRepository
                 'risk_level' => $data->riskLevel,
                 'risk_types' => $data->riskTypes,
                 'risk_note' => $data->riskNote,
+                'is_featured' => $data->isFeatured,
+                'featured_sort' => $data->featuredSort,
+                'featured_starts_at' => $data->featuredStartsAt,
+                'featured_ends_at' => $data->featuredEndsAt,
                 'min_players' => $data->minPlayers,
                 'max_players' => $data->maxPlayers,
                 'version' => 1,
@@ -83,6 +90,10 @@ final class QuestionRepository
                     'risk_level' => $data->riskLevel,
                     'risk_types' => $data->riskTypes,
                     'risk_note' => $data->riskNote,
+                    'is_featured' => $data->isFeatured,
+                    'featured_sort' => $data->featuredSort,
+                    'featured_starts_at' => $data->featuredStartsAt,
+                    'featured_ends_at' => $data->featuredEndsAt,
                     'risk_reviewed_by' => null,
                     'risk_reviewed_at' => null,
                     'min_players' => $data->minPlayers,

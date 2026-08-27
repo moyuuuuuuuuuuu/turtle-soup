@@ -9,7 +9,9 @@ use App\Ai\Models\AiParseTask;
 use App\Ai\Services\ContentParserFactory;
 use App\Ai\Support\ContentParseValidator;
 use App\Question\Business\QuestionBusiness;
+use App\Question\Models\Tag;
 use plugin\saiadmin\exception\ApiException;
+use support\Db;
 use Throwable;
 use Webman\RedisQueue\Client;
 
@@ -75,22 +77,26 @@ final class ContentParseBusiness
 
     public function adopt(string $publicId, int $adminId): array
     {
-        $task = $this->required($publicId);
-        if ($task->status !== 'succeeded' || !is_array($task->result_payload)) {
-            throw new ApiException('ai.task_status_invalid');
-        }
-        if ($task->question_id) {
-            throw new ApiException('ai.task_already_adopted');
-        }
-        $payload = $task->result_payload;
-        $payload['source_type'] = 'ai';
-        $payload['min_players'] = 1;
-        $payload['max_players'] = 8;
-        $payload['tag_ids'] = [];
-        $question = (new QuestionBusiness())->create($payload, $adminId);
-        $task->update(['question_id' => $question['id']]);
+        return Db::transaction(function () use ($publicId, $adminId): array {
+            /** @var AiParseTask|null $task */
+            $task = AiParseTask::query()->where('public_id', $publicId)->lockForUpdate()->first();
+            if (!$task instanceof AiParseTask) {
+                throw new ApiException('ai.task_not_found');
+            }
+            if ($task->status !== 'succeeded' || !is_array($task->result_payload)) {
+                throw new ApiException('ai.task_status_invalid');
+            }
+            if ($task->question_id) {
+                throw new ApiException('ai.task_already_adopted');
+            }
+            $payload = ContentParseValidator::validate($task->result_payload);
+            $payload['source_type'] = 'ai';
+            $payload['tag_ids'] = $this->resolveTagIds($payload['suggested_tags']);
+            $question = (new QuestionBusiness())->create($payload, $adminId);
+            $task->update(['question_id' => $question['id']]);
 
-        return $question;
+            return $question;
+        });
     }
 
     private function required(string $publicId): AiParseTask
@@ -116,5 +122,19 @@ final class ContentParseBusiness
     private function publicId(): string
     {
         return strtoupper(bin2hex(random_bytes(13)));
+    }
+
+    /** @param list<array{name:string, slug:string}> $suggestions
+     *  @return list<int>
+     */
+    private function resolveTagIds(array $suggestions): array
+    {
+        $slugs = array_column($suggestions, 'slug');
+        $ids = Tag::query()->whereIn('slug', $slugs)->pluck('id', 'slug')->all();
+
+        return array_values(array_map(
+            static fn (string $slug): int => (int) $ids[$slug],
+            array_values(array_filter($slugs, static fn (string $slug): bool => isset($ids[$slug]))),
+        ));
     }
 }

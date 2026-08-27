@@ -1,9 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["difficulty", "translations", "points", "hints", "suggested_tags", "quality_warnings", "risk_level", "risk_types", "risk_note"],
+  "required": ["difficulty", "min_players", "max_players", "translations", "points", "hints", "suggested_tags", "quality_warnings", "risk_level", "risk_types", "risk_note"],
   "properties": {
     "difficulty": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "min_players": { "type": "integer", "minimum": 1, "maximum": 8 },
+    "max_players": { "type": "integer", "minimum": 1, "maximum": 8 },
     "translations": {
       "type": "array",
       "items": {
@@ -31,7 +33,20 @@
       "maxItems": 3,
       "items": { "type": "object", "required": ["level", "translations"] }
     },
-    "suggested_tags": { "type": "array", "items": { "type": "string" } },
+    "suggested_tags": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["name", "slug"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "slug": {
+            "enum": ["classic", "daily-life", "mystery", "logic", "crime", "accident", "workplace", "campus", "family", "emotional", "medical", "historical", "supernatural", "dark", "humorous", "short", "honkaku", "henkaku", "neo-honkaku", "wordplay", "identity-misdirection", "unreliable-narrator", "time-trick", "closed-room", "multiple-reversal", "one-line", "clear-soup", "red-soup", "black-soup"]
+          }
+        }
+      }
+    },
     "quality_warnings": { "type": "array", "items": { "type": "string" } },
     "risk_level": { "enum": ["safe", "caution", "restricted"] },
     "risk_types": {

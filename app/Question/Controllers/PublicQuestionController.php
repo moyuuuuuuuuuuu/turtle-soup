@@ -13,7 +13,7 @@ final class PublicQuestionController extends BaseController
 {
     public function index(Request $request): Response
     {
-        return $this->success((new PublicQuestionBusiness())->page($request->only(['difficulty', 'tag_id', 'language', 'keyword']), max(1, (int) $request->get('page', 1)), min(50, max(1, (int) $request->get('page_size', 20)))), (string) $request->header('X-Request-Id', ''));
+        return $this->success((new PublicQuestionBusiness())->page($request->only(['difficulty', 'tag_id', 'language', 'keyword', 'featured']), max(1, (int) $request->get('page', 1)), min(50, max(1, (int) $request->get('page_size', 20)))), (string) $request->header('X-Request-Id', ''));
     }
     public function read(Request $request): Response
     {

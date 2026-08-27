@@ -7,6 +7,10 @@ namespace App\Question\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use plugin\saiadmin\basic\eloquent\BaseModel;
 
+/**
+ * @property int $id
+ * @property string $name
+ */
 final class Tag extends BaseModel
 {
     protected $table = 'turtle_tags';

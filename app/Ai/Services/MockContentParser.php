@@ -12,6 +12,8 @@ final class MockContentParser implements ContentParserInterface
     {
         return [
             'difficulty' => 3,
+            'min_players' => 1,
+            'max_players' => 8,
             'translations' => [[
                 'language' => 'zh-CN',
                 'title' => '待人工确认的 AI 草稿',
@@ -28,7 +30,7 @@ final class MockContentParser implements ContentParserInterface
                 'level' => $level,
                 'translations' => [['language' => 'zh-CN', 'content' => "第 {$level} 级提示待人工确认"]],
             ], [1, 2, 3]),
-            'suggested_tags' => [],
+            'suggested_tags' => [['name' => 'AI 草稿', 'slug' => 'ai-draft']],
             'quality_warnings' => ['当前使用 Mock 解析器，结果仅用于联调。'],
             'risk_level' => 'safe',
             'risk_types' => [],
