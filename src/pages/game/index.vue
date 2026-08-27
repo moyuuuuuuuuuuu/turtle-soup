@@ -58,7 +58,7 @@ watch(socket.gameSnapshot, (value) => {
     resultOpen.value = true
   }
 })
-async function switchToGame(nextGameId: string, nextQuestionId = '') {
+async function switchToGame(nextGameId: string) {
   if (!nextGameId || nextGameId === game.value?.id || nextGameId === switchingGameId)
     return
   switchingGameId = nextGameId
@@ -70,7 +70,8 @@ async function switchToGame(nextGameId: string, nextQuestionId = '') {
     store.setGame(await socket.join(nextGameId))
     const currentQuery = { ...route.query }
     Reflect.deleteProperty(currentQuery, 'show_result')
-    const nextQuery = { ...currentQuery, id: nextGameId, ...(nextQuestionId ? { question_id: nextQuestionId } : {}) }
+    Reflect.deleteProperty(currentQuery, 'question_id')
+    const nextQuery = { ...currentQuery, id: nextGameId }
     await router.replace({ path: route.path, query: nextQuery })
   }
   catch (error) {
@@ -83,16 +84,16 @@ async function switchToGame(nextGameId: string, nextQuestionId = '') {
 watch(() => socket.roomNextStarted.value?.nonce, () => {
   const next = socket.roomNextStarted.value
   if (next && next.room_id === room.value?.id)
-    void switchToGame(next.game_id, next.question_id)
+    void switchToGame(next.game_id)
 })
 watch(() => socket.gameNextStarted.value?.nonce, () => {
   const next = socket.gameNextStarted.value
   if (next && (!next.room_id || next.room_id === room.value?.id))
-    void switchToGame(next.game_id, next.question_id)
+    void switchToGame(next.game_id)
 })
 watch(() => room.value?.game_id, (nextGameId) => {
   if (nextGameId)
-    void switchToGame(nextGameId, String(room.value?.question_id || ''))
+    void switchToGame(nextGameId)
 })
 watch(() => room.value?.messages.length || 0, (count, previous) => {
   if (count > previous && tab.value !== 'team') {
