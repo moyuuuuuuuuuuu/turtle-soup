@@ -10,6 +10,8 @@
 
 默认头像使用邮箱首字母生成 SVG，并由后端上传到百度 BOS。必须配置 `BOS_ACCESS_KEY`、`BOS_SECRET_KEY`、`BOS_ENDPOINT`、`BOS_BUCKET` 和公开访问基址 `BOS_PUBLIC_BASE_URL`。对象键为 `avatars/default/{sha256(玩家 ID 前两位/玩家公开 ID)}.svg`，不包含邮箱，也不直接暴露玩家 ID。
 
+登录用户可通过 `POST /api/v1/me/avatar` 上传字段名为 `avatar` 的头像。接口接受 PNG、JPEG 或 WebP，文件最大 5MB；上传完成后返回更新后的用户资料。自定义头像保存于 `avatars/custom/{散列用户目录}/{文件内容散列}.{扩展名}`。
+
 ## 账号与匿名合并
 
 注册、密码登录和邮箱验证码登录均可携带 `X-Anonymous-Token`。认证成功后，服务端在事务中把该匿名会话的游戏归属转移至玩家账号、记录合并审计并撤销匿名令牌。重复合并不会复制游戏、消息、提示、猜测或 AI 审计记录。

@@ -15,6 +15,7 @@ final readonly class QuestionData
      */
     public function __construct(
         public int $difficulty,
+        public ?int $questionLimit,
         public int $minPlayers,
         public int $maxPlayers,
         public array $translations,
@@ -37,6 +38,7 @@ final readonly class QuestionData
     {
         return new self(
             difficulty: (int) ($data['difficulty'] ?? 1),
+            questionLimit: self::nullableInt($data['question_limit'] ?? null),
             minPlayers: (int) ($data['min_players'] ?? 1),
             maxPlayers: (int) ($data['max_players'] ?? 1),
             translations: self::translations((array) ($data['translations'] ?? [])),
@@ -53,6 +55,11 @@ final readonly class QuestionData
             featuredStartsAt: trim((string) ($data['featured_starts_at'] ?? '')) ?: null,
             featuredEndsAt: trim((string) ($data['featured_ends_at'] ?? '')) ?: null,
         );
+    }
+
+    private static function nullableInt(mixed $value): ?int
+    {
+        return $value === null || $value === '' ? null : (int) $value;
     }
 
     /**

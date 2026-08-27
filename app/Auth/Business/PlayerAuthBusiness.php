@@ -19,6 +19,7 @@ use App\Common\Exceptions\BaseException;
 use App\Common\Support\PublicId;
 use support\Db;
 use Throwable;
+use Webman\Http\UploadFile;
 
 final class PlayerAuthBusiness
 {
@@ -164,6 +165,19 @@ final class PlayerAuthBusiness
             $changes += ['username' => $username, 'username_normalized' => $normalized, 'username_changed_at' => date('Y-m-d H:i:s')];
         }
         $user->update($changes);
+
+        return PlayerFormat::user($user->refresh());
+    }
+
+    /** @return array<string, mixed> */
+    public function changeAvatar(PlayerContext $context, UploadFile $file): array
+    {
+        $user = $this->user($context);
+        $avatar = $this->avatars->upload($file, (string) $user->public_id);
+        $user->update([
+            'avatar_url' => $avatar['url'],
+            'avatar_object_key' => $avatar['object_key'],
+        ]);
 
         return PlayerFormat::user($user->refresh());
     }

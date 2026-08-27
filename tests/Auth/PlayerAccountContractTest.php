@@ -73,6 +73,21 @@ final class PlayerAccountContractTest extends TestCase
         self::assertStringNotContainsString("'/'.\$publicId.'.svg'", $service);
     }
 
+    public function testPlayerCanUploadAValidatedCustomAvatar(): void
+    {
+        $routes = file_get_contents(dirname(__DIR__, 2).'/config/route.php');
+        $controller = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Controllers/PlayerAuthController.php');
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Services/BosAvatarService.php');
+        self::assertIsString($routes);
+        self::assertIsString($controller);
+        self::assertIsString($service);
+        self::assertStringContainsString("'/api/v1/me/avatar'", $routes);
+        self::assertStringContainsString("file('avatar')", $controller);
+        self::assertStringContainsString('5 * 1024 * 1024', $service);
+        self::assertStringContainsString("'image/webp' => 'webp'", $service);
+        self::assertStringContainsString("'avatars/custom/'", $service);
+    }
+
     public function testFailedLoginAuditAndEmailOnlyContractArePresent(): void
     {
         $business = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Business/PlayerAuthBusiness.php');

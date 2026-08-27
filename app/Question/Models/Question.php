@@ -14,6 +14,7 @@ use plugin\saiadmin\basic\eloquent\BaseModel;
  * @property int $id
  * @property string $public_id
  * @property int $difficulty
+ * @property null|int $question_limit
  * @property string $source_type
  * @property string|null $source_url
  * @property string|null $source_author

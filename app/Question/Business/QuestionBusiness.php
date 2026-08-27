@@ -191,7 +191,9 @@ final class QuestionBusiness
         if (array_diff($data->riskTypes, $validRiskTypes) !== []) {
             throw new ApiException('question.content_incomplete');
         }
-        if ($data->difficulty < 1 || $data->difficulty > 5 || $data->minPlayers < 1 || $data->maxPlayers < $data->minPlayers) {
+        if ($data->difficulty < 1 || $data->difficulty > 5
+            || ($data->questionLimit !== null && ($data->questionLimit < 1 || $data->questionLimit > 100))
+            || $data->minPlayers < 1 || $data->maxPlayers < $data->minPlayers) {
             throw new ApiException('question.content_incomplete');
         }
         $featuredStart = $this->dateTime($data->featuredStartsAt);

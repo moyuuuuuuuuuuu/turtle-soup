@@ -51,6 +51,7 @@ final class AuthorizedTurtleSoupSeeder extends AbstractSeed
         if (!$connection instanceof PDO) {
             throw new RuntimeException('Authorized turtle soup seeder requires a PDO connection.');
         }
+        $backfilledQuestionLimits = $this->backfillQuestionLimits($connection);
         $tagIds = $this->tagIds($connection);
         $adminId = $this->adminId($connection);
         [$knownPublicIds, $knownSourceHashes, $knownContentHashes] = $this->knownHashes($connection);
@@ -83,17 +84,34 @@ final class AuthorizedTurtleSoupSeeder extends AbstractSeed
         }
 
         echo sprintf(
-            "Turtle soup seed complete: inserted=%d skipped=%d (public_id=%d source=%d content=%d) backfilled_questions=%d backfilled_tags=%d authorized=%d ltda=%d total=%d\n",
+            "Turtle soup seed complete: inserted=%d skipped=%d (public_id=%d source=%d content=%d) backfilled_question_limits=%d backfilled_questions=%d backfilled_tags=%d authorized=%d ltda=%d total=%d\n",
             $inserted,
             $skipped,
             $skippedBy['public_id'],
             $skippedBy['source'],
             $skippedBy['content'],
+            $backfilledQuestionLimits,
             $backfilledQuestions,
             $backfilledTags,
             count($authorizedStories),
             count($ltdaStories),
             count($stories),
+        );
+    }
+
+    private function backfillQuestionLimits(PDO $connection): int
+    {
+        return $connection->exec(
+            'UPDATE turtle_questions
+             SET question_limit = CASE difficulty
+                 WHEN 1 THEN 12
+                 WHEN 2 THEN 20
+                 WHEN 3 THEN 28
+                 WHEN 4 THEN 36
+                 WHEN 5 THEN 44
+                 ELSE 12
+             END
+             WHERE question_limit IS NULL',
         );
     }
 
@@ -188,7 +206,10 @@ final class AuthorizedTurtleSoupSeeder extends AbstractSeed
         return $id === false ? null : (int) $id;
     }
 
-    /** @param array<string, int> $tagIds @return array{int, int} */
+    /**
+     * @param array<string, int> $tagIds
+     * @return array{int, int}
+     */
     private function backfillExistingQuestionTags(PDO $connection, array $tagIds): array
     {
         $findQuestion = $connection->prepare(
@@ -256,12 +277,13 @@ final class AuthorizedTurtleSoupSeeder extends AbstractSeed
         $now = date('Y-m-d H:i:s');
         $statement = $connection->prepare(
             'INSERT INTO turtle_questions
-             (public_id, difficulty, status, source_type, source_url, source_author, source_license, source_hash, content_hash, risk_level, risk_types, risk_note, risk_reviewed_by, risk_reviewed_at, min_players, max_players, version, created_by, updated_by, published_at, create_time, update_time)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+             (public_id, difficulty, question_limit, status, source_type, source_url, source_author, source_license, source_hash, content_hash, risk_level, risk_types, risk_note, risk_reviewed_by, risk_reviewed_at, min_players, max_players, version, created_by, updated_by, published_at, create_time, update_time)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         );
         $statement->execute([
             $publicId,
             $analysis['difficulty'],
+            $this->questionLimit($analysis['difficulty']),
             'published',
             $story['source_type'],
             $story['source_url'],
@@ -423,7 +445,11 @@ final class AuthorizedTurtleSoupSeeder extends AbstractSeed
         ], $selected, array_keys($selected));
     }
 
-    /** @param array{title:string,surface:string,bottom:string} $story @param list<string> $riskTypes @return list<string> */
+    /**
+     * @param array{title:string,surface:string,bottom:string} $story
+     * @param list<string> $riskTypes
+     * @return list<string>
+     */
     private function tags(array $story, array $riskTypes): array
     {
         $text = $story['surface'] . ' ' . $story['bottom'];
@@ -482,6 +508,11 @@ final class AuthorizedTurtleSoupSeeder extends AbstractSeed
         }
 
         return min(5, max(1, $difficulty));
+    }
+
+    private function questionLimit(int $difficulty): int
+    {
+        return [1 => 12, 2 => 20, 3 => 28, 4 => 36, 5 => 44][$difficulty] ?? 12;
     }
 
     /** @param list<string> $keywords */

@@ -13,6 +13,7 @@ use App\Game\Models\Game;
 use App\Game\Models\GamePlayer;
 use App\Game\Repositories\GameRepository;
 use App\Game\Services\GameJudgeFactory;
+use App\Game\Support\QuestionLimitResolver;
 use App\Question\Models\Question;
 use Illuminate\Database\Eloquent\Collection;
 use support\Db;
@@ -58,9 +59,9 @@ final class GameBusiness
             }
         }
         $snapshot = ['title' => $translation->title,'surface' => $translation->surface,'bottom' => $translation->bottom,'language' => $translation->language,'risk_level' => $question->risk_level,'risk_types' => array_values((array) $question->risk_types),'risk_note' => $question->risk_note,'tags' => $question->tags->map(static fn ($tag): array => ['id' => (int) $tag->id, 'name' => (string) $tag->name])->values()->all(),'points' => $question->points->map(fn ($p) => ['key' => 'point_'.$p->id,'content' => $p->translations->firstWhere('language', $translation->language)?->content ?? $p->translations->firstWhere('language', 'zh-CN')?->content,'required' => (bool)$p->is_required,'weight' => (int)$p->weight])->all(),'hints' => $question->hints->mapWithKeys(fn ($h) => [(int)$h->level => $h->translations->firstWhere('language', $translation->language)?->content ?? $h->translations->firstWhere('language', 'zh-CN')?->content])->all()];
-        $limit = (array)config('game.question_limits');
         $game = new Game();
-        $game->fill(['public_id' => PublicId::make(),'question_id' => $question->id,'anonymous_session_id' => $context->anonymousSessionId,'user_id' => $context->userId,'room_id' => $roomId,'status' => 'created','content_locale' => $translation->language,'difficulty' => $question->difficulty,'question_limit' => $limit[(int)$question->difficulty] ?? 12,'risk_confirmed' => $riskConfirmed,'question_snapshot' => $snapshot]);
+        $questionLimit = QuestionLimitResolver::resolve((int) $question->difficulty, $question->question_limit);
+        $game->fill(['public_id' => PublicId::make(),'question_id' => $question->id,'anonymous_session_id' => $context->anonymousSessionId,'user_id' => $context->userId,'room_id' => $roomId,'status' => 'created','content_locale' => $translation->language,'difficulty' => $question->difficulty,'question_limit' => $questionLimit,'risk_confirmed' => $riskConfirmed,'question_snapshot' => $snapshot]);
         $game->save();
         if ($context->isUser()) {
             GamePlayer::query()->create(['game_id' => $game->id, 'user_id' => $context->userId, 'status' => 'playing', 'joined_at' => date('Y-m-d H:i:s')]);

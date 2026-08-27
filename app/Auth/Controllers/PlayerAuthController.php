@@ -8,8 +8,10 @@ use App\Auth\Business\PlayerAuthBusiness;
 use App\Auth\Services\EmailCodeService;
 use App\Auth\Services\PlayerPrincipalService;
 use App\Common\Controllers\BaseController;
+use App\Common\Enums\ErrorCode;
 use support\Request;
 use support\Response;
+use Webman\Http\UploadFile;
 
 final class PlayerAuthController extends BaseController
 {
@@ -64,6 +66,15 @@ final class PlayerAuthController extends BaseController
     public function updateProfile(Request $request): Response
     {
         return $this->success((new PlayerAuthBusiness())->updateProfile($this->context($request), $request->post()));
+    }
+    public function changeAvatar(Request $request): Response
+    {
+        $file = $request->file('avatar');
+        if (!$file instanceof UploadFile) {
+            ErrorCode::PARAM_MISSING->throw('请选择头像文件');
+        }
+
+        return $this->success((new PlayerAuthBusiness())->changeAvatar($this->context($request), $file));
     }
     public function changeEmail(Request $request): Response
     {

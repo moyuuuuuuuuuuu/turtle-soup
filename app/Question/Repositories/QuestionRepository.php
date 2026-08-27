@@ -57,6 +57,7 @@ final class QuestionRepository
             $question = Question::create([
                 'public_id' => $this->publicId(),
                 'difficulty' => $data->difficulty,
+                'question_limit' => $data->questionLimit,
                 'status' => 'draft',
                 'source_type' => $data->sourceType,
                 'risk_level' => $data->riskLevel,
@@ -85,6 +86,7 @@ final class QuestionRepository
                 ->where('version', $data->version)
                 ->update([
                     'difficulty' => $data->difficulty,
+                    'question_limit' => $data->questionLimit,
                     'status' => 'draft',
                     'source_type' => $data->sourceType,
                     'risk_level' => $data->riskLevel,

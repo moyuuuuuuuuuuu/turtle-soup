@@ -34,6 +34,18 @@ final class QuestionPublishValidatorTest extends TestCase
         self::assertFalse(QuestionPublishValidator::canPublishChinese(QuestionData::fromArray($payload)));
     }
 
+    public function testQuestionLimitCanBeExplicitOrLeftForDifficultyDefault(): void
+    {
+        $payload = $this->payload();
+        self::assertNull(QuestionData::fromArray($payload)->questionLimit);
+
+        $payload['question_limit'] = 7;
+        self::assertSame(7, QuestionData::fromArray($payload)->questionLimit);
+
+        $payload['question_limit'] = '';
+        self::assertNull(QuestionData::fromArray($payload)->questionLimit);
+    }
+
     private function data(): QuestionData
     {
         return QuestionData::fromArray($this->payload());

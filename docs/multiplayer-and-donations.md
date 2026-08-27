@@ -15,10 +15,14 @@ All room endpoints require a player access token. Anonymous sessions are rejecte
 - `POST /api/v1/rooms/close`: owner closes a room.
 
 The WebSocket adds `v1.room.join`, `v1.room.chat`, `v1.room.ready`,
-`v1.room.start`, `v1.room.typing.start`, and `v1.room.typing.stop`. Typing state
-is ephemeral, expires client-side after four seconds, and is never persisted.
-Game answers remain ordered and persisted through the existing game message
-sequence. A room snapshot is authoritative after reconnect.
+`v1.room.start`, `v1.room.leave`, `v1.room.typing.start`, and
+`v1.room.typing.stop`. A leave command accepts `reason=manual|switch_question`.
+After the membership change is persisted, the remaining teammates receive
+`v1.room.member.left` with the room ID, user ID, username, and reason, followed
+by an authoritative room snapshot. Typing state is ephemeral, expires
+client-side after four seconds, and is never persisted. Game answers remain
+ordered and persisted through the existing game message sequence. A room
+snapshot is authoritative after reconnect.
 
 The WebSocket grants a 45-second reconnect grace period. Heartbeats refresh the
 member activity timestamp. A dedicated cleanup process closes rooms with no

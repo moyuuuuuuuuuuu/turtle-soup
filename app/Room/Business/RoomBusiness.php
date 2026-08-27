@@ -12,6 +12,7 @@ use App\Game\Business\GameBusiness;
 use App\Game\Models\Game;
 use App\Game\Models\GamePlayer;
 use App\Question\Models\Question;
+use App\Room\Enums\RoomVisibility;
 use App\Room\Formats\RoomFormat;
 use App\Room\Models\Room;
 use App\Room\Models\RoomMember;
@@ -47,8 +48,8 @@ final class RoomBusiness
             ErrorCode::AUTH_TOKEN_INVALID->throw();
         }
         $name = (string) $user->username . '的房间';
-        $visibility = (string) ($input['visibility'] ?? 'private');
-        if (!in_array($visibility, ['private', 'public'], true)) {
+        $visibility = RoomVisibility::tryFrom((string) ($input['visibility'] ?? RoomVisibility::PRIVATE->value));
+        if (!$visibility instanceof RoomVisibility) {
             ErrorCode::PARAM_ERROR->throw();
         }
 
@@ -76,7 +77,7 @@ final class RoomBusiness
                 'question_id' => $game->question_id,
                 'name' => $name,
                 'status' => 'playing',
-                'visibility' => $visibility,
+                'visibility' => $visibility->value,
                 'max_players' => $maxPlayers,
                 'content_locale' => (string) ($input['language'] ?? $game->content_locale),
                 'risk_confirmed' => (bool) $game->risk_confirmed,
@@ -283,6 +284,29 @@ final class RoomBusiness
                 ->where('status', 'active')
                 ->update(['status' => 'left', 'is_ready' => false, 'left_at' => $now]);
             unset(self::$mutedMembers[(int) $room->id]);
+        });
+    }
+
+    /** @return array<string, mixed> */
+    public function updateVisibility(PlayerContext $context, string $id, string $visibility): array
+    {
+        $userId = $this->userId($context);
+        $roomVisibility = RoomVisibility::tryFrom($visibility);
+        if (!$roomVisibility instanceof RoomVisibility) {
+            ErrorCode::PARAM_ERROR->throw();
+        }
+
+        return Db::transaction(function () use ($id, $userId, $roomVisibility): array {
+            $room = $this->required($id, true);
+            $this->assertOwner($room, $userId);
+            if (!in_array($room->status, ['waiting', 'playing'], true)) {
+                ErrorCode::ROOM_STATUS_INVALID->throw();
+            }
+            if ($room->visibility !== $roomVisibility->value) {
+                $room->update(['visibility' => $roomVisibility->value]);
+            }
+
+            return $this->format($room, $userId);
         });
     }
 

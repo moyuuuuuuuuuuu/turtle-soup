@@ -174,9 +174,20 @@ final class GameWebSocket
             return;
         }
         if ($event === 'v1.room.leave') {
+            $user = User::query()->find($context->userId);
+            $reason = (string) ($payload['reason'] ?? 'manual');
+            if (!in_array($reason, ['manual', 'switch_question'], true)) {
+                throw new \InvalidArgumentException('request.param_error');
+            }
             $business->leave($context, $roomId);
             $this->send($connection, 'v1.room.left', $requestId, ['room_id' => $roomId]);
             $this->detach($connection, $roomId);
+            $this->broadcast($roomId, 'v1.room.member.left', $requestId, [
+                'room_id' => $roomId,
+                'user_id' => $context->userId,
+                'username' => $user instanceof User ? $user->username : '玩家',
+                'reason' => $reason,
+            ]);
             $this->broadcastRoomSnapshots($roomId, $requestId);
 
             return;
@@ -195,6 +206,12 @@ final class GameWebSocket
                 'user_id' => $targetUserId,
             ]);
             $this->detachUser($roomId, $targetUserId);
+            $this->broadcastRoomSnapshots($roomId, $requestId);
+
+            return;
+        }
+        if ($event === 'v1.room.visibility.update') {
+            $business->updateVisibility($context, $roomId, (string) ($payload['visibility'] ?? ''));
             $this->broadcastRoomSnapshots($roomId, $requestId);
 
             return;

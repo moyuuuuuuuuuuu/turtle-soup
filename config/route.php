@@ -35,6 +35,7 @@ Route::patch('/api/v1/me/username', [App\Auth\Controllers\PlayerAuthController::
 Route::post('/api/v1/me/username', [App\Auth\Controllers\PlayerAuthController::class, 'changeUsername']);
 Route::patch('/api/v1/me/profile', [App\Auth\Controllers\PlayerAuthController::class, 'updateProfile']);
 Route::post('/api/v1/me/profile', [App\Auth\Controllers\PlayerAuthController::class, 'updateProfile']);
+Route::post('/api/v1/me/avatar', [App\Auth\Controllers\PlayerAuthController::class, 'changeAvatar']);
 Route::post('/api/v1/me/email/change', [App\Auth\Controllers\PlayerAuthController::class, 'changeEmail']);
 Route::get('/api/v1/me/sessions', [App\Auth\Controllers\PlayerAuthController::class, 'sessions']);
 Route::delete('/api/v1/me/sessions', [App\Auth\Controllers\PlayerAuthController::class, 'revokeSession']);
