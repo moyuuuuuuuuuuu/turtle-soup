@@ -1,4 +1,5 @@
-import { applyRootTheme, storedTheme, type HgtTheme } from '@/utils/theme'
+import type { HgtTheme } from '@/utils/theme'
+import { applyRootTheme, storedTheme } from '@/utils/theme'
 
 interface ThemeTransitionOverlay {
   active: boolean
@@ -76,16 +77,18 @@ export function useAnimatedTheme() {
     overlay.fading = false
     overlay.expanding = false
     overlay.style = {
-      left: `${x - 12}px`,
-      top: `${y - 12}px`,
-      backgroundColor: target === 'light' ? '#edeae4' : '#080808',
-      transform: 'scale(0)',
+      'left': `${x - 12}px`,
+      'top': `${y - 12}px`,
+      'backgroundColor': target === 'light' ? '#edeae4' : '#080808',
+      'transform': 'scale(0)',
       '--hgt-theme-scale': String(Math.max(1, radius / 12)),
     }
     await nextTick()
     overlay.expanding = true
     setTimeout(() => commit(target), 430)
-    setTimeout(() => { overlay.fading = true }, 500)
+    setTimeout(() => {
+      overlay.fading = true
+    }, 500)
     setTimeout(() => {
       overlay.active = false
       overlay.expanding = false
