@@ -11,8 +11,19 @@ const keyword = ref('')
 const difficulty = ref<number>()
 const viewMode = ref<'grid' | 'list'>('grid')
 const loading = ref(false)
+const loadError = ref(false)
+const page = ref(1)
+const pageSize = 20
+const total = ref(0)
 const activeRiskId = ref<string | null>(null)
 const filtered = computed(() => items.value.filter(item => !keyword.value || item.title.includes(keyword.value) || item.surface.includes(keyword.value)))
+const loadmoreState = computed<'loading' | 'finished' | 'error'>(() => {
+  if (loadError.value)
+    return 'error'
+  if (loading.value)
+    return 'loading'
+  return items.value.length >= total.value ? 'finished' : 'loading'
+})
 const difficultyLabel = (value: number) => ['未知', '简单', '普通', '中等', '困难', '极难'][value] || `难度 ${value}`
 const difficultyClass = (value: number) => ['unknown', 'easy', 'normal', 'medium', 'hard', 'extreme'][value] || 'unknown'
 const riskLevelLabels: Record<PublicQuestion['risk_level'], string> = { safe: '安全', caution: '需注意', restricted: '受限内容' }
@@ -31,16 +42,44 @@ const riskTypeLabels: Record<string, string> = {
 const riskLevelLabel = (value: PublicQuestion['risk_level']) => riskLevelLabels[value] || value
 const riskTypeText = (types: string[] | undefined) => types?.length ? types.map(type => riskTypeLabels[type] || type).join('、') : '无特别标注'
 const formatCount = (value: number) => new Intl.NumberFormat('zh-CN').format(value || 0)
-async function load() {
+async function load(reset = false) {
+  if (loading.value)
+    return
+  if (reset) {
+    page.value = 1
+    total.value = 0
+    items.value = []
+  }
   loading.value = true
+  loadError.value = false
   try {
-    items.value = (await questionApi.list(difficulty.value ? { difficulty: difficulty.value } : {})).items
+    const result = await questionApi.list({
+      ...(difficulty.value ? { difficulty: difficulty.value } : {}),
+      page: page.value,
+      page_size: pageSize,
+    })
+    items.value = reset ? result.items : [...items.value, ...result.items]
+    total.value = result.pagination.total || items.value.length
+    if (items.value.length < total.value)
+      page.value += 1
+  }
+  catch {
+    loadError.value = true
   }
   finally {
     loading.value = false
   }
 }
-onMounted(load)
+function loadMore() {
+  if (!loading.value && items.value.length < total.value)
+    void load()
+}
+function changeDifficulty(value?: number) {
+  difficulty.value = value
+  void load(true)
+}
+onMounted(() => load(true))
+onReachBottom(loadMore)
 function openQuestion(id: string) {
   router.push({ path: '/pages/question-detail/index', query: { id, ...(roomId.value ? { room_id: roomId.value } : {}) } })
 }
@@ -63,9 +102,9 @@ function toggleRisk(id: string) {
         <text>⌕</text><input v-model="keyword" placeholder="搜索题目、汤面...">
       </view>
       <scroll-view scroll-x class="difficulty">
-        <button :class="{ active: difficulty === undefined }" @click="difficulty = undefined; load()">
+        <button :class="{ active: difficulty === undefined }" @click="changeDifficulty()">
           全部
-        </button><button v-for="level in [1, 2, 3, 4, 5]" :key="level" :class="[{ active: difficulty === level }, difficultyClass(level)]" @click="difficulty = level; load()">
+        </button><button v-for="level in [1, 2, 3, 4, 5]" :key="level" :class="[{ active: difficulty === level }, difficultyClass(level)]" @click="changeDifficulty(level)">
           {{ difficultyLabel(level) }}
         </button>
       </scroll-view>
@@ -78,9 +117,9 @@ function toggleRisk(id: string) {
       </view>
     </view>
     <view class="result-count">
-      找到 {{ filtered.length }} 个谜题
+      {{ keyword ? `当前匹配 ${filtered.length} 个谜题` : `已加载 ${items.length} / ${total} 个谜题` }}
     </view>
-    <view v-if="loading" class="empty">
+    <view v-if="loading && !items.length" class="empty">
       正在读取题库…
     </view>
     <view v-else-if="!filtered.length" class="empty">
@@ -124,6 +163,7 @@ function toggleRisk(id: string) {
         </view>
       </view>
     </view>
+    <wd-loadmore v-if="items.length" :state="loadmoreState" loading-text="正在加载更多谜题…" finished-text="已经到底了" error-text="加载失败，点击重试" @reload="loadMore" />
   </view>
 </template>
 

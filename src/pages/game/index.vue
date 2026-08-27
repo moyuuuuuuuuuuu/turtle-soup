@@ -50,17 +50,22 @@ watch(socket.gameSnapshot, (value) => {
   if (!value) {
     return
   }
+  const expectedGameId = switchingGameId || gameId.value
+  if (value.id !== expectedGameId)
+    return
   store.setGame(value)
   if (['solved', 'finished', 'abandoned'].includes(value.status)) {
     resultOpen.value = true
   }
 })
-async function switchToRoomGame(nextGameId: string) {
+async function switchToGame(nextGameId: string) {
   if (!nextGameId || nextGameId === game.value?.id || nextGameId === switchingGameId)
     return
   switchingGameId = nextGameId
   resultOpen.value = false
   errorMessage.value = ''
+  question.value = ''
+  inputMode.value = 'question'
   try {
     store.setGame(await socket.join(nextGameId))
     await router.replace({ name: 'game', params: { id: nextGameId } })
@@ -75,11 +80,11 @@ async function switchToRoomGame(nextGameId: string) {
 watch(() => socket.roomNextStarted.value?.nonce, () => {
   const next = socket.roomNextStarted.value
   if (next && next.room_id === room.value?.id)
-    void switchToRoomGame(next.game_id)
+    void switchToGame(next.game_id)
 })
 watch(() => room.value?.game_id, (nextGameId) => {
   if (nextGameId)
-    void switchToRoomGame(nextGameId)
+    void switchToGame(nextGameId)
 })
 watch(() => room.value?.messages.length || 0, (count, previous) => {
   if (count > previous && tab.value !== 'team') {
@@ -288,8 +293,7 @@ async function continuePlaying() {
     }
     const nextQuestion = await questionApi.random(undefined, 'safe')
     const nextGame = await gameApi.create(nextQuestion.id)
-    store.setGame(nextGame)
-    await router.replace({ name: 'game', params: { id: nextGame.id } })
+    await switchToGame(nextGame.id)
   }
   catch (error) {
     resultOpen.value = true
@@ -702,4 +706,6 @@ onUnmounted(() => {
 @media(max-width:767px){.mobile-team-metadata{padding:12px 0}.mobile-team-metadata .metadata-group{gap:6px}}
 @media(max-width:767px){.mobile-room-privacy{padding:12px 0;border-bottom:1px solid var(--border)}}
 @media(max-width:767px){.mobile-team-details .member{flex-wrap:wrap}.mobile-member-actions{width:100%;margin-left:42px}.mobile-member-actions button{height:30px;padding:0 12px;flex:1;justify-content:center}}
+.input-row button{width:112px;padding-right:12px;padding-left:12px;flex:0 0 112px;white-space:nowrap}
+@media(max-width:767px){.composer .input-row button{width:96px;padding-right:8px;padding-left:8px;flex-basis:96px;letter-spacing:.04em;white-space:nowrap}}
 </style>
