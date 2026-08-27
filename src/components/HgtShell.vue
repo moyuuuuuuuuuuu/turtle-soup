@@ -1,5 +1,4 @@
 <script setup lang="ts">
-/* eslint-disable style/max-statements-per-line */
 import { roomApi } from '@/api/turtle'
 import { useAnimatedTheme } from '@/composables/useAnimatedTheme'
 import { useGameSocket } from '@/composables/useGameSocket'
@@ -63,8 +62,12 @@ onMounted(async () => {
       <view class="hgt-brand">
         <image class="hgt-brand-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
         <view class="hgt-brand-copy">
-          <text class="hgt-display hgt-brand-title">墨鱼海龟汤</text>
-          <text class="hgt-mono hgt-brand-subtitle">MOYUU · LATERAL THINKING</text>
+          <text class="hgt-display hgt-brand-title">
+            墨鱼海龟汤
+          </text>
+          <text class="hgt-mono hgt-brand-subtitle">
+            MOYUU · LATERAL THINKING
+          </text>
         </view>
       </view>
       <view class="hgt-nav">
@@ -85,7 +88,9 @@ onMounted(async () => {
     <header class="hgt-mobile-header">
       <view class="hgt-mobile-brand">
         <image class="hgt-mobile-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
-        <text class="hgt-display">墨鱼海龟汤</text>
+        <text class="hgt-display">
+          墨鱼海龟汤
+        </text>
       </view>
       <view class="hgt-mobile-actions">
         <button class="hgt-icon-button hgt-theme-trigger" @click="toggleTheme">
@@ -106,9 +111,13 @@ onMounted(async () => {
       <slot />
     </main>
     <button v-if="showRoomReturn" class="hgt-room-return" @click="returnToRoom">
-      <text class="hgt-room-return-icon hgt-mono">↩</text>
+      <text class="hgt-room-return-icon hgt-mono">
+        ↩
+      </text>
       <view class="hgt-room-return-copy">
-        <text class="hgt-mono">返回房间</text>
+        <text class="hgt-mono">
+          返回房间
+        </text>
         <text>{{ activeRoom?.name }}</text>
       </view>
     </button>

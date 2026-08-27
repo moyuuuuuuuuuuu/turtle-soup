@@ -47,9 +47,15 @@ function handleVisible(value: boolean) {
     @update:model-value="handleVisible"
   >
     <view class="confirm-card" :class="`tone-${tone}`">
-      <text class="confirm-eyebrow hgt-mono">△ {{ eyebrow }}</text>
-      <text class="confirm-title hgt-display">{{ title }}</text>
-      <text class="confirm-description">{{ description }}</text>
+      <text class="confirm-eyebrow hgt-mono">
+        △ {{ eyebrow }}
+      </text>
+      <text class="confirm-title hgt-display">
+        {{ title }}
+      </text>
+      <text class="confirm-description">
+        {{ description }}
+      </text>
       <view class="confirm-actions">
         <button class="confirm-button cancel hgt-mono" @click="close(false)">
           {{ cancelText }}

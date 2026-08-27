@@ -322,12 +322,24 @@ onUnmounted(() => {
       </text>
       <view v-if="game.risk_types?.length || game.tags?.length" class="puzzle-metadata">
         <view v-if="game.risk_types?.length" class="metadata-group">
-          <text class="hgt-mono metadata-label">风险类型</text>
-          <view class="metadata-items"><text v-for="riskType in game.risk_types" :key="riskType" class="metadata-chip risk-chip">{{ riskTypeLabel(riskType) }}</text></view>
+          <text class="hgt-mono metadata-label">
+            风险类型
+          </text>
+          <view class="metadata-items">
+            <text v-for="riskType in game.risk_types" :key="riskType" class="metadata-chip risk-chip">
+              {{ riskTypeLabel(riskType) }}
+            </text>
+          </view>
         </view>
         <view v-if="game.tags?.length" class="metadata-group">
-          <text class="hgt-mono metadata-label">标签</text>
-          <view class="metadata-items"><text v-for="tag in game.tags" :key="tag.id" class="metadata-chip">{{ tag.name }}</text></view>
+          <text class="hgt-mono metadata-label">
+            标签
+          </text>
+          <view class="metadata-items">
+            <text v-for="tag in game.tags" :key="tag.id" class="metadata-chip">
+              {{ tag.name }}
+            </text>
+          </view>
         </view>
       </view>
       <view v-if="game.mode === 'multiplayer' && room" class="team-block">
@@ -357,11 +369,15 @@ onUnmounted(() => {
         </view>
         <view class="room-privacy-row">
           <view class="room-privacy-copy">
-            <text class="hgt-mono">私密房间</text>
+            <text class="hgt-mono">
+              私密房间
+            </text>
             <text>{{ room.visibility === 'private' ? '仅可通过邀请码加入' : '会展示在公开房间列表' }}</text>
           </view>
           <wd-switch v-if="room.is_owner" :model-value="room.visibility === 'private'" :loading="roomPrivacyUpdating" size="18" shape="square" active-color="var(--foreground)" inactive-color="var(--border)" @change="updateRoomPrivacy" />
-          <text v-else class="metadata-chip">{{ room.visibility === 'private' ? '私密' : '公开' }}</text>
+          <text v-else class="metadata-chip">
+            {{ room.visibility === 'private' ? '私密' : '公开' }}
+          </text>
         </view>
       </view>
       <view class="question-count">
@@ -424,20 +440,36 @@ onUnmounted(() => {
           <view v-if="mobileTeamOpen" class="mobile-team-details">
             <view v-if="game.mode === 'multiplayer' && room" class="room-privacy-row mobile-room-privacy">
               <view class="room-privacy-copy">
-                <text class="hgt-mono">私密房间</text>
+                <text class="hgt-mono">
+                  私密房间
+                </text>
                 <text>{{ room.visibility === 'private' ? '仅可通过邀请码加入' : '会展示在公开房间列表' }}</text>
               </view>
               <wd-switch v-if="room.is_owner" :model-value="room.visibility === 'private'" :loading="roomPrivacyUpdating" size="18" shape="square" active-color="var(--foreground)" inactive-color="var(--border)" @change="updateRoomPrivacy" />
-              <text v-else class="metadata-chip">{{ room.visibility === 'private' ? '私密' : '公开' }}</text>
+              <text v-else class="metadata-chip">
+                {{ room.visibility === 'private' ? '私密' : '公开' }}
+              </text>
             </view>
             <view v-if="game.risk_types?.length || game.tags?.length" class="puzzle-metadata mobile-team-metadata">
               <view v-if="game.risk_types?.length" class="metadata-group">
-                <text class="hgt-mono metadata-label">风险类型</text>
-                <view class="metadata-items"><text v-for="riskType in game.risk_types" :key="riskType" class="metadata-chip risk-chip">{{ riskTypeLabel(riskType) }}</text></view>
+                <text class="hgt-mono metadata-label">
+                  风险类型
+                </text>
+                <view class="metadata-items">
+                  <text v-for="riskType in game.risk_types" :key="riskType" class="metadata-chip risk-chip">
+                    {{ riskTypeLabel(riskType) }}
+                  </text>
+                </view>
               </view>
               <view v-if="game.tags?.length" class="metadata-group">
-                <text class="hgt-mono metadata-label">标签</text>
-                <view class="metadata-items"><text v-for="tag in game.tags" :key="tag.id" class="metadata-chip">{{ tag.name }}</text></view>
+                <text class="hgt-mono metadata-label">
+                  标签
+                </text>
+                <view class="metadata-items">
+                  <text v-for="tag in game.tags" :key="tag.id" class="metadata-chip">
+                    {{ tag.name }}
+                  </text>
+                </view>
               </view>
             </view>
             <view v-for="member in (game.mode === 'multiplayer' && room ? sortedRoomMembers : [])" :key="member.user_id" class="member">

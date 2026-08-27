@@ -98,8 +98,12 @@ function toggleRisk(id: string) {
               {{ riskLevelLabel(item.risk_level) }}
             </text>
             <view class="risk-tip" @click.stop>
-              <text class="risk-tip-title">风险类型：{{ riskTypeText(item.risk_types) }}</text>
-              <text class="risk-tip-note">风险说明：{{ item.risk_note || item.risk_warning || '暂无具体说明' }}</text>
+              <text class="risk-tip-title">
+                风险类型：{{ riskTypeText(item.risk_types) }}
+              </text>
+              <text class="risk-tip-note">
+                风险说明：{{ item.risk_note || item.risk_warning || '暂无具体说明' }}
+              </text>
             </view>
           </view>
         </view>
