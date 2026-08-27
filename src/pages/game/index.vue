@@ -42,7 +42,7 @@ const sortedRoomMembers = computed(() => [...(room.value?.members || [])].sort((
 }))
 const canControlResult = computed(() => game.value?.mode !== 'multiplayer' || room.value?.is_owner === true)
 const typingMembers = socket.typingMembers
-const gameId = computed(() => String(route.params.id || route.query.id || ''))
+const gameId = ref(String(route.params.id || route.query.id || ''))
 let switchingGameId = ''
 const riskTypeLabels: Record<string, string> = { death: '死亡', violence: '暴力', gore: '血腥', self_harm: '自伤', sexual: '性内容', child_safety: '未成年人', discrimination: '歧视', illegal: '违法', substance: '成瘾物', other: '其他' }
 const riskTypeLabel = (value: string) => riskTypeLabels[value] || value
@@ -68,11 +68,17 @@ async function switchToGame(nextGameId: string) {
   inputMode.value = 'question'
   try {
     store.setGame(await socket.join(nextGameId))
-    const currentQuery = { ...route.query }
-    Reflect.deleteProperty(currentQuery, 'show_result')
-    Reflect.deleteProperty(currentQuery, 'question_id')
-    const nextQuery = { ...currentQuery, id: nextGameId }
-    await router.replace({ path: route.path, query: nextQuery })
+    gameId.value = nextGameId
+    // #ifdef H5
+    const url = new URL(window.location.href)
+    url.searchParams.set('id', nextGameId)
+    url.searchParams.delete('question_id')
+    url.searchParams.delete('show_result')
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+    // #endif
+    // #ifndef H5
+    await router.replace({ path: route.path, query: { id: nextGameId } })
+    // #endif
   }
   catch (error) {
     uni.showToast({ title: (error as Error).message, icon: 'none' })
@@ -656,7 +662,7 @@ onUnmounted(() => {
         </button>
       </view>
     </wd-popup>
-    <wd-popup v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
+    <wd-popup v-if="resultOpen" v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
       <view class="result-modal">
         <text class="hgt-mono label">
           本局结束
