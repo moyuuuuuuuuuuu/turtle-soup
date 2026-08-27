@@ -22,6 +22,10 @@
           ><template #default="{ row }">{{
             QUESTION_DIFFICULTY_LABELS[row.difficulty]
           }}</template></ElTableColumn
+        ><ElTableColumn label="提问上限" width="130"
+          ><template #default="{ row }">{{
+            row.question_limit ?? `自动（${questionLimitForDifficulty(row.difficulty)}）`
+          }}</template></ElTableColumn
         ><ElTableColumn label="来源" width="110"
           ><template #default="{ row }">{{
             enumLabel(QUESTION_SOURCE_LABELS, row.source_type)
@@ -82,7 +86,13 @@
     </ElCard>
     <ElDrawer v-model="editorVisible" size="72%" title="题目编辑">
       <ElForm label-width="100px">
-        <ElFormItem label="难度"><ElRate v-model="form.difficulty" /></ElFormItem
+        <ElFormItem label="难度"
+          ><ElRate v-model="form.difficulty" @change="applyDifficultyQuestionLimit" /></ElFormItem
+        ><ElFormItem label="提问上限"
+          ><ElInputNumber v-model="form.question_limit" :min="1" :max="100" /><span
+            class="ml-3 text-xs text-gray-400"
+            >选择难度时自动填写，可按题目单独调整</span
+          ></ElFormItem
         ><ElFormItem label="玩家人数"
           ><ElInputNumber v-model="form.min_players" :min="1" /> 至
           <ElInputNumber v-model="form.max_players" :min="form.min_players"
@@ -242,6 +252,7 @@
   import AiCreateDialog from './modules/ai-create-dialog.vue'
   const emptyForm = (): QuestionPayload => ({
     difficulty: 3,
+    question_limit: 28,
     min_players: 1,
     max_players: 8,
     source_type: QuestionSourceEnum.Manual,
@@ -285,6 +296,13 @@
     historyRows = ref<QuestionHistory[]>([]),
     historyDetail = ref<Record<string, any>>({}),
     historyQuestion = ref({ id: 0, version: 0 })
+  function questionLimitForDifficulty(difficulty: number) {
+    const limits: Record<number, number> = { 1: 12, 2: 20, 3: 28, 4: 36, 5: 44 }
+    return limits[difficulty] ?? 12
+  }
+  function applyDifficultyQuestionLimit(difficulty: number) {
+    form.value.question_limit = questionLimitForDifficulty(difficulty)
+  }
   const translationOf = (row: Record<string, any>) =>
       row?.translations?.find((item: any) => item.language === 'zh-CN'),
     titleOf = (row: Record<string, any>) => translationOf(row)?.title || '未命名题目',
@@ -327,6 +345,7 @@
       const question = await api.read(id)
       form.value = {
         ...question,
+        question_limit: question.question_limit ?? questionLimitForDifficulty(question.difficulty),
         tag_ids: question.tag_ids ?? question.tags?.map((tag) => tag.id) ?? [],
         risk_types: riskTypesOf(question.risk_types),
         risk_note: question.risk_note ?? ''
@@ -435,7 +454,10 @@
   }
   function handleAdopted(question: QuestionPayload) {
     aiVisible.value = false
-    form.value = question
+    form.value = {
+      ...question,
+      question_limit: question.question_limit ?? questionLimitForDifficulty(question.difficulty)
+    }
     editorVisible.value = true
     load()
   }

@@ -13,6 +13,7 @@ export interface QuestionPayload {
   id?: number
   version?: number
   difficulty: number
+  question_limit?: number | null
   min_players: number
   max_players: number
   source_type: QuestionSourceEnum
