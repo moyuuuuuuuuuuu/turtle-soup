@@ -20,10 +20,17 @@ final class ProductionConfiguration
         if (filter_var($values['APP_DEBUG'] ?? 'false', FILTER_VALIDATE_BOOL)) {
             $violations[] = 'APP_DEBUG must be false in production';
         }
-        if (!str_starts_with($values['APP_URL'] ?? '', 'https://')) {
+        if (filter_var($values['APP_URL'] ?? '', FILTER_VALIDATE_URL) === false
+            || !str_starts_with($values['APP_URL'] ?? '', 'https://')) {
             $violations[] = 'APP_URL must use https in production';
         }
-        if (($values['CORS_ALLOWED_ORIGINS'] ?? '') === '' || str_contains($values['CORS_ALLOWED_ORIGINS'], '*')) {
+        $origins = array_filter(array_map('trim', explode(',', $values['CORS_ALLOWED_ORIGINS'] ?? '')));
+        if ($origins === [] || array_filter(
+            $origins,
+            static fn (string $origin): bool => filter_var($origin, FILTER_VALIDATE_URL) === false
+                || !str_starts_with($origin, 'https://')
+                || str_contains($origin, '*'),
+        ) !== []) {
             $violations[] = 'CORS_ALLOWED_ORIGINS must contain explicit origins';
         }
 
@@ -32,10 +39,15 @@ final class ProductionConfiguration
                 $violations[] = $name . ' is required';
             }
         }
-        foreach (['ANONYMOUS_TOKEN_SECRET', 'PLAYER_JWT_SECRET', 'PLAYER_TOKEN_HASH_SECRET', 'PLAYER_EMAIL_CODE_SECRET'] as $name) {
+        $secretNames = ['ANONYMOUS_TOKEN_SECRET', 'PLAYER_JWT_SECRET', 'PLAYER_TOKEN_HASH_SECRET', 'PLAYER_EMAIL_CODE_SECRET'];
+        foreach ($secretNames as $name) {
             if (strlen($values[$name] ?? '') < 32 || str_contains(strtolower($values[$name] ?? ''), 'change-me')) {
                 $violations[] = $name . ' must be an independent secret of at least 32 characters';
             }
+        }
+        $secrets = array_map(static fn (string $name): string => $values[$name] ?? '', $secretNames);
+        if (count(array_unique($secrets)) !== count($secrets)) {
+            $violations[] = 'Signing secrets must be unique';
         }
         if (($values['COZE_GAME_DRIVER'] ?? '') !== 'coze') {
             $violations[] = 'COZE_GAME_DRIVER must be coze in production';

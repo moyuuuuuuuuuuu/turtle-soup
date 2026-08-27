@@ -8,10 +8,16 @@
 
 ```bash
 composer install --no-dev --classmap-authoritative --no-interaction
-composer validate --strict
+composer validate:release
 composer audit --no-interaction
 composer check
+composer config:check -- /path/to/production.env
 ```
+
+`validate:release` 保留严格校验，但忽略依赖版本范围建议；本项目按上游策略精确固定
+SaiAdmin `6.1.1`，该固定不是待自动放宽的告警。
+`config:check` 只输出违规项，不输出任何配置值；必须对准备部署的生产配置文件执行，
+不能用仓库中的本地 `.env.example` 代替。
 
 用户端与管理端：
 

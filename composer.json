@@ -41,7 +41,8 @@
   },
   "autoload": {
     "psr-4": {
-      "": "./",
+      "support\\": "./support",
+      "plugin\\": "./plugin",
       "app\\": "./app",
       "App\\": "./app",
       "app\\View\\Components\\": "./app/view/components"
@@ -65,6 +66,12 @@
     ],
     "cs:check": [
       "@php vendor/bin/php-cs-fixer fix --dry-run --diff"
+    ],
+    "validate:release": [
+      "@composer validate --strict --no-check-all"
+    ],
+    "config:check": [
+      "@php bin/check-production-config.php"
     ],
     "check": [
       "@test",
