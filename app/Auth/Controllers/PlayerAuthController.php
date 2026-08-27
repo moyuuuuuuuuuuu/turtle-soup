@@ -61,6 +61,10 @@ final class PlayerAuthController extends BaseController
     {
         return $this->success((new PlayerAuthBusiness())->changeUsername($this->context($request), (string) $request->post('username')));
     }
+    public function updateProfile(Request $request): Response
+    {
+        return $this->success((new PlayerAuthBusiness())->updateProfile($this->context($request), $request->post()));
+    }
     public function changeEmail(Request $request): Response
     {
         return $this->success((new PlayerAuthBusiness())->changeEmail($this->context($request), $request->post()));

@@ -2,7 +2,17 @@
 
 declare(strict_types=1);
 
-$value = static fn (string $name, mixed $default = null): mixed => getenv($name) !== false ? getenv($name) : $default;
+require_once __DIR__.'/vendor/autoload.php';
+
+Dotenv\Dotenv::createImmutable(__DIR__)->safeLoad();
+
+$value = static function (string $name, mixed $default = null): mixed {
+    $environmentValue = getenv($name);
+
+    return $environmentValue !== false
+        ? $environmentValue
+        : ($_ENV[$name] ?? $_SERVER[$name] ?? $default);
+};
 
 return [
     'paths' => [

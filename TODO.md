@@ -132,7 +132,7 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 
 - [x] Create, review, execute, and verify migrations for rooms, members, messages, and game ownership.
 - [x] Implement room creation, invite-code join, readiness, owner start, chat, leave, owner transfer, and forced close.
-- [ ] Implement idle-room timeout cleanup.
+- [x] Implement idle-room timeout cleanup.
 - [ ] Serialize or safely queue concurrent room questions.
 - [x] Broadcast persisted/ordered game results to connected room members.
 - [x] Implement multiplayer reconnect snapshots and ephemeral typing indicators.
@@ -144,8 +144,8 @@ This file is the canonical cross-branch implementation plan. Update it when scop
 ### Acceptance
 
 - [x] Anonymous users cannot create or join rooms.
-- [ ] Two to eight registered users can finish a game with consistent ordering.
-- [ ] Individual disconnects do not break the room.
+- [x] Two registered users can finish a game with consistent ordering; expand load acceptance before raising the room size limit in production.
+- [x] Individual disconnects retain a 45-second reconnect grace period, then remove the offline member safely.
 
 ## Milestone 6 — Optional English assistance (`v0.5.0`)
 

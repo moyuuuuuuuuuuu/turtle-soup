@@ -65,4 +65,9 @@ return [
         'count' => 1,
         'reusePort' => false,
     ],
+    'room.idle-cleanup' => [
+        'handler' => App\Room\Processes\IdleRoomCleanupProcess::class,
+        'count' => 1,
+        'reloadable' => false,
+    ],
 ];

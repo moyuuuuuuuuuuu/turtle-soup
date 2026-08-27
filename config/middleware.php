@@ -16,5 +16,7 @@ return [
     '' => [
         App\Common\Middleware\CorsMiddleware::class,
         App\Common\Middleware\RequestIdMiddleware::class,
+        App\Common\Middleware\SecurityHeadersMiddleware::class,
+        App\Common\Middleware\ApiRateLimitMiddleware::class,
     ],
 ];

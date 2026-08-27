@@ -15,6 +15,7 @@ final class GameFormat
 
         return [
             'id' => $game->public_id,
+            'question_id' => $game->relationLoaded('question') ? $game->question?->public_id : null,
             'mode' => $game->room_id ? 'multiplayer' : 'single',
             'room_id' => $game->relationLoaded('room') ? $game->room?->public_id : null,
             'status' => $game->status,
@@ -29,6 +30,8 @@ final class GameFormat
             'messages' => $game->messages->map(static fn ($message): array => [
                 'sequence' => (int) $message->sequence,
                 'user_id' => $message->user_id ? (int) $message->user_id : null,
+                'username' => $message->user?->username,
+                'avatar_url' => $message->user?->avatar_url,
                 'role' => $message->role,
                 'type' => $message->type,
                 'content' => $message->content,

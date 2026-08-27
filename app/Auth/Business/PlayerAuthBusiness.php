@@ -66,7 +66,29 @@ final class PlayerAuthBusiness
         try {
             $this->codes->verify($email, 'login', (string) ($data['email_code'] ?? ''));
             if (!$user instanceof User) {
-                ErrorCode::AUTH_USER_NOT_FOUND->throw();
+                $user = Db::transaction(function () use ($email): User {
+                    $publicId = PublicId::make();
+                    $username = $this->availableUsername($email);
+                    $avatar = $this->avatars->createDefault($email, $publicId);
+
+                    $created = new User();
+                    $created->fill([
+                        'public_id' => $publicId,
+                        'username' => $username,
+                        'username_normalized' => mb_strtolower($username),
+                        'email' => $email,
+                        'email_normalized' => $email,
+                        'avatar_url' => $avatar['url'],
+                        'avatar_object_key' => $avatar['object_key'],
+                        'password_hash' => '',
+                        'status' => 'active',
+                        'email_verified_at' => date('Y-m-d H:i:s'),
+                        'last_login_at' => date('Y-m-d H:i:s'),
+                    ]);
+                    $created->save();
+
+                    return $created;
+                });
             }
         } catch (BaseException $exception) {
             $this->recordLogin($user, 'email_code', 'failed', $email, $device, $exception->errorCode->code());
@@ -117,6 +139,35 @@ final class PlayerAuthBusiness
         return PlayerFormat::user($user->refresh());
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function updateProfile(PlayerContext $context, array $data): array
+    {
+        $user = $this->user($context);
+        $username = trim((string) ($data['username'] ?? $user->username));
+        $bio = trim((string) ($data['bio'] ?? ''));
+        $this->validateUsername($username);
+        if (mb_strlen($bio) > 200) {
+            ErrorCode::PARAM_ERROR->throw();
+        }
+        $changes = ['bio' => $bio === '' ? null : $bio];
+        if ($username !== (string) $user->username) {
+            $normalized = mb_strtolower($username);
+            if ($user->username_changed_at && strtotime((string) $user->username_changed_at) > time() - 2592000) {
+                ErrorCode::AUTH_USERNAME_CHANGE_LIMITED->throw();
+            }
+            if (User::query()->where('username_normalized', $normalized)->where('id', '<>', $user->id)->exists()) {
+                ErrorCode::AUTH_USERNAME_EXISTS->throw();
+            }
+            $changes += ['username' => $username, 'username_normalized' => $normalized, 'username_changed_at' => date('Y-m-d H:i:s')];
+        }
+        $user->update($changes);
+
+        return PlayerFormat::user($user->refresh());
+    }
+
     public function changeEmail(PlayerContext $context, array $data): array
     {
         $user = $this->user($context);
@@ -141,7 +192,7 @@ final class PlayerAuthBusiness
     public function changePassword(PlayerContext $context, string $current, string $next, array $device): array
     {
         $user = $this->user($context);
-        if (!password_verify($current, (string) $user->password_hash)) {
+        if ((string) $user->password_hash !== '' && !password_verify($current, (string) $user->password_hash)) {
             ErrorCode::AUTH_CREDENTIALS_INVALID->throw();
         } $this->validatePassword($next);
         $user->update(['password_hash' => $this->passwordHash($next)]);

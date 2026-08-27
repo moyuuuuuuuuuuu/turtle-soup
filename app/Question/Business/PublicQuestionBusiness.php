@@ -45,7 +45,7 @@ final class PublicQuestionBusiness
     private function query(array $filters): Builder
     {
         /** @var Builder<Question> $query */
-        $query = Question::query()->with(['translations', 'tags'])->where('status', 'published')->whereIn('risk_level', ['safe', 'caution']);
+        $query = Question::query()->with(['translations', 'tags'])->withCount('games')->where('status', 'published')->whereIn('risk_level', ['safe', 'caution']);
         if (($filters['difficulty'] ?? '') !== '') {
             $query->where('difficulty', (int) $filters['difficulty']);
         }
@@ -67,6 +67,6 @@ final class PublicQuestionBusiness
         $tags = $question->getRelation('tags');
         $translation = $translations->firstWhere('language', $language) ?? $translations->firstWhere('language', 'zh-CN');
 
-        return ['id' => $question->getAttribute('public_id'), 'title' => $translation?->title, 'surface' => $translation?->surface, 'difficulty' => (int) $question->getAttribute('difficulty'), 'language' => $translation?->language, 'risk_level' => $question->getAttribute('risk_level'), 'risk_warning' => $question->getAttribute('risk_level') === 'caution' ? '该题目包含可能令人不适的情节，请确认后继续。' : null, 'tags' => $tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])->values()->all()];
+        return ['id' => $question->getAttribute('public_id'), 'title' => $translation?->title, 'surface' => $translation?->surface, 'difficulty' => (int) $question->getAttribute('difficulty'), 'language' => $translation?->language, 'risk_level' => $question->getAttribute('risk_level'), 'risk_warning' => $question->getAttribute('risk_level') === 'caution' ? '该题目包含可能令人不适的情节，请确认后继续。' : null, 'tags' => $tags->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])->values()->all(), 'play_count' => (int) $question->getAttribute('games_count')];
     }
 }

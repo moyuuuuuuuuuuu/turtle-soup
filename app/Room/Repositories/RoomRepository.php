@@ -45,7 +45,7 @@ final class RoomRepository
 
     public function hydrated(Room $room): Room
     {
-        return $room->fresh(['members.user', 'messages.user']) ?? $room;
+        return $room->fresh(['members.user', 'messages.user', 'game.question.translations', 'game.question.tags']) ?? $room;
     }
 
     public function appendMessage(Room $room, int $userId, string $requestId, string $content): RoomMessage

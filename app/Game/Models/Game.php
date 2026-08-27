@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Game\Models;
 
 use App\Common\Models\PersistenceModel;
+use App\Question\Models\Question;
 use App\Room\Models\Room;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
  * @property string $public_id
  * @property int|null $room_id
  * @property Room|null $room
+ * @property Question|null $question
  */
 
 final class Game extends PersistenceModel
@@ -43,5 +46,17 @@ final class Game extends PersistenceModel
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
+    }
+
+    /** @return HasMany<GamePlayer, $this> */
+    public function players(): HasMany
+    {
+        return $this->hasMany(GamePlayer::class);
+    }
+
+    /** @return BelongsTo<Question, $this> */
+    public function question(): BelongsTo
+    {
+        return $this->belongsTo(Question::class);
     }
 }

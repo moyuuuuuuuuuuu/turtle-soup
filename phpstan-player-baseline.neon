@@ -43,24 +43,6 @@ parameters:
 			path: app/Auth/Business/PlayerAdminBusiness.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$password_hash\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Auth/Business/PlayerAuthBusiness.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Business/PlayerAuthBusiness.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$username_changed_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Business/PlayerAuthBusiness.php
-
-		-
 			message: '#^Method App\\Auth\\Business\\PlayerAuthBusiness\:\:changeEmail\(\) has parameter \$data with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -211,18 +193,6 @@ parameters:
 			path: app/Auth/Formats/PlayerFormat.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Formats/PlayerFormat.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$username_changed_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Formats/PlayerFormat.php
-
-		-
 			message: '#^Method App\\Auth\\Formats\\PlayerFormat\:\:user\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -265,66 +235,6 @@ parameters:
 			path: app/Auth/Services/PlayerTokenService.php
 
 		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$device_name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$expires_at\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$family_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$platform\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$public_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$revoked_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$token_hash\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\RefreshSession\:\:\$user_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Access to an undefined property App\\Auth\\Models\\User\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
 			message: '#^Method App\\Auth\\Services\\PlayerTokenService\:\:response\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -332,12 +242,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$user of method App\\Auth\\Services\\PlayerTokenService\:\:response\(\) expects App\\Auth\\Models\\User, \(Illuminate\\Database\\Eloquent\\Collection&iterable\<App\\Auth\\Models\\User\>\)\|Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Auth/Services/PlayerTokenService.php
-
-		-
-			message: '#^Parameter \#2 \$session of method App\\Auth\\Services\\PlayerTokenService\:\:response\(\) expects App\\Auth\\Models\\RefreshSession, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Auth/Services/PlayerTokenService.php
@@ -353,9 +257,3 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Auth/Services/SmtpMailer.php
-
-		-
-			message: '#^Access to an undefined property Workerman\\Connection\\TcpConnection\:\:\$playerContext\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Game/WebSocket/GameWebSocket.php

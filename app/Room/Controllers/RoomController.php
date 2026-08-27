@@ -22,6 +22,14 @@ final class RoomController extends BaseController
         return $this->success((new RoomBusiness())->join($this->context($request), (string) $request->post('id', ''), (string) $request->post('invite_code', '')), $this->requestId($request));
     }
 
+    public function resolveQuestion(Request $request): Response
+    {
+        return $this->success(
+            (new RoomBusiness())->resolveQuestion($this->context($request), (string) $request->get('invite_code', '')),
+            $this->requestId($request),
+        );
+    }
+
     public function read(Request $request): Response
     {
         return $this->success((new RoomBusiness())->snapshot($this->context($request), (string) $request->get('id')), $this->requestId($request));
@@ -45,6 +53,16 @@ final class RoomController extends BaseController
     public function start(Request $request): Response
     {
         return $this->success((new RoomBusiness())->start($this->context($request), (string) $request->post('id')), $this->requestId($request));
+    }
+
+    public function next(Request $request): Response
+    {
+        return $this->success((new RoomBusiness())->next(
+            $this->context($request),
+            (string) $request->post('id'),
+            (string) $request->post('question_id'),
+            filter_var($request->post('risk_confirmed', false), FILTER_VALIDATE_BOOL),
+        ), $this->requestId($request));
     }
 
     public function leave(Request $request): Response

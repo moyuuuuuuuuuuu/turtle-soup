@@ -1,6 +1,70 @@
 # 新设备开发接续指南
 
-更新日期：2026-08-27（Asia/Shanghai）
+更新日期：2026-08-27 18:55（Asia/Shanghai）
+
+## 0. 本次换机交接快照
+
+本节是当前工作树的最新事实，优先级高于下方较早的阶段说明。三个长期分支会在本次
+交接完成后分别提交并推送，换机后应先执行 `git fetch --all --prune`，再确认本节记录
+的远端提交。
+
+### 已完成
+
+- 用户端已按当前 Figma 视觉语言重做登录、注册、题库、题目详情、游戏、历史、个人
+  中心、捐赠、房间及公共房间，并补齐桌面端和移动端适配、粒子背景和主题切换。
+- `/pages/room/index` 和独立结算页已经移除；创建、加入和多人游戏统一在
+  `/pages/game/index` 完成，结束结果由弹层及历史记录承载。
+- 多人房间已实现自动开局、邀请码/分享链接加入、单用户仅在一个房间、房主退出自动
+  转让、最后一人退出解散、队伍聊天、输入状态、未读提示、禁言、踢人、退出房间、
+  汤底同步揭晓和队伍共享结果。
+- `20260827030000_add_bio_to_turtle_users` 与
+  `20260827040000_create_game_players` 已在本机开发库执行；换新数据库时仍须按迁移顺序
+  正常执行，禁止复制本机迁移状态作为生产依据。
+- 增加空闲房间清理进程、首页真实统计、统一 API 限流、安全响应头、生产配置启动校验、
+  CI 依赖审计以及生产发布/备份/回滚手册。
+- 用户端生产依赖安全审计已清零；后端 `composer audit` 和管理端生产依赖审计均无已知漏洞。
+
+### 当前验证证据
+
+- 后端：`composer check` 通过，54 个测试、228 个断言，PHPStan 0 错误，PHP CS Fixer 通过。
+- 用户端：`pnpm lint`、`pnpm type-check`、`pnpm build:h5`、
+  `pnpm build:mp-weixin`、`pnpm audit --prod` 全部通过。
+- 管理端：`pnpm lint`、`pnpm build`、`pnpm audit --prod` 全部通过。
+- 容器后端已重启，7 类 Worker、70 个进程运行正常；`/api/v1/health` 返回成功且包含安全响应头。
+- 使用 `moyuuuuuuuu@outlook.com` 与 `moyuucat@gmail.com` 完成 API 双账号验收：登录、
+  创建游戏、创建房间、邀请码加入、2 人房间快照及队员共享历史记录均通过。密码属于
+  本地环境数据，不写入本文或 Git。
+
+### 尚未达到“完全上线”的项目
+
+1. 当前仅有 1 道已发布题目，仍需准备并人工审核至少 10 道正式题目（3 简单、4 中等、3 困难）。
+2. 仍需补齐 Coze 工作流 JSON Schema、异常输出、提示注入、矛盾回答和汤底泄漏自动化测试。
+3. 仍需用两个真实浏览器会话完成 WebSocket 端到端验收：聊天、输入状态、未读、禁言、
+   踢人、房主转让、断线重连、同步揭晓汤底及队伍下一题。
+4. 当前只允许单个 WebSocket Worker。增加 Worker 或多节点部署前，必须完成 Channel/Redis
+   跨进程广播和并发房间指令串行化。
+5. 异常事件聚合、告警邮件、指标和生产监控尚未完成。
+6. 正式发布前必须配置 HTTPS、生产域名、独立生产密钥、备份位置、告警收件人并执行一次
+   备份恢复及回滚演练。详细步骤见 `docs/production-release-runbook.md`。
+
+### 换机后第一组命令
+
+```bash
+git -C /你的路径/dnmp/www/hgt status -sb
+git -C /你的路径/hgt-worktrees/ui status -sb
+git -C /你的路径/hgt-worktrees/system-manage-ui status -sb
+
+docker exec -w /www/hgt php82 composer check
+docker exec -w /www/hgt php82 php webman start -d
+
+cd /你的路径/hgt-worktrees/ui
+pnpm install --frozen-lockfile
+pnpm lint && pnpm type-check && pnpm build:h5 && pnpm build:mp-weixin
+
+cd /你的路径/hgt-worktrees/system-manage-ui
+pnpm install --frozen-lockfile
+pnpm lint && pnpm build
+```
 
 本项目使用同一个 GitHub 仓库的三个长期分支：
 

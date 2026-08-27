@@ -25,9 +25,9 @@ final class EmailCodeService
             ErrorCode::PARAM_ERROR->throw();
         }
         $now = date('Y-m-d H:i:s');
-        if (EmailCode::query()->where('email_normalized', $email)->where('create_time', '>', date('Y-m-d H:i:s', time() - 60))->exists()
-            || EmailCode::query()->where('email_normalized', $email)->where('create_time', '>', date('Y-m-d H:i:s', time() - 3600))->count() >= 5
-            || EmailCode::query()->where('request_ip_hash', self::hashIp($ip))->where('create_time', '>', date('Y-m-d H:i:s', time() - 3600))->count() >= 20) {
+        if (EmailCode::query()->where('email_normalized', $email)->where('purpose', $purpose)->where('create_time', '>', date('Y-m-d H:i:s', time() - 60))->exists()
+            || EmailCode::query()->where('email_normalized', $email)->where('purpose', $purpose)->where('create_time', '>', date('Y-m-d H:i:s', time() - 3600))->count() >= 5
+            || EmailCode::query()->where('request_ip_hash', self::hashIp($ip))->where('purpose', $purpose)->where('create_time', '>', date('Y-m-d H:i:s', time() - 3600))->count() >= 20) {
             ErrorCode::AUTH_EMAIL_CODE_RATE_LIMITED->throw();
         }
         EmailCode::query()->where('email_normalized', $email)->where('purpose', $purpose)->whereNull('consumed_at')->update(['consumed_at' => $now]);

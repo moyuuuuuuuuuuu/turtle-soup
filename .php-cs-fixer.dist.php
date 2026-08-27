@@ -15,6 +15,7 @@ $finder = PhpCsFixer\Finder::create()
 
 return (new PhpCsFixer\Config())
     ->setRiskyAllowed(true)
+    ->setLineEnding(PHP_EOL)
     ->setRules([
         '@PSR12' => true,
         'declare_strict_types' => true,

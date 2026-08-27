@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Question\Models;
 
+use App\Game\Models\Game;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use plugin\saiadmin\basic\eloquent\BaseModel;
 
+/**
+ * @property string $public_id
+ */
 final class Question extends BaseModel
 {
     protected $table = 'turtle_questions';
@@ -39,6 +43,12 @@ final class Question extends BaseModel
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'turtle_question_tags');
+    }
+
+    /** @return HasMany<Game, $this> */
+    public function games(): HasMany
+    {
+        return $this->hasMany(Game::class);
     }
 
     /** @return HasMany<QuestionVersion, $this> */

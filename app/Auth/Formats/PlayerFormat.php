@@ -10,6 +10,6 @@ final class PlayerFormat
 {
     public static function user(User $user): array
     {
-        return ['id' => $user->public_id, 'username' => $user->username, 'email' => $user->email, 'avatar_url' => $user->avatar_url, 'status' => $user->status, 'email_verified_at' => $user->email_verified_at, 'username_changed_at' => $user->username_changed_at, 'create_time' => $user->create_time];
+        return ['id' => $user->public_id, 'username' => $user->username, 'email' => $user->email, 'avatar_url' => $user->avatar_url, 'bio' => $user->bio, 'status' => $user->status, 'email_verified_at' => $user->email_verified_at, 'username_changed_at' => $user->username_changed_at, 'create_time' => $user->create_time];
     }
 }

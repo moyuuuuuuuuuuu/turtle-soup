@@ -13,5 +13,7 @@
  */
 
 return [
+    App\Common\Bootstrap\ProductionConfigurationBootstrap::class,
     support\bootstrap\Session::class,
+    Webman\ThinkOrm\ThinkOrm::class,
 ];

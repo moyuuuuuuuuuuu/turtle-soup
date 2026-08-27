@@ -58,13 +58,13 @@
       "support\\Plugin::uninstall"
     ],
     "test": [
-      "phpunit"
+      "@php vendor/bin/phpunit"
     ],
     "analyse": [
-      "phpstan analyse --memory-limit=1G"
+      "@php vendor/bin/phpstan analyse --memory-limit=1G"
     ],
     "cs:check": [
-      "php-cs-fixer fix --dry-run --diff"
+      "@php vendor/bin/php-cs-fixer fix --dry-run --diff"
     ],
     "check": [
       "@test",

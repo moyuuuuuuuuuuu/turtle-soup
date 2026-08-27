@@ -16,4 +16,6 @@ jobs:
           php-version: '8.2'
           coverage: none
       - uses: ramsey/composer-install@v3
+      - run: composer validate --strict
+      - run: composer audit
       - run: composer check

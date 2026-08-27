@@ -25,7 +25,19 @@ final class ResponseFormatTest extends TestCase
         $response = ResponseFormat::error(ErrorCode::PARAM_ERROR, requestId: 'request-2');
 
         self::assertSame('request.param_error', $response['code']);
+        self::assertSame('请求参数错误', $response['message']);
         self::assertSame(422, ErrorCode::PARAM_ERROR->httpStatus());
         self::assertSame('request-2', $response['request_id']);
+    }
+
+    public function testEveryPublishedErrorCodeHasAChineseMessage(): void
+    {
+        foreach (ErrorCode::cases() as $errorCode) {
+            self::assertMatchesRegularExpression(
+                '/[\x{4e00}-\x{9fff}]/u',
+                $errorCode->message(),
+                $errorCode->value.' should have a Chinese user-facing message',
+            );
+        }
     }
 }

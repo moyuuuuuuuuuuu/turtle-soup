@@ -4,14 +4,14 @@
 
 All room endpoints require a player access token. Anonymous sessions are rejected.
 
-- `GET /api/v1/rooms`: public waiting rooms.
+- `GET /api/v1/rooms`: public joinable rooms, including games already in progress.
 - `GET /api/v1/rooms/read?id=...`: authoritative room snapshot for a member.
 - `GET /api/v1/rooms/mine`: rooms belonging to the current player.
-- `POST /api/v1/rooms`: create a room and its frozen game snapshot.
-- `POST /api/v1/rooms/join`: join with a room ID or invite code.
-- `POST /api/v1/rooms/ready`: update readiness.
-- `POST /api/v1/rooms/start`: owner starts after every active member is ready.
-- `POST /api/v1/rooms/leave`: leave a waiting room.
+- `POST /api/v1/rooms`: upgrade the authenticated player's active single-player game (`game_id`) into a room without replacing its question, progress, or messages.
+- `POST /api/v1/rooms/join`: join with a room ID or invite code; joining automatically leaves any other active room.
+- `POST /api/v1/rooms/ready`: compatibility endpoint; room members are ready immediately after joining.
+- `POST /api/v1/rooms/start`: compatibility endpoint; rooms begin playing immediately after creation or joining.
+- `POST /api/v1/rooms/leave`: leave the current room; ownership transfers to a random active member and the room closes after the final member leaves.
 - `POST /api/v1/rooms/close`: owner closes a room.
 
 The WebSocket adds `v1.room.join`, `v1.room.chat`, `v1.room.ready`,
@@ -19,6 +19,12 @@ The WebSocket adds `v1.room.join`, `v1.room.chat`, `v1.room.ready`,
 is ephemeral, expires client-side after four seconds, and is never persisted.
 Game answers remain ordered and persisted through the existing game message
 sequence. A room snapshot is authoritative after reconnect.
+
+The WebSocket grants a 45-second reconnect grace period. Heartbeats refresh the
+member activity timestamp. A dedicated cleanup process closes rooms with no
+active member heartbeat for `ROOM_IDLE_TIMEOUT_SECONDS` (30 minutes by default)
+and marks unfinished room games as abandoned. The scan interval is controlled by
+`ROOM_CLEANUP_INTERVAL_SECONDS` (60 seconds by default).
 
 The current local deployment uses one WebSocket worker. Before increasing that
 worker count, room broadcasting must move from the in-process connection map to

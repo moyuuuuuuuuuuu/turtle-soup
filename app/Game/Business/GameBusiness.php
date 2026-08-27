@@ -10,6 +10,7 @@ use App\Common\Support\PublicId;
 use App\Game\Contracts\GameJudgeInterface;
 use App\Game\Formats\GameFormat;
 use App\Game\Models\Game;
+use App\Game\Models\GamePlayer;
 use App\Game\Repositories\GameRepository;
 use App\Game\Services\GameJudgeFactory;
 use App\Question\Models\Question;
@@ -27,7 +28,7 @@ final class GameBusiness
         $this->repository = $repository ?? new GameRepository();
         $this->judge = $judge ?? GameJudgeFactory::make();
     }
-    public function create(PlayerContext $context, string $questionPublicId, string $language, bool $riskConfirmed): array
+    public function create(PlayerContext $context, string $questionPublicId, string $language, bool $riskConfirmed, ?int $roomId = null): array
     {
         $question = Question::with(['translations','points.translations','hints.translations','tags'])->where('public_id', $questionPublicId)->where('status', 'published')->whereIn('risk_level', ['safe','caution'])->first();
         if (!$question instanceof Question) {
@@ -40,9 +41,30 @@ final class GameBusiness
         if (!$translation) {
             ErrorCode::QUESTION_TRANSLATION_INCOMPLETE->throw();
         }
+        if ($roomId === null) {
+            $existing = Game::query()
+                ->where('question_id', $question->id)
+                ->whereNull('room_id')
+                ->whereIn('status', ['created', 'playing'])
+                ->when(
+                    $context->isUser(),
+                    static fn ($query) => $query->where('user_id', $context->userId),
+                    static fn ($query) => $query->whereNull('user_id')->where('anonymous_session_id', $context->anonymousSessionId),
+                )
+                ->orderByDesc('id')
+                ->first();
+            if ($existing instanceof Game) {
+                return GameFormat::snapshot($this->repository->hydrated($existing));
+            }
+        }
         $snapshot = ['title' => $translation->title,'surface' => $translation->surface,'bottom' => $translation->bottom,'language' => $translation->language,'risk_level' => $question->risk_level,'points' => $question->points->map(fn ($p) => ['key' => 'point_'.$p->id,'content' => $p->translations->firstWhere('language', $translation->language)?->content ?? $p->translations->firstWhere('language', 'zh-CN')?->content,'required' => (bool)$p->is_required,'weight' => (int)$p->weight])->all(),'hints' => $question->hints->mapWithKeys(fn ($h) => [(int)$h->level => $h->translations->firstWhere('language', $translation->language)?->content ?? $h->translations->firstWhere('language', 'zh-CN')?->content])->all()];
         $limit = (array)config('game.question_limits');
-        $game = Game::create(['public_id' => PublicId::make(),'question_id' => $question->id,'anonymous_session_id' => $context->anonymousSessionId,'user_id' => $context->userId,'status' => 'created','content_locale' => $translation->language,'difficulty' => $question->difficulty,'question_limit' => $limit[(int)$question->difficulty] ?? 12,'risk_confirmed' => $riskConfirmed,'question_snapshot' => $snapshot]);
+        $game = new Game();
+        $game->fill(['public_id' => PublicId::make(),'question_id' => $question->id,'anonymous_session_id' => $context->anonymousSessionId,'user_id' => $context->userId,'room_id' => $roomId,'status' => 'created','content_locale' => $translation->language,'difficulty' => $question->difficulty,'question_limit' => $limit[(int)$question->difficulty] ?? 12,'risk_confirmed' => $riskConfirmed,'question_snapshot' => $snapshot]);
+        $game->save();
+        if ($context->isUser()) {
+            GamePlayer::query()->create(['game_id' => $game->id, 'user_id' => $context->userId, 'status' => 'playing', 'joined_at' => date('Y-m-d H:i:s')]);
+        }
         return GameFormat::snapshot($this->repository->hydrated($game));
     }
     public function snapshot(PlayerContext $context, string $id): array
@@ -53,9 +75,10 @@ final class GameBusiness
     {
         $query = Game::query();
         if ($context->isUser()) {
-            $query->where(static function ($builder) use ($context): void {
-                $builder->where('user_id', $context->userId)
-                    ->orWhereHas('room.members', static fn ($members) => $members->where('user_id', $context->userId)->where('status', 'active'));
+            $query->where(static function ($games) use ($context): void {
+                $games
+                    ->where('user_id', $context->userId)
+                    ->orWhereHas('players', static fn ($players) => $players->where('user_id', $context->userId));
             });
         } else {
             $query->whereNull('room_id')->where('anonymous_session_id', $context->anonymousSessionId);
@@ -159,6 +182,10 @@ final class GameBusiness
             $this->repository->message($game, $requestId, 'player', 'guess', $guess, [], $context->userId);
             $this->repository->message($game, $requestId.':result', 'host', 'result', (string)($result['summary'] ?? ''), ['is_solved' => (bool)$result['is_solved']]);
             $game->update(['status' => $result['is_solved'] ? 'solved' : 'finished','finished_at' => date('Y-m-d H:i:s')]);
+            GamePlayer::query()->where('game_id', $game->id)->update([
+                'status' => $result['is_solved'] ? 'solved' : 'finished',
+                'completed_at' => date('Y-m-d H:i:s'),
+            ]);
             if ($game->room_id) {
                 $game->room()->update(['status' => 'finished', 'finished_at' => date('Y-m-d H:i:s')]);
             }
@@ -174,6 +201,7 @@ final class GameBusiness
         if (!in_array($game->getAttribute('status'), ['created','playing'], true)) {
             ErrorCode::GAME_STATUS_INVALID->throw();
         }$game->update(['status' => 'abandoned','finished_at' => date('Y-m-d H:i:s')]);
+        GamePlayer::query()->where('game_id', $game->id)->update(['status' => 'abandoned', 'completed_at' => date('Y-m-d H:i:s')]);
         if ($game->room_id) {
             $game->room()->update(['status' => 'finished', 'finished_at' => date('Y-m-d H:i:s')]);
         }

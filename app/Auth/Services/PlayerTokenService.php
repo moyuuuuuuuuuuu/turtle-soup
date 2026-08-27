@@ -10,6 +10,7 @@ use App\Auth\Models\User;
 use App\Common\Enums\ErrorCode;
 use App\Common\Support\PublicId;
 use JsonException;
+use support\Db;
 
 final class PlayerTokenService
 {
@@ -17,19 +18,50 @@ final class PlayerTokenService
     public function issue(User $user, string $deviceId, string $deviceName, string $platform): array
     {
         $this->assertConfigured();
-        $active = RefreshSession::query()->where('user_id', $user->id)->whereNull('revoked_at')->where('expires_at', '>', date('Y-m-d H:i:s'))->count();
-        if ($active >= max(1, (int) config('player_auth.max_sessions', 3))) {
-            ErrorCode::AUTH_DEVICE_LIMIT_REACHED->throw();
-        }
-        $refresh = bin2hex(random_bytes(32));
-        $session = RefreshSession::create([
-            'public_id' => PublicId::make(), 'user_id' => $user->id, 'family_id' => PublicId::make(),
-            'token_hash' => $this->hash($refresh), 'device_hash' => hash('sha256', $deviceId),
-            'device_name' => mb_substr(trim($deviceName) ?: '未知设备', 0, 100), 'platform' => mb_substr($platform ?: 'unknown', 0, 30),
-            'last_used_at' => date('Y-m-d H:i:s'), 'expires_at' => date('Y-m-d H:i:s', time() + (int) config('player_auth.refresh_ttl', 2592000)),
-        ]);
+        $now = date('Y-m-d H:i:s');
+        $deviceHash = hash('sha256', $deviceId);
 
-        return $this->response($user, $session, $refresh);
+        return Db::transaction(function () use ($user, $deviceHash, $deviceName, $platform, $now): array {
+            $sessions = RefreshSession::query()
+                ->where('user_id', $user->id)
+                ->whereNull('revoked_at')
+                ->where('expires_at', '>', $now)
+                ->lockForUpdate()
+                ->get();
+            $refresh = bin2hex(random_bytes(32));
+            $session = RefreshSession::query()
+                ->where('user_id', $user->id)
+                ->whereNull('revoked_at')
+                ->where('expires_at', '>', $now)
+                ->where('device_hash', $deviceHash)
+                ->lockForUpdate()
+                ->first();
+            if ($session instanceof RefreshSession) {
+                $session->update([
+                    'previous_token_hash' => $session->token_hash,
+                    'token_hash' => $this->hash($refresh),
+                    'device_name' => mb_substr(trim($deviceName) ?: '未知设备', 0, 100),
+                    'platform' => mb_substr($platform ?: 'unknown', 0, 30),
+                    'last_used_at' => $now,
+                    'expires_at' => date('Y-m-d H:i:s', time() + (int) config('player_auth.refresh_ttl', 2592000)),
+                ]);
+
+                return $this->response($user, $session->refresh(), $refresh);
+            }
+            if ($sessions->count() >= max(1, (int) config('player_auth.max_sessions', 3))) {
+                ErrorCode::AUTH_DEVICE_LIMIT_REACHED->throw();
+            }
+            $session = new RefreshSession();
+            $session->fill([
+                'public_id' => PublicId::make(), 'user_id' => $user->id, 'family_id' => PublicId::make(),
+                'token_hash' => $this->hash($refresh), 'device_hash' => $deviceHash,
+                'device_name' => mb_substr(trim($deviceName) ?: '未知设备', 0, 100), 'platform' => mb_substr($platform ?: 'unknown', 0, 30),
+                'last_used_at' => $now, 'expires_at' => date('Y-m-d H:i:s', time() + (int) config('player_auth.refresh_ttl', 2592000)),
+            ]);
+            $session->save();
+
+            return $this->response($user, $session, $refresh);
+        });
     }
 
     /** @return array{access_token:string,refresh_token:string,expires_in:int,session:array<string,mixed>} */

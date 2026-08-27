@@ -18,6 +18,7 @@ use Webman\Route;
 
 Route::options('/api/v1/{path:.*}', static fn () => response('', 204));
 Route::get('/api/v1/health', [App\Health\Controllers\HealthController::class, 'index']);
+Route::get('/api/v1/home/stats', [App\Home\Controllers\HomeStatsController::class, 'index']);
 Route::post('/api/v1/anonymous/session', [App\Auth\Controllers\AnonymousSessionController::class, 'issue']);
 Route::post('/api/v1/anonymous/session/renew', [App\Auth\Controllers\AnonymousSessionController::class, 'renew']);
 Route::post('/api/v1/auth/email-code/send', [App\Auth\Controllers\PlayerAuthController::class, 'sendEmailCode']);
@@ -32,6 +33,8 @@ Route::post('/api/v1/auth/password/reset', [App\Auth\Controllers\PlayerAuthContr
 Route::get('/api/v1/me', [App\Auth\Controllers\PlayerAuthController::class, 'me']);
 Route::patch('/api/v1/me/username', [App\Auth\Controllers\PlayerAuthController::class, 'changeUsername']);
 Route::post('/api/v1/me/username', [App\Auth\Controllers\PlayerAuthController::class, 'changeUsername']);
+Route::patch('/api/v1/me/profile', [App\Auth\Controllers\PlayerAuthController::class, 'updateProfile']);
+Route::post('/api/v1/me/profile', [App\Auth\Controllers\PlayerAuthController::class, 'updateProfile']);
 Route::post('/api/v1/me/email/change', [App\Auth\Controllers\PlayerAuthController::class, 'changeEmail']);
 Route::get('/api/v1/me/sessions', [App\Auth\Controllers\PlayerAuthController::class, 'sessions']);
 Route::delete('/api/v1/me/sessions', [App\Auth\Controllers\PlayerAuthController::class, 'revokeSession']);
@@ -50,8 +53,10 @@ Route::get('/api/v1/rooms/read', [App\Room\Controllers\RoomController::class, 'r
 Route::get('/api/v1/rooms/mine', [App\Room\Controllers\RoomController::class, 'mine']);
 Route::post('/api/v1/rooms', [App\Room\Controllers\RoomController::class, 'create']);
 Route::post('/api/v1/rooms/join', [App\Room\Controllers\RoomController::class, 'join']);
+Route::get('/api/v1/rooms/resolve-question', [App\Room\Controllers\RoomController::class, 'resolveQuestion']);
 Route::post('/api/v1/rooms/ready', [App\Room\Controllers\RoomController::class, 'ready']);
 Route::post('/api/v1/rooms/start', [App\Room\Controllers\RoomController::class, 'start']);
+Route::post('/api/v1/rooms/next', [App\Room\Controllers\RoomController::class, 'next']);
 Route::post('/api/v1/rooms/leave', [App\Room\Controllers\RoomController::class, 'leave']);
 Route::post('/api/v1/rooms/close', [App\Room\Controllers\RoomController::class, 'close']);
 Route::get('/api/v1/donations', [App\Donation\Controllers\PublicDonationController::class, 'index']);

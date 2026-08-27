@@ -11,6 +11,7 @@ use App\Game\Business\GameBusiness;
 use App\Room\Business\RoomBusiness;
 use Throwable;
 use Workerman\Connection\TcpConnection;
+use Workerman\Timer;
 
 final class GameWebSocket
 {
@@ -18,22 +19,54 @@ final class GameWebSocket
     private static array $roomConnections = [];
     /** @var array<int, array<string, string>> */
     private static array $connectionRooms = [];
+    /** @var array<int, PlayerContext> */
+    private static array $connectionContexts = [];
 
     public function onConnect(TcpConnection $connection): void
     {
-        $connection->playerContext = null;
         self::$connectionRooms[$connection->id] = [];
     }
 
     public function onClose(TcpConnection $connection): void
     {
-        foreach (self::$connectionRooms[$connection->id] ?? [] as $roomId) {
+        $rooms = array_values(self::$connectionRooms[$connection->id] ?? []);
+        $context = self::$connectionContexts[$connection->id] ?? null;
+        foreach ($rooms as $roomId) {
             unset(self::$roomConnections[$roomId][$connection->id]);
             if (self::$roomConnections[$roomId] === []) {
                 unset(self::$roomConnections[$roomId]);
             }
         }
         unset(self::$connectionRooms[$connection->id]);
+        unset(self::$connectionContexts[$connection->id]);
+        if ($context?->isUser() && $rooms !== []) {
+            Timer::add(45, function () use ($context, $rooms): void {
+                foreach ($rooms as $roomId) {
+                    if ($this->isUserOnline($roomId, (int) $context->userId)) {
+                        continue;
+                    }
+                    try {
+                        (new RoomBusiness())->leave($context, $roomId);
+                        $this->broadcastRoomSnapshots($roomId, 'offline-timeout');
+                    } catch (Throwable) {
+                    }
+                }
+            }, [], false);
+        }
+    }
+
+    private function isUserOnline(string $roomId, int $userId): bool
+    {
+        foreach (self::$roomConnections[$roomId] ?? [] as $connection) {
+            $context = self::$connectionContexts[$connection->id] ?? null;
+            if ($context instanceof PlayerContext
+                && $context->isUser()
+                && (int) $context->userId === $userId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function onMessage(TcpConnection $connection, string $raw): void
@@ -49,13 +82,21 @@ final class GameWebSocket
             }
             if ($event === 'v1.auth') {
                 $context = (new PlayerPrincipalService())->authenticate((string) ($payload['token'] ?? ''));
-                $connection->playerContext = $context;
+                self::$connectionContexts[$connection->id] = $context;
                 $this->send($connection, 'v1.authenticated', $requestId, ['identity' => $context->isUser() ? 'user' : 'anonymous']);
 
                 return;
             }
             if ($event === 'v1.ping') {
-                $this->context($connection);
+                $context = $this->context($connection);
+                if ($context->isUser()) {
+                    foreach (array_values(self::$connectionRooms[$connection->id] ?? []) as $roomId) {
+                        try {
+                            (new RoomBusiness())->touch($context, $roomId);
+                        } catch (Throwable) {
+                        }
+                    }
+                }
                 $this->send($connection, 'v1.pong', $requestId, []);
 
                 return;
@@ -85,16 +126,20 @@ final class GameWebSocket
             'v1.game.question' => $business->ask($context, $gameId, $requestId, (string) ($payload['question'] ?? '')),
             'v1.game.hint' => $business->hint($context, $gameId, $requestId, (int) ($payload['level'] ?? 0)),
             'v1.game.guess' => $business->guess($context, $gameId, $requestId, (string) ($payload['guess'] ?? '')),
+            'v1.game.abandon' => $business->abandon($context, $gameId),
             default => throw new \InvalidArgumentException('request.param_error'),
         };
         $out = match ($event) {
             'v1.game.question' => 'v1.game.answer',
             'v1.game.guess' => ($result['status'] ?? '') === 'solved' ? 'v1.game.solved' : 'v1.game.finished',
+            'v1.game.abandon' => 'v1.game.finished',
             default => 'v1.game.snapshot',
         };
         $roomId = (string) ($result['room_id'] ?? '');
         if ($roomId !== '') {
             $this->attach($connection, $roomId);
+            $business = new RoomBusiness();
+            $business->touch($context, $roomId);
             $this->broadcast($roomId, $out, $requestId, $result);
         } else {
             $this->send($connection, $out, $requestId, $result);
@@ -115,6 +160,7 @@ final class GameWebSocket
             return;
         }
         $business->snapshot($context, $roomId);
+        $business->touch($context, $roomId);
         if (in_array($event, ['v1.room.typing.start', 'v1.room.typing.stop'], true)) {
             $user = User::query()->find($context->userId);
             $this->broadcast($roomId, 'v1.room.member.typing', $requestId, [
@@ -124,6 +170,32 @@ final class GameWebSocket
                 'is_typing' => $event === 'v1.room.typing.start',
                 'expires_in_ms' => 4000,
             ], $connection->id);
+
+            return;
+        }
+        if ($event === 'v1.room.leave') {
+            $business->leave($context, $roomId);
+            $this->send($connection, 'v1.room.left', $requestId, ['room_id' => $roomId]);
+            $this->detach($connection, $roomId);
+            $this->broadcastRoomSnapshots($roomId, $requestId);
+
+            return;
+        }
+        if ($event === 'v1.room.member.mute') {
+            $business->mute($context, $roomId, (int) ($payload['user_id'] ?? 0), (bool) ($payload['muted'] ?? true));
+            $this->broadcastRoomSnapshots($roomId, $requestId);
+
+            return;
+        }
+        if ($event === 'v1.room.member.kick') {
+            $targetUserId = (int) ($payload['user_id'] ?? 0);
+            $business->kick($context, $roomId, $targetUserId);
+            $this->broadcast($roomId, 'v1.room.member.kicked', $requestId, [
+                'room_id' => $roomId,
+                'user_id' => $targetUserId,
+            ]);
+            $this->detachUser($roomId, $targetUserId);
+            $this->broadcastRoomSnapshots($roomId, $requestId);
 
             return;
         }
@@ -142,6 +214,26 @@ final class GameWebSocket
         self::$connectionRooms[$connection->id][$roomId] = $roomId;
     }
 
+    private function detach(TcpConnection $connection, string $roomId): void
+    {
+        unset(self::$roomConnections[$roomId][$connection->id], self::$connectionRooms[$connection->id][$roomId]);
+        if ((self::$roomConnections[$roomId] ?? []) === []) {
+            unset(self::$roomConnections[$roomId]);
+        }
+    }
+
+    private function detachUser(string $roomId, int $userId): void
+    {
+        foreach (self::$roomConnections[$roomId] ?? [] as $connection) {
+            $context = self::$connectionContexts[$connection->id] ?? null;
+            if ($context instanceof PlayerContext
+                && $context->isUser()
+                && (int) $context->userId === $userId) {
+                $this->detach($connection, $roomId);
+            }
+        }
+    }
+
     private function broadcastRoomSnapshots(string $roomId, string $requestId): void
     {
         foreach (self::$roomConnections[$roomId] ?? [] as $connection) {
@@ -150,7 +242,7 @@ final class GameWebSocket
                 $snapshot = (new RoomBusiness())->snapshot($context, $roomId);
                 $this->send($connection, 'v1.room.snapshot', $requestId, $snapshot);
             } catch (Throwable) {
-                unset(self::$roomConnections[$roomId][$connection->id]);
+                $this->detach($connection, $roomId);
             }
         }
     }
@@ -168,12 +260,13 @@ final class GameWebSocket
 
     private function context(TcpConnection $connection): PlayerContext
     {
-        if (!$connection->playerContext instanceof PlayerContext) {
+        $context = self::$connectionContexts[$connection->id] ?? null;
+        if (!$context instanceof PlayerContext) {
             throw new \RuntimeException('auth.anonymous_invalid');
         }
-        (new PlayerPrincipalService())->validate($connection->playerContext);
+        (new PlayerPrincipalService())->validate($context);
 
-        return $connection->playerContext;
+        return $context;
     }
 
     /** @param array<string, mixed> $data */

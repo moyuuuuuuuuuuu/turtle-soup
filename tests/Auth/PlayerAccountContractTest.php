@@ -73,6 +73,15 @@ final class PlayerAccountContractTest extends TestCase
         self::assertStringNotContainsString("\$data['account']", $business);
     }
 
+    public function testEmailCodeLoginCreatesPasswordlessAccountWhenEmailIsNew(): void
+    {
+        $business = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Business/PlayerAuthBusiness.php');
+        self::assertIsString($business);
+        self::assertStringContainsString("'password_hash' => ''", $business);
+        self::assertStringContainsString("\$this->avatars->createDefault(\$email, \$publicId)", $business);
+        self::assertStringContainsString("(string) \$user->password_hash !== ''", $business);
+    }
+
     public function testSmtpSenderConfigurationUsesCanonicalEnvironmentName(): void
     {
         $config = file_get_contents(dirname(__DIR__, 2).'/config/mail.php');
@@ -82,5 +91,16 @@ final class PlayerAccountContractTest extends TestCase
         self::assertStringContainsString("env('SMTP_FROM_ADDRESS'", $config);
         self::assertStringContainsString('SMTP configuration is incomplete', $mailer);
         self::assertStringContainsString("'mail_from'", $mailer);
+    }
+
+    public function testEmailCodeRateLimitsAreIsolatedByPurpose(): void
+    {
+        $service = file_get_contents(dirname(__DIR__, 2).'/app/Auth/Services/EmailCodeService.php');
+        self::assertIsString($service);
+        $sendMethod = strstr($service, 'public function send');
+        self::assertIsString($sendMethod);
+        $sendMethod = strstr($sendMethod, 'public function verify', true);
+        self::assertIsString($sendMethod);
+        self::assertSame(4, substr_count($sendMethod, "where('purpose', \$purpose)"));
     }
 }
