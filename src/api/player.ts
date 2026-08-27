@@ -1,10 +1,12 @@
 /* eslint-disable style/max-statements-per-line */
+import { resolveApiBaseUrl } from '@/config/endpoints'
+
 export interface PlayerUser { id: string, username: string, email: string, avatar_url?: string, bio?: string | null, status: string }
 export interface PlayerSession { id: string, device_name: string, platform: string, last_used_at?: string, expires_at: string }
 interface Envelope<T> { code: string, message: string, data: T }
 interface AuthResult { access_token: string, refresh_token: string, expires_in: number, session: PlayerSession, user: PlayerUser, merged_games: number }
 
-const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://hgt.test/api/v1'
+const baseUrl = resolveApiBaseUrl()
 const refreshKey = 'turtle_player_refresh_token'
 let accessToken = ''
 let restorePromise: Promise<AuthResult | null> | null = null

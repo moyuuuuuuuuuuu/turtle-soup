@@ -1,7 +1,8 @@
 import type { ApiEnvelope, DonationPage, GameSnapshot, HomeStats, PublicQuestion, RoomSnapshot } from '@/types/game'
 import { currentAccessToken, playerApi } from '@/api/player'
+import { resolveApiBaseUrl } from '@/config/endpoints'
 
-const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://hgt.test/api/v1'
+const baseUrl = resolveApiBaseUrl()
 const tokenKey = 'turtle_anonymous_token'
 const requestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
 

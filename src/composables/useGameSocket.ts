@@ -2,11 +2,12 @@ import type { GameSnapshot, RoomSnapshot } from '@/types/game'
 /* eslint-disable style/max-statements-per-line */
 import { ensurePlayerAccessToken } from '@/api/player'
 import { ensureAnonymousSession, roomApi } from '@/api/turtle'
+import { resolveWebSocketUrl } from '@/config/endpoints'
 
 interface PendingRequest { resolve: (value: unknown) => void, reject: (reason: Error) => void }
 interface SocketEnvelope { event?: string, request_id?: string, data?: Record<string, unknown> }
 
-const wsUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://hgt.test:8790'
+const wsUrl = resolveWebSocketUrl()
 const connected = ref(false)
 const reconnecting = ref(false)
 const gameSnapshot = shallowRef<GameSnapshot | null>(null)
