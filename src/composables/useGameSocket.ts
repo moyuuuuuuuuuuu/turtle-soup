@@ -15,6 +15,7 @@ const roomSnapshot = shallowRef<RoomSnapshot | null>(null)
 const typingMembers = ref<Array<{ user_id: number, username: string, expiresAt: number }>>([])
 const kickedRoomId = ref('')
 const memberLeftNotice = shallowRef<{ room_id: string, user_id: number, username: string, reason: 'manual' | 'switch_question', nonce: number } | null>(null)
+const roomNextStarted = shallowRef<{ room_id: string, question_id: string, game_id: string, nonce: number } | null>(null)
 const pending = new Map<string, PendingRequest>()
 let socket: UniApp.SocketTask | null = null
 let connecting: Promise<void> | null = null
@@ -79,6 +80,15 @@ export function useGameSocket() {
             nonce: Date.now(),
           }
         }
+        if (message.event === 'v1.room.next.started') {
+          const data = message.data || {}
+          roomNextStarted.value = {
+            room_id: String(data.room_id || ''),
+            question_id: String(data.question_id || ''),
+            game_id: String(data.game_id || ''),
+            nonce: Date.now(),
+          }
+        }
         if (message.event === 'v1.room.snapshot')
           roomSnapshot.value = message.data as unknown as RoomSnapshot
         if (['v1.game.snapshot', 'v1.game.answer', 'v1.game.solved', 'v1.game.finished'].includes(String(message.event)))
@@ -135,6 +145,7 @@ export function useGameSocket() {
     typingMembers,
     kickedRoomId,
     memberLeftNotice,
+    roomNextStarted,
     connect,
     join: (game_id: string) => send<GameSnapshot>('v1.game.join', { game_id }),
     ask: (game_id: string, question: string) => send<GameSnapshot>('v1.game.question', { game_id, question }),
@@ -145,6 +156,7 @@ export function useGameSocket() {
     roomChat: (room_id: string, content: string) => send<RoomSnapshot>('v1.room.chat', { room_id, content }),
     roomReady: (room_id: string, ready: boolean) => send<RoomSnapshot>('v1.room.ready', { room_id, ready }),
     roomStart: (room_id: string) => send<RoomSnapshot>('v1.room.start', { room_id }),
+    roomNext: (room_id: string) => send<{ room_id: string, question_id: string, game_id: string }>('v1.room.next', { room_id }),
     roomLeave: (room_id: string, reason: 'manual' | 'switch_question' = 'manual') => send<void>('v1.room.leave', { room_id, reason }),
     roomMute: (room_id: string, user_id: number, muted: boolean) => send<RoomSnapshot>('v1.room.member.mute', { room_id, user_id, muted }),
     roomKick: (room_id: string, user_id: number) => send<void>('v1.room.member.kick', { room_id, user_id }),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /* eslint-disable style/max-statements-per-line */
-import { gameApi, roomApi } from '@/api/turtle'
+import { gameApi, questionApi, roomApi } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
@@ -43,6 +43,7 @@ const sortedRoomMembers = computed(() => [...(room.value?.members || [])].sort((
 const canControlResult = computed(() => game.value?.mode !== 'multiplayer' || room.value?.is_owner === true)
 const typingMembers = socket.typingMembers
 const gameId = computed(() => String(route.params.id || route.query.id || ''))
+let switchingGameId = ''
 const riskTypeLabels: Record<string, string> = { death: '死亡', violence: '暴力', gore: '血腥', self_harm: '自伤', sexual: '性内容', child_safety: '未成年人', discrimination: '歧视', illegal: '违法', substance: '成瘾物', other: '其他' }
 const riskTypeLabel = (value: string) => riskTypeLabels[value] || value
 watch(socket.gameSnapshot, (value) => {
@@ -53,6 +54,32 @@ watch(socket.gameSnapshot, (value) => {
   if (['solved', 'finished', 'abandoned'].includes(value.status)) {
     resultOpen.value = true
   }
+})
+async function switchToRoomGame(nextGameId: string) {
+  if (!nextGameId || nextGameId === game.value?.id || nextGameId === switchingGameId)
+    return
+  switchingGameId = nextGameId
+  resultOpen.value = false
+  errorMessage.value = ''
+  try {
+    store.setGame(await socket.join(nextGameId))
+    await router.replace({ name: 'game', params: { id: nextGameId } })
+  }
+  catch (error) {
+    uni.showToast({ title: (error as Error).message, icon: 'none' })
+  }
+  finally {
+    switchingGameId = ''
+  }
+}
+watch(() => socket.roomNextStarted.value?.nonce, () => {
+  const next = socket.roomNextStarted.value
+  if (next && next.room_id === room.value?.id)
+    void switchToRoomGame(next.game_id)
+})
+watch(() => room.value?.game_id, (nextGameId) => {
+  if (nextGameId)
+    void switchToRoomGame(nextGameId)
 })
 watch(() => room.value?.messages.length || 0, (count, previous) => {
   if (count > previous && tab.value !== 'team') {
@@ -249,12 +276,28 @@ async function goHome() {
   }
   uni.switchTab({ url: '/pages/index/index' })
 }
-function continuePlaying() {
-  if (game.value?.room_id && room.value?.is_owner) {
-    router.push({ name: 'questions', query: { room_id: game.value.room_id } })
+async function continuePlaying() {
+  if (busy.value)
     return
+  resultOpen.value = false
+  busy.value = true
+  try {
+    if (game.value?.room_id && room.value?.is_owner) {
+      await socket.roomNext(game.value.room_id)
+      return
+    }
+    const nextQuestion = await questionApi.random(undefined, 'safe')
+    const nextGame = await gameApi.create(nextQuestion.id)
+    store.setGame(nextGame)
+    await router.replace({ name: 'game', params: { id: nextGame.id } })
   }
-  router.push({ name: 'questions' })
+  catch (error) {
+    resultOpen.value = true
+    uni.showToast({ title: (error as Error).message, icon: 'none' })
+  }
+  finally {
+    busy.value = false
+  }
 }
 function measureMobileSurface() {
   if (mobileSurfaceOpen.value)
@@ -629,7 +672,7 @@ onUnmounted(() => {
           <button class="hgt-mono outline" @click="goHome">
             返回首页
           </button>
-          <button class="hgt-mono continue-button" @click="continuePlaying">
+          <button class="hgt-mono continue-button" :disabled="busy" @click="continuePlaying">
             继续游玩
           </button>
         </view>
