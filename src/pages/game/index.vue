@@ -302,7 +302,17 @@ async function continuePlaying() {
   resultOpen.value = false
   busy.value = true
   try {
-    await socket.next(game.value!.id)
+    if (game.value?.mode === 'multiplayer' && game.value.room_id) {
+      const nextRoom = await roomApi.next(game.value.room_id)
+      socket.adoptRoom(nextRoom)
+      if (!nextRoom.game_id)
+        throw new Error('房间尚未关联新游戏，请稍后重试')
+      await socket.roomNextSync(nextRoom.id)
+      await switchToGame(nextRoom.game_id)
+    }
+    else {
+      await socket.next(game.value!.id)
+    }
   }
   catch (error) {
     resultOpen.value = true

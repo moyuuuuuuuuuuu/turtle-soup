@@ -169,6 +169,7 @@ export function useGameSocket() {
     roomReady: (room_id: string, ready: boolean) => send<RoomSnapshot>('v1.room.ready', { room_id, ready }),
     roomStart: (room_id: string) => send<RoomSnapshot>('v1.room.start', { room_id }),
     roomNext: (room_id: string) => send<{ room_id: string, question_id: string, game_id: string }>('v1.room.next', { room_id }),
+    roomNextSync: (room_id: string) => send<{ room_id: string, question_id: string, game_id: string }>('v1.room.next.sync', { room_id }),
     roomLeave: (room_id: string, reason: 'manual' | 'switch_question' = 'manual') => send<void>('v1.room.leave', { room_id, reason }),
     roomMute: (room_id: string, user_id: number, muted: boolean) => send<RoomSnapshot>('v1.room.member.mute', { room_id, user_id, muted }),
     roomKick: (room_id: string, user_id: number) => send<void>('v1.room.member.kick', { room_id, user_id }),

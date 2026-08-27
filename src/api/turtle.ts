@@ -69,7 +69,7 @@ export const roomApi = {
   resolveQuestion: (invite_code: string) => request<{ question_id: string, status: string }>(`/rooms/resolve-question?invite_code=${encodeURIComponent(invite_code)}`),
   ready: (id: string, ready: boolean) => request<RoomSnapshot>('/rooms/ready', 'POST', { id, ready }),
   start: (id: string) => request<RoomSnapshot>('/rooms/start', 'POST', { id }),
-  next: (id: string, question_id: string, risk_confirmed = false) => request<RoomSnapshot>('/rooms/next', 'POST', { id, question_id, risk_confirmed }),
+  next: (id: string, question_id = '', risk_confirmed = false) => request<RoomSnapshot>('/rooms/next', 'POST', { id, question_id, risk_confirmed }),
   leave: (id: string) => request<void>('/rooms/leave', 'POST', { id }),
   close: (id: string) => request<void>('/rooms/close', 'POST', { id }),
 }
