@@ -6,7 +6,9 @@ export enum QuestionStatusEnum {
 
 export enum QuestionSourceEnum {
   Manual = 'manual',
-  Ai = 'ai'
+  Ai = 'ai',
+  AuthorizedSeed = 'authorized_seed',
+  LtdaCcBySa = 'ltda_cc_by_sa'
 }
 
 export enum AiTaskStatusEnum {
@@ -48,7 +50,9 @@ export const QUESTION_STATUS_LABELS: Record<QuestionStatusEnum, string> = {
 
 export const QUESTION_SOURCE_LABELS: Record<QuestionSourceEnum, string> = {
   [QuestionSourceEnum.Manual]: '人工录入',
-  [QuestionSourceEnum.Ai]: 'AI 生成'
+  [QuestionSourceEnum.Ai]: 'AI 生成',
+  [QuestionSourceEnum.AuthorizedSeed]: '授权题库',
+  [QuestionSourceEnum.LtdaCcBySa]: '小乌龟侦探社'
 }
 
 export const AI_TASK_STATUS_LABELS: Record<AiTaskStatusEnum, string> = {

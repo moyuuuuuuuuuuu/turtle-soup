@@ -1,14 +1,14 @@
 <!doctype html>
 <html>
   <head>
-    <title>SaiAdmin</title>
+    <title>墨鱼海龟汤 · 后台管理</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="SaiAdmin - A modern admin dashboard system built with Vue 3, Element Plus, and Webman."
+      content="墨鱼海龟汤内容与运营管理后台"
     />
-    <link rel="shortcut icon" type="image/x-icon" href="src/assets/images/favicon.ico" />
+    <link id="app-favicon" rel="icon" type="image/png" href="/brand/favicon-light.png" />
 
     <style>
       /* 防止页面刷新时白屏的初始样式 */
@@ -33,6 +33,19 @@
           if (themeType === 'dark') {
             document.documentElement.classList.add('dark')
           }
+          const syncFavicon = () => {
+            const favicon = document.getElementById('app-favicon')
+            if (favicon) {
+              favicon.href = document.documentElement.classList.contains('dark')
+                ? '/brand/favicon-dark.png'
+                : '/brand/favicon-light.png'
+            }
+          }
+          syncFavicon()
+          new MutationObserver(syncFavicon).observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+          })
         } catch (e) {
           console.warn('Failed to apply initial theme:', e)
         }

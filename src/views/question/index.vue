@@ -6,6 +6,9 @@
         <ElSelect v-model="search.status" placeholder="状态" clearable class="!w-36"
           ><ElOption v-for="item in QUESTION_STATUS_OPTIONS" :key="item.value" v-bind="item"
         /></ElSelect>
+        <ElSelect v-model="search.is_featured" placeholder="是否精选" clearable class="!w-36">
+          <ElOption label="精选" value="1" /><ElOption label="非精选" value="0" />
+        </ElSelect>
         <ElButton type="primary" @click="load">查询</ElButton
         ><ElButton v-permission="'question:edit'" @click="openEditor()">新增题目</ElButton
         ><ElButton v-permission="'question:ai:create'" @click="aiVisible = true">AI 创作</ElButton>
@@ -23,11 +26,32 @@
           ><template #default="{ row }">{{
             enumLabel(QUESTION_SOURCE_LABELS, row.source_type)
           }}</template></ElTableColumn
+        ><ElTableColumn prop="source_author" label="来源作者" min-width="180"
+          ><template #default="{ row }">{{ row.source_author || '-' }}</template></ElTableColumn
+        ><ElTableColumn prop="source_license" label="来源许可" width="130"
+          ><template #default="{ row }">{{ row.source_license || '-' }}</template></ElTableColumn
+        ><ElTableColumn label="原文链接" min-width="220"
+          ><template #default="{ row }"
+            ><ElLink
+              v-if="row.source_url"
+              :href="row.source_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              type="primary"
+              >{{ row.source_url }}</ElLink
+            ><span v-else>-</span></template
+          ></ElTableColumn
         ><ElTableColumn label="状态" width="100"
           ><template #default="{ row }"
             ><ElTag>{{ enumLabel(QUESTION_STATUS_LABELS, row.status) }}</ElTag></template
           ></ElTableColumn
         ><ElTableColumn prop="version" label="版本" width="80" />
+        <ElTableColumn label="精选" width="90">
+          <template #default="{ row }"
+            ><ElTag v-if="row.is_featured" type="warning">精选</ElTag
+            ><span v-else>-</span></template
+          >
+        </ElTableColumn>
         <ElTableColumn label="操作" width="420" fixed="right"
           ><template #default="{ row }"
             ><ElButton link type="primary" @click="openEditor(row.id)">编辑</ElButton
@@ -63,6 +87,27 @@
           ><ElInputNumber v-model="form.min_players" :min="1" /> 至
           <ElInputNumber v-model="form.max_players" :min="form.min_players"
         /></ElFormItem>
+        <ElFormItem label="首页精选"><ElSwitch v-model="form.is_featured" /></ElFormItem>
+        <template v-if="form.is_featured">
+          <ElFormItem label="精选排序"
+            ><ElInputNumber v-model="form.featured_sort" :min="0"
+          /></ElFormItem>
+          <ElFormItem label="展示时间">
+            <ElDatePicker
+              v-model="form.featured_starts_at"
+              type="datetime"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              placeholder="开始时间（可不填）"
+            />
+            <span class="mx-2">至</span>
+            <ElDatePicker
+              v-model="form.featured_ends_at"
+              type="datetime"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              placeholder="结束时间（可不填）"
+            />
+          </ElFormItem>
+        </template>
         <ElFormItem label="标签"
           ><ElSelect v-model="form.tag_ids" multiple filterable class="w-full"
             ><ElOption
@@ -84,7 +129,7 @@
               v-for="item in QUESTION_RISK_TYPE_OPTIONS"
               :key="item.value"
               v-bind="item" /></ElSelect></ElFormItem
-        ><ElFormItem v-if="form.risk_level !== 'safe'" label="审核备注"
+        ><ElFormItem v-if="form.risk_level !== 'safe'" label="风险说明"
           ><ElInput v-model="form.risk_note" type="textarea"
         /></ElFormItem>
         <ElAlert
@@ -203,6 +248,10 @@
     risk_level: QuestionRiskLevelEnum.Safe,
     risk_types: [],
     risk_note: '',
+    is_featured: false,
+    featured_sort: 0,
+    featured_starts_at: null,
+    featured_ends_at: null,
     tag_ids: [],
     translations: [
       { language: 'zh-CN', title: '', surface: '', bottom: '' },
@@ -220,9 +269,9 @@
   const rows = ref<Record<string, any>[]>([]),
     total = ref(0),
     page = ref(1),
-    pageSize = ref(20),
+    pageSize = ref(10),
     loading = ref(false),
-    search = reactive({ keyword: '', status: '' }),
+    search = reactive({ keyword: '', status: '', is_featured: '' }),
     form = ref<QuestionPayload>(emptyForm()),
     activeLanguage = ref('zh-CN'),
     editorVisible = ref(false),
@@ -247,6 +296,19 @@
     if (item) item.content = content
     else items.push({ language, content })
   }
+  function riskTypesOf(value: unknown): string[] {
+    if (Array.isArray(value))
+      return value.filter((item): item is string => typeof item === 'string')
+    if (typeof value !== 'string' || !value.trim()) return []
+    try {
+      const parsed: unknown = JSON.parse(value)
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === 'string')
+        : []
+    } catch {
+      return []
+    }
+  }
   async function load() {
     loading.value = true
     try {
@@ -261,7 +323,17 @@
     tags.value = await api.tags()
   }
   async function openEditor(id?: number) {
-    form.value = id ? await api.read(id) : emptyForm()
+    if (id) {
+      const question = await api.read(id)
+      form.value = {
+        ...question,
+        tag_ids: question.tag_ids ?? question.tags?.map((tag) => tag.id) ?? [],
+        risk_types: riskTypesOf(question.risk_types),
+        risk_note: question.risk_note ?? ''
+      }
+    } else {
+      form.value = emptyForm()
+    }
     activeLanguage.value = 'zh-CN'
     editorVisible.value = true
   }
@@ -311,7 +383,7 @@
     if (!chineseComplete.value) return void ElMessage.error('中文内容不完整，请先编辑补齐')
     const risky = form.value.risk_level !== QuestionRiskLevelEnum.Safe
     if (risky && !form.value.risk_note?.trim())
-      return void ElMessage.error('风险内容必须填写审核备注')
+      return void ElMessage.error('风险内容必须填写风险说明')
     if (risky)
       await ElMessageBox.confirm('确认已人工审核风险内容并继续发布？', '风险确认', {
         type: 'warning'

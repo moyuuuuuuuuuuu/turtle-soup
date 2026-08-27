@@ -38,7 +38,7 @@ import { headerBarConfig } from './modules/headerBar'
 const appConfig: SystemConfig = {
   // 系统信息
   systemInfo: {
-    name: 'SaiAdmin' // 系统名称
+    name: '墨鱼海龟汤' // 系统名称
   },
   // 系统主题
   systemThemeStyles: {

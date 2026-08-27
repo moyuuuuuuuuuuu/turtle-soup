@@ -16,14 +16,24 @@ export interface QuestionPayload {
   min_players: number
   max_players: number
   source_type: QuestionSourceEnum
+  source_url?: string | null
+  source_author?: string | null
+  source_license?: string | null
+  source_hash?: string | null
+  content_hash?: string | null
   status?: QuestionStatusEnum
   risk_level: QuestionRiskLevelEnum
   risk_types: string[]
   risk_note?: string | null
+  is_featured: boolean
+  featured_sort: number
+  featured_starts_at?: string | null
+  featured_ends_at?: string | null
   translations: Translation[]
   points: Array<{ weight: number; is_required: boolean; sort: number; translations: Translation[] }>
   hints: Array<{ level: number; translations: Translation[] }>
   tag_ids: number[]
+  tags?: QuestionTag[]
 }
 
 export interface QuestionTag {
