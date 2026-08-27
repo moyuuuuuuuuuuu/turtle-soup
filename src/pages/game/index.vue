@@ -2,6 +2,7 @@
 /* eslint-disable style/max-statements-per-line */
 import { gameApi, roomApi } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
+import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 
@@ -223,7 +224,11 @@ async function copyInviteLink() {
   if (!currentRoom)
     return
   const questionId = currentRoom.question_id || game.value?.question_id || ''
-  const link = `${location.origin}${location.pathname}#/pages/rooms/index?invite_code=${encodeURIComponent(currentRoom.invite_code)}&question_id=${encodeURIComponent(questionId)}`
+  const query = [`invite_code=${encodeURIComponent(currentRoom.invite_code)}`]
+  if (questionId)
+    query.push(`question_id=${encodeURIComponent(questionId)}`)
+  const sharePath = `/pages/rooms/index?${query.join('&')}`
+  const link = resolveShareUrl(sharePath)
   uni.setClipboardData({ data: link, success: () => uni.showToast({ title: '邀请链接已复制', icon: 'success' }) })
 }
 function backToQuestion() {
