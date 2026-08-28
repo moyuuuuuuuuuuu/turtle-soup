@@ -1,3 +1,4 @@
+import process from 'node:process'
 /*
  * @Author: weisheng
  * @Date: 2025-08-28 20:59:43
@@ -8,6 +9,9 @@
  * 记得注释
  */
 import { defineManifestConfig } from '@uni-helper/vite-plugin-uni-manifest'
+import { loadEnv } from 'vite'
+
+const manifestEnv = loadEnv(process.env.NODE_ENV === 'production' ? 'production' : 'development', process.cwd(), '')
 
 export default defineManifestConfig({
   'name': '墨鱼海龟汤',
@@ -64,7 +68,7 @@ export default defineManifestConfig({
     optimization: {
       subPackages: true,
     },
-    appid: '',
+    appid: manifestEnv.VITE_WECHAT_MINI_PROGRAM_APP_ID || '',
     setting: {
       urlCheck: false,
     },
@@ -85,6 +89,7 @@ export default defineManifestConfig({
     usingComponents: true,
   },
   'mp-toutiao': {
+    appid: manifestEnv.VITE_DOUYIN_MINI_PROGRAM_APP_ID || '',
     usingComponents: true,
   },
   'h5': {

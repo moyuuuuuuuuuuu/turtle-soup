@@ -54,7 +54,7 @@ async function join(id?: string, questionId = fallbackQuestionId.value) {
 onMounted(async () => {
   try {
     await player.restore(); if (!player.user)
-      return router.replace({ name: 'player-login', query: inviteCode.value ? { redirect: `/pages/rooms/index?invite_code=${encodeURIComponent(inviteCode.value)}` } : {} }); if (inviteCode.value) {
+      return router.replace({ name: 'player-login', query: inviteCode.value ? { redirect: `/pages/rooms/index?invite_code=${encodeURIComponent(inviteCode.value)}${fallbackQuestionId.value ? `&question_id=${encodeURIComponent(fallbackQuestionId.value)}` : ''}` } : {} }); if (inviteCode.value) {
       await join()
       return
     } await load()

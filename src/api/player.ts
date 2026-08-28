@@ -1,10 +1,11 @@
 /* eslint-disable style/max-statements-per-line */
 import { resolveApiBaseUrl } from '@/config/endpoints'
 
-export interface PlayerUser { id: string, username: string, email: string, avatar_url?: string, bio?: string | null, status: string }
+export interface PlayerUser { id: string, username: string, email: string | null, avatar_url?: string, bio?: string | null, status: string }
 export interface PlayerSession { id: string, device_name: string, platform: string, last_used_at?: string, expires_at: string }
 interface Envelope<T> { code: string, message: string, data: T }
-interface AuthResult { access_token: string, refresh_token: string, expires_in: number, session: PlayerSession, user: PlayerUser, merged_games: number }
+export interface AuthResult { access_token: string, refresh_token: string, expires_in: number, session: PlayerSession, user: PlayerUser, merged_games: number }
+export interface LegalDocuments { service_terms: string, privacy_policy: string }
 
 const baseUrl = resolveApiBaseUrl()
 const refreshKey = 'turtle_player_refresh_token'
@@ -12,6 +13,10 @@ let accessToken = ''
 let restorePromise: Promise<AuthResult | null> | null = null
 
 export function currentAccessToken() { return accessToken }
+export function invalidatePlayerSession() {
+  accessToken = ''
+  uni.removeStorageSync(refreshKey)
+}
 function accessTokenExpiresAt(token: string) {
   try {
     const payload = token.split('.')[1]
@@ -72,7 +77,7 @@ async function performRestore() {
   if (!refresh_token)
     return null
   try { return accept(await call<AuthResult>('/auth/token/refresh', 'POST', { refresh_token })) }
-  catch { accessToken = ''; uni.removeStorageSync(refreshKey); return null }
+  catch { invalidatePlayerSession(); return null }
 }
 
 async function restoreAccess() {
@@ -89,10 +94,12 @@ export async function ensurePlayerAccessToken() {
 }
 
 export const playerApi = {
+  legalDocuments: () => call<LegalDocuments>('/legal/documents', 'GET'),
   sendCode: (email: string, purpose: string) => call<{ sent: boolean }>('/auth/email-code/send', 'POST', { email, purpose }),
   register: (data: Record<string, unknown>) => call<AuthResult>('/auth/register', 'POST', data).then(accept),
   passwordLogin: (email: string, password: string) => call<AuthResult>('/auth/login/password', 'POST', { email, password }).then(accept),
   codeLogin: (email: string, email_code: string) => call<AuthResult>('/auth/login/email-code', 'POST', { email, email_code }).then(accept),
+  miniProgramLogin: (platform: 'wechat' | 'douyin', code: string, anonymous_code = '') => call<AuthResult>('/auth/login/mini-program', 'POST', { platform, code, anonymous_code }).then(accept),
   restore: restoreAccess,
   me: () => call<PlayerUser>('/me', 'GET', undefined, true),
   sessions: () => call<PlayerSession[]>('/me/sessions', 'GET', undefined, true),
@@ -101,8 +108,7 @@ export const playerApi = {
       await call(all ? '/auth/logout-all' : '/auth/logout', 'POST', {}, true)
     }
     finally {
-      accessToken = ''
-      uni.removeStorageSync(refreshKey)
+      invalidatePlayerSession()
     }
   },
   revokeSession: (session_id: string) => call('/me/sessions', 'DELETE', { session_id }, true),

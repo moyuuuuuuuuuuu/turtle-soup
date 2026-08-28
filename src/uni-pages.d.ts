@@ -10,32 +10,14 @@ type _LocationUrl =
   "/pages/game/index" |
   "/pages/guess/index" |
   "/pages/history/index" |
+  "/pages/legal-document/index" |
   "/pages/login/index" |
   "/pages/public-rooms/index" |
   "/pages/question-detail/index" |
   "/pages/questions/index" |
   "/pages/register/index" |
   "/pages/reset-password/index" |
-  "/pages/rooms/index" |
-  "/subPages/ci/index" |
-  "/subPages/create-uni/index" |
-  "/subPages/feedback/index" |
-  "/subPages/icon/index" |
-  "/subPages/pinia/index" |
-  "/subPages/request/index" |
-  "/subPages/router/demo-aftereach" |
-  "/subPages/router/demo-guard" |
-  "/subPages/router/demo-object" |
-  "/subPages/router/demo-params" |
-  "/subPages/router/demo-protected" |
-  "/subPages/router/demo-query" |
-  "/subPages/router/demo-string" |
-  "/subPages/router/index" |
-  "/subPages/skills/index" |
-  "/subPages/styles/index" |
-  "/subPages/uni-ku-root/index" |
-  "/subEcharts/echarts/index" |
-  "/subAsyncEcharts/asyncEcharts/index";
+  "/pages/rooms/index";
 
 interface NavigateToOptions {
   url: _LocationUrl;

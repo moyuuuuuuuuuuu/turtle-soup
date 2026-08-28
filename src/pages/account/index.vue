@@ -11,6 +11,7 @@ const store = usePlayerStore(); const sessions = ref<PlayerSession[]>([]); const
 const loading = ref(true)
 const passwordBusy = ref(false)
 const avatarBusy = ref(false)
+const miniProgramLoginBusy = ref(false)
 const completed = computed(() => history.value.filter(item => ['solved', 'finished'].includes(item.status)).length); const solved = computed(() => history.value.filter(item => item.status === 'solved').length); const completionRate = computed(() => history.value.length ? Math.round(solved.value / history.value.length * 100) : 0)
 const achievements = computed(() => [{ icon: '◈', name: '初探真相', note: '完成第一个谜题', unlocked: solved.value >= 1 }, { icon: '◉', name: '侦探之眼', note: '10次游戏中胜率超过80%', unlocked: history.value.length >= 10 && completionRate.value >= 80 }, { icon: '◎', name: '快手侦探', note: '10分钟内完成困难谜题', unlocked: false }, { icon: '◇', name: '无懈可击', note: '不放弃完成20个谜题', unlocked: solved.value >= 20 }, { icon: '◆', name: '传奇推理师', note: '完成所有困难谜题', unlocked: false }]); const unlockedCount = computed(() => achievements.value.filter(item => item.unlocked).length)
 onMounted(async () => {
@@ -19,7 +20,7 @@ onMounted(async () => {
       await store.restore()
     if (!store.user)
       return
-    username.value = store.user.username; bio.value = store.user.bio || ''; email.value = store.user.email; [sessions.value, history.value] = await Promise.all([playerApi.sessions(), gameApi.history()])
+    username.value = store.user.username; bio.value = store.user.bio || ''; email.value = store.user.email || ''; [sessions.value, history.value] = await Promise.all([playerApi.sessions(), gameApi.history()])
   }
   finally { loading.value = false }
 })
@@ -78,10 +79,37 @@ async function logout(all = false) {
   try {
     await store.logout(all)
     uni.showToast({ title: all ? '已退出全部设备' : '已退出当前设备', icon: 'success' })
-    await router.replace({ name: 'home' })
+    await uni.switchTab({ url: '/pages/index/index' })
   }
   catch (error) {
     uni.showToast({ title: (error as Error).message || '退出失败，请稍后重试', icon: 'none' })
+  }
+}
+type MiniProgramPlatform = 'wechat' | 'douyin'
+function miniProgramCredential(): Promise<{ code: string, anonymousCode?: string }> {
+  return new Promise((resolve, reject) => uni.login({
+    success: result => resolve(result as { code: string, anonymousCode?: string }),
+    fail: reject,
+  }))
+}
+async function loginWithMiniProgram(platform: MiniProgramPlatform) {
+  if (miniProgramLoginBusy.value)
+    return
+  miniProgramLoginBusy.value = true
+  try {
+    const credential = await miniProgramCredential()
+    if (!credential.code)
+      throw new Error('未获取到小程序登录凭证')
+    const result = await playerApi.miniProgramLogin(platform, credential.code, credential.anonymousCode || '')
+    store.accept(result)
+    if (result.merged_games)
+      uni.showToast({ title: `已合并 ${result.merged_games} 局记录`, icon: 'none' })
+  }
+  catch (error) {
+    uni.showToast({ title: (error as Error).message || '小程序登录失败，请稍后重试', icon: 'none' })
+  }
+  finally {
+    miniProgramLoginBusy.value = false
   }
 }
 </script>
@@ -211,11 +239,26 @@ async function logout(all = false) {
       </text><text class="guest-copy">
         同步游戏记录、解锁成就，创建多人房间并邀请队友一起寻找真相。
       </text><view class="guest-actions">
+        <!-- #ifdef H5 -->
         <button class="guest-primary hgt-mono" @click="router.push({ name: 'player-login' })">
           登录账号
         </button><button class="guest-secondary hgt-mono" @click="router.push({ name: 'player-register' })">
           创建账号
-        </button><button class="guest-secondary hgt-mono" @click="router.push({ name: 'donate' })">
+        </button>
+        <!-- #endif -->
+        <!-- #ifdef MP-WEIXIN -->
+        <button class="guest-primary mini-program-login hgt-mono" :loading="miniProgramLoginBusy" :disabled="miniProgramLoginBusy" @click="loginWithMiniProgram('wechat')">
+          <view class="platform-logo i-simple-icons-wechat" aria-hidden="true" />
+          <text>{{ miniProgramLoginBusy ? '登录中…' : '微信一键登录' }}</text>
+        </button>
+        <!-- #endif -->
+        <!-- #ifdef MP-TOUTIAO -->
+        <button class="guest-primary mini-program-login hgt-mono" :loading="miniProgramLoginBusy" :disabled="miniProgramLoginBusy" @click="loginWithMiniProgram('douyin')">
+          <view class="platform-logo i-simple-icons-tiktok" aria-hidden="true" />
+          <text>{{ miniProgramLoginBusy ? '登录中…' : '抖音一键登录' }}</text>
+        </button>
+        <!-- #endif -->
+        <button class="guest-secondary hgt-mono" @click="router.push({ name: 'donate' })">
           支持项目
         </button>
       </view><text class="hgt-mono guest-note">
@@ -231,4 +274,6 @@ async function logout(all = false) {
 .profile-page{min-height:100vh;background:var(--background);color:var(--foreground)}.page-head{display:flex;padding:34px 48px 28px;border-bottom:1px solid var(--border);gap:8px;flex-direction:column}.eyebrow,.section-title,.email,.stats-card{font-size:11px;letter-spacing:.14em;color:var(--muted-foreground)}.page-title{font-size:40px}.profile-grid{display:grid;max-width:1080px;padding:32px 48px 64px;gap:32px;grid-template-columns:300px 1fr}.profile-column,.detail-column{display:flex;gap:24px;flex-direction:column}.identity-card,.stats-card,.bio-card,.achievement-card,.setting{border:1px solid var(--border);background:var(--card)}.identity-card{display:flex;padding:24px;align-items:center;flex-direction:column}.avatar-picker{position:relative;width:96px;height:96px;margin:0;padding:0;border:0;border-radius:0;background:transparent;overflow:hidden}.avatar-picker[disabled]{opacity:.75}.avatar{display:block;width:96px;height:96px;border:1px solid var(--border);border-radius:0;box-sizing:border-box}.avatar-action{position:absolute;right:1px;bottom:1px;left:1px;display:flex;height:25px;align-items:center;justify-content:center;background:#000b;color:#fff;font-size:9px;letter-spacing:.08em}.fallback{display:flex;align-items:center;justify-content:center;font:40px Cinzel,serif}.username{margin-top:18px;font-size:22px}.email{margin-top:7px;letter-spacing:normal}.outline{width:100%;height:36px;margin-top:18px;border:1px solid var(--border);border-radius:0;background:transparent;color:var(--muted-foreground);font-size:11px}.outline::after,button::after{border:0}.stats-card view{display:flex;padding:13px 16px;border-bottom:1px solid var(--border);justify-content:space-between}.stats-card view:last-child{border:0}.stats-card strong{color:var(--foreground)}.bio-card{display:flex;padding:24px;gap:12px;flex-direction:column;font-size:13px}.achievement-card{padding-top:20px}.achievement-card>.section-title{display:block;padding:0 24px 18px}.achievement-grid{display:grid;border-top:1px solid var(--border);grid-template-columns:1fr 1fr}.achievement{display:flex;min-height:68px;padding:15px 20px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);gap:14px;align-items:center}.achievement:nth-child(even){border-right:0}.achievement .symbol{font-size:22px}.achievement view{display:flex;gap:4px;flex:1;flex-direction:column}.achievement strong{font-size:13px}.achievement view text{font-size:10px;color:var(--muted-foreground)}.achievement.locked{opacity:.25}.check{color:#4ade80}.settings{display:grid;gap:16px;grid-template-columns:1fr 1fr}.setting{display:flex;padding:20px;gap:10px;flex-direction:column}.setting input,.setting textarea{box-sizing:border-box;width:100%;height:42px;padding:0 12px;border:1px solid var(--border)}.setting textarea{height:92px;padding:12px;line-height:1.6}.bio-count{margin-top:-5px;text-align:right;color:var(--muted-foreground);font-size:9px}.setting button,.logout-row button{height:38px;margin:0;border:1px solid var(--border);border-radius:0;background:var(--foreground);color:var(--background);font-size:11px}.button-row,.logout-row{display:flex;gap:12px}.button-row button,.logout-row button{flex:1}.sessions view{display:flex;align-items:center;justify-content:space-between}.sessions view button{padding:0 14px;background:transparent;color:#ef4444}.logout-row{grid-column:1/-1}.logout-row .danger{border-color:#7f1d1d;background:transparent;color:#ef4444}@media(max-width:767px){.page-head{padding:28px}.profile-grid{padding:24px 28px;grid-template-columns:1fr}.achievement-grid,.settings{grid-template-columns:1fr}.achievement{border-right:0}.logout-row{flex-direction:column}.guest-content{width:calc(100% - 40px);min-height:360px;margin:36px auto;padding:38px 24px}.guest-actions{gap:10px}.guest-actions button{height:48px;min-height:48px;padding:0 12px;font-size:12px}}
 @media(max-width:767px){.logout-row{width:100%;flex-direction:row}.logout-row button{min-width:0}}
 .support-card{display:flex;padding:20px 24px;border:1px solid var(--border);align-items:center;justify-content:space-between;background:var(--card)}.support-card>view{display:flex;gap:8px;flex-direction:column}.support-copy{color:var(--muted-foreground);font-size:12px}.support-arrow{font-size:22px}@media(max-width:767px){.guest-actions{flex-wrap:wrap}.guest-actions button:last-child{flex-basis:100%}}
+.guest-actions .mini-program-login{gap:10px;flex-basis:100%}.platform-logo{width:20px;height:20px;flex:none}
+.setting input,.setting textarea{font-size:12px}.setting :deep(.uni-input-placeholder),.setting :deep(.uni-textarea-placeholder){font-size:12px}
 </style>

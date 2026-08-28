@@ -29,6 +29,7 @@ function tapPoint(event: unknown): { x: number, y: number } {
 
 function saveTheme(theme: HgtTheme): void {
   uni.setStorageSync('hgt_theme', theme)
+  uni.setStorageSync('hgt_theme_manual', true)
   applyRootTheme(theme)
 }
 
@@ -68,33 +69,7 @@ export function useAnimatedTheme() {
     // #endif
 
     // #ifdef MP-WEIXIN || MP-TOUTIAO
-    transitioning.value = true
-    const info = uni.getWindowInfo()
-    const x = point.x || info.windowWidth / 2
-    const y = point.y || info.windowHeight / 2
-    const radius = Math.hypot(Math.max(x, info.windowWidth - x), Math.max(y, info.windowHeight - y))
-    overlay.active = true
-    overlay.fading = false
-    overlay.expanding = false
-    overlay.style = {
-      'left': `${x - 12}px`,
-      'top': `${y - 12}px`,
-      'backgroundColor': target === 'light' ? '#edeae4' : '#080808',
-      'transform': 'scale(0)',
-      '--hgt-theme-scale': String(Math.max(1, radius / 12)),
-    }
-    await nextTick()
-    overlay.expanding = true
-    setTimeout(() => commit(target), 430)
-    setTimeout(() => {
-      overlay.fading = true
-    }, 500)
-    setTimeout(() => {
-      overlay.active = false
-      overlay.expanding = false
-      overlay.fading = false
-      transitioning.value = false
-    }, 680)
+    commit(target)
     return undefined
     // #endif
 

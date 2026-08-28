@@ -25,11 +25,10 @@ export default defineConfig({
     // https://github.com/uni-helper/vite-plugin-uni-pages
     UniHelperPages({
       dts: 'src/uni-pages.d.ts',
-      subPackages: [
-        'src/subPages',
-        'src/subEcharts',
-        'src/subAsyncEcharts',
-      ],
+      // Starter demo subpackages are intentionally excluded from product builds.
+      // subAsyncEcharts imports components from subEcharts, which is illegal in
+      // Douyin mini programs and none of these demo pages are user-facing.
+      subPackages: [],
       /**
        * 排除的页面，相对于 dir 和 subPackages
        * @default []
@@ -37,6 +36,9 @@ export default defineConfig({
       exclude: [
         '**/components/**/*.*',
         'about/**/*.*',
+        'subPages/**/*.*',
+        'subEcharts/**/*.*',
+        'subAsyncEcharts/**/*.*',
       ],
     }),
     // https://github.com/uni-helper/vite-plugin-uni-layouts

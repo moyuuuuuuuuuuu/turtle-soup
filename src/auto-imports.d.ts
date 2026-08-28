@@ -63,6 +63,7 @@ declare global {
   const initializeThemeOnce: typeof import('./utils/systemTheme')['initializeThemeOnce']
   const inject: typeof import('vue')['inject']
   const injectLocal: typeof import('@vueuse/core')['injectLocal']
+  const invalidatePlayerSession: typeof import('./api/player')['invalidatePlayerSession']
   const isDefined: typeof import('@vueuse/core')['isDefined']
   const isProxy: typeof import('vue')['isProxy']
   const isReactive: typeof import('vue')['isReactive']
@@ -155,6 +156,7 @@ declare global {
   const themeColorOptions: typeof import('./composables/useManualTheme')['themeColorOptions']
   const throttledRef: typeof import('@vueuse/core')['throttledRef']
   const throttledWatch: typeof import('@vueuse/core')['throttledWatch']
+  const timeTheme: typeof import('./utils/theme')['timeTheme']
   const toRaw: typeof import('vue')['toRaw']
   const toReactive: typeof import('@vueuse/core')['toReactive']
   const toRef: typeof import('vue')['toRef']
@@ -434,6 +436,7 @@ declare module 'vue' {
     readonly initializeThemeOnce: UnwrapRef<typeof import('./utils/systemTheme')['initializeThemeOnce']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
+    readonly invalidatePlayerSession: UnwrapRef<typeof import('./api/player')['invalidatePlayerSession']>
     readonly isDefined: UnwrapRef<typeof import('@vueuse/core')['isDefined']>
     readonly isProxy: UnwrapRef<typeof import('vue')['isProxy']>
     readonly isReactive: UnwrapRef<typeof import('vue')['isReactive']>
@@ -526,6 +529,7 @@ declare module 'vue' {
     readonly themeColorOptions: UnwrapRef<typeof import('./composables/useManualTheme')['themeColorOptions']>
     readonly throttledRef: UnwrapRef<typeof import('@vueuse/core')['throttledRef']>
     readonly throttledWatch: UnwrapRef<typeof import('@vueuse/core')['throttledWatch']>
+    readonly timeTheme: UnwrapRef<typeof import('./utils/theme')['timeTheme']>
     readonly toRaw: UnwrapRef<typeof import('vue')['toRaw']>
     readonly toReactive: UnwrapRef<typeof import('@vueuse/core')['toReactive']>
     readonly toRef: UnwrapRef<typeof import('vue')['toRef']>

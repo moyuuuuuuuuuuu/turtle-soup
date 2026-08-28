@@ -22,6 +22,7 @@ let socket: UniApp.SocketTask | null = null
 let connecting: Promise<void> | null = null
 let heartbeat: ReturnType<typeof setInterval> | null = null
 let attempts = 0
+let intentionalDisconnect = false
 const maxReconnectAttempts = 5
 
 const createRequestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -113,7 +114,14 @@ export function useGameSocket() {
           job.reject(new Error(String(message.data?.code || 'system.error')))
         else job.resolve(message.data)
       })
-      socket.onClose(() => { stopHeartbeat(); connected.value = false; connecting = null; failPending(new Error('websocket.disconnected')); reconnect() })
+      socket.onClose(() => {
+        stopHeartbeat(); connected.value = false; connecting = null; failPending(new Error('websocket.disconnected'))
+        if (intentionalDisconnect) {
+          intentionalDisconnect = false
+          return
+        }
+        reconnect()
+      })
       socket.onError(() => { connected.value = false; connecting = null; reject(new Error('websocket.disconnected')) })
     }).finally(() => { connecting = null })
     return connecting
@@ -134,6 +142,27 @@ export function useGameSocket() {
       reconnecting.value = false; try { await connect() }
       catch {}
     }, Math.min(1000 * 2 ** attempts++, 15000))
+  }
+  function disconnectAndClear() {
+    intentionalDisconnect = true
+    attempts = 0
+    stopHeartbeat()
+    failPending(new Error('websocket.disconnected'))
+    const currentSocket = socket
+    socket = null
+    connecting = null
+    connected.value = false
+    reconnecting.value = false
+    gameSnapshot.value = null
+    roomSnapshot.value = null
+    typingMembers.value = []
+    kickedRoomId.value = ''
+    memberLeftNotice.value = null
+    roomNextStarted.value = null
+    gameNextStarted.value = null
+    currentSocket?.close({ code: 1000, reason: 'player.logout' })
+    if (!currentSocket)
+      intentionalDisconnect = false
   }
   async function send<T>(event: string, data: Record<string, unknown>, waitForResponse = true): Promise<T> {
     await connect()
@@ -158,6 +187,7 @@ export function useGameSocket() {
     roomNextStarted,
     gameNextStarted,
     connect,
+    disconnectAndClear,
     join: (game_id: string) => send<GameSnapshot>('v1.game.join', { game_id }),
     ask: (game_id: string, question: string) => send<GameSnapshot>('v1.game.question', { game_id, question }),
     hint: (game_id: string, level: number) => send<GameSnapshot>('v1.game.hint', { game_id, level }),

@@ -94,47 +94,15 @@ onMounted(() => {
   draw()
   stopAnimation = () => { cancelAnimationFrame(frame); window.removeEventListener('resize', resize) }
   // #endif
-
-  // #ifdef MP-WEIXIN || MP-TOUTIAO
-  const query = uni.createSelectorQuery()
-  query.select('#hgt-particles').fields({ node: true, size: true }, (result) => {
-    const item = result as { node?: any, width?: number, height?: number } | undefined
-    if (!item?.node || !item.width || !item.height)
-      return
-    const canvas = item.node
-    const context = canvas.getContext('2d')
-    const density = uni.getWindowInfo().pixelRatio || 1
-    canvas.width = item.width * density
-    canvas.height = item.height * density
-    context.scale(density, density)
-    const particles = createParticles(item.width, item.height, 36)
-    let frame = 0
-    const draw = () => {
-      context.clearRect(0, 0, item.width, item.height)
-      particles.forEach((particle, index) => {
-        moveParticle(particle, item.width!, item.height!)
-        const opacity = particleOpacity(particle, 0.5)
-        context.beginPath()
-        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-        context.fillStyle = `rgba(255,255,255,${Math.max(0, opacity)})`
-        context.fill()
-        if (particle.life >= particle.maxLife)
-          particles[index] = createParticle(item.width!, item.height!)
-      })
-      frame = canvas.requestAnimationFrame(draw)
-    }
-    draw()
-    stopAnimation = () => canvas.cancelAnimationFrame(frame)
-  })
-  query.exec()
-  // #endif
 })
 
 onUnmounted(() => stopAnimation?.())
 </script>
 
 <template>
+  <!-- #ifdef H5 -->
   <canvas id="hgt-particles" canvas-id="hgt-particles" type="2d" class="hgt-particles" />
+  <!-- #endif -->
 </template>
 
 <style scoped>

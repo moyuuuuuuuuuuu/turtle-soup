@@ -1,6 +1,13 @@
 export type HgtTheme = 'light' | 'dark'
 
+export function timeTheme(date = new Date()): HgtTheme {
+  const hour = date.getHours()
+  return hour >= 6 && hour < 18 ? 'light' : 'dark'
+}
+
 export function storedTheme(): HgtTheme {
+  if (uni.getStorageSync('hgt_theme_manual') !== true)
+    return timeTheme()
   return uni.getStorageSync('hgt_theme') === 'light' ? 'light' : 'dark'
 }
 

@@ -2,7 +2,7 @@
 /* eslint-disable style/max-statements-per-line */
 import { useGameSocket } from '@/composables/useGameSocket'; import { useGameStore } from '@/store/gameStore'
 
-definePage({ name: 'guess', style: { navigationBarTitleText: '最终猜测' } }); const route = useRoute(); const router = useRouter(); const store = useGameStore(); const socket = useGameSocket(); const guess = ref(''); const busy = ref(false); const gameId = computed(() => String(route.params.id || route.query.id || '')); async function submit() {
+definePage({ name: 'guess', style: { navigationBarTitleText: '最终猜测' } }); const route = useRoute(); const router = useRouter(); const store = useGameStore(); const socket = useGameSocket(); const guess = ref(''); const busy = ref(false); const gameId = computed(() => String(route.query.id || route.params.id || '')); async function submit() {
   if (!guess.value.trim())
     return; busy.value = true; try { store.setGame(await socket.guess(gameId.value, guess.value)); router.replace({ name: 'game', params: { id: gameId.value }, query: { show_result: '1' } }) }
   finally { busy.value = false }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PublicQuestion } from '@/types/game'
-import { gameApi, questionApi, roomApi } from '@/api/turtle'
+import { gameApi, questionApi, roomApi, TurtleApiError } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
@@ -17,7 +17,7 @@ const starting = ref(false)
 const riskExpanded = ref(false)
 const riskConfirmVisible = ref(false)
 let riskConfirmResolve: ((confirmed: boolean) => void) | undefined
-const questionId = computed(() => String(route.params.id || route.query.id || ''))
+const questionId = computed(() => String(route.query.id || route.params.id || ''))
 const roomId = computed(() => String(route.query.room_id || ''))
 const difficultyStars = (value: number) => `${'★'.repeat(Math.max(0, Math.min(5, value)))}${'☆'.repeat(Math.max(0, 5 - value))}`
 const riskLevelLabels: Record<PublicQuestion['risk_level'], string> = { safe: '安全', caution: '需注意', restricted: '受限内容' }
@@ -67,12 +67,22 @@ async function start() {
       return
     }
     if (player.user) {
-      const joinedRooms = await roomApi.mine()
-      for (const joinedRoom of joinedRooms)
-        await socket.roomLeave(joinedRoom.id, 'switch_question')
+      try {
+        const joinedRooms = await roomApi.mine()
+        for (const joinedRoom of joinedRooms)
+          await socket.roomLeave(joinedRoom.id, 'switch_question')
+      }
+      catch (error) {
+        if (!(error instanceof TurtleApiError) || !['auth.login_required', 'auth.token_invalid'].includes(error.code))
+          throw error
+        player.clear()
+      }
     }
     store.setGame(await gameApi.create(question.value.id, confirmed))
     router.replace({ name: 'game', params: { id: store.current!.id } })
+  }
+  catch (error) {
+    uni.showToast({ title: (error as Error).message || '开始游戏失败', icon: 'none' })
   }
   finally {
     starting.value = false

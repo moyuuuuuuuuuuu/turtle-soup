@@ -1,5 +1,5 @@
 import type { ApiEnvelope, DonationPage, GameSnapshot, HomeStats, PublicQuestion, RoomSnapshot } from '@/types/game'
-import { currentAccessToken, playerApi } from '@/api/player'
+import { currentAccessToken, invalidatePlayerSession, playerApi } from '@/api/player'
 import { resolveApiBaseUrl } from '@/config/endpoints'
 
 const baseUrl = resolveApiBaseUrl()
@@ -33,6 +33,12 @@ async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', data?: R
         return resolve(body.data)
       if (!retried && currentAccessToken() && body?.code === 'auth.token_invalid')
         return playerApi.restore().then(result => result ? request<T>(path, method, data, true).then(resolve, reject) : reject(new TurtleApiError(body.code, body.message || body.code)))
+      if (currentAccessToken() && body?.code === 'auth.login_required')
+        invalidatePlayerSession()
+      if (!retried && !currentAccessToken() && ['auth.token_invalid', 'auth.anonymous_invalid'].includes(body?.code)) {
+        uni.removeStorageSync(tokenKey)
+        return ensureAnonymousSession().then(() => request<T>(path, method, data, true).then(resolve, reject), reject)
+      }
       return reject(new TurtleApiError(body?.code || 'system.error', body?.message || body?.code || `请求失败（HTTP ${statusCode}）`))
     },
     fail: () => reject(new Error('网络请求失败，请检查网络连接')),
