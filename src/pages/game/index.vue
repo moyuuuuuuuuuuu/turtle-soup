@@ -6,7 +6,7 @@ import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 
-definePage({ name: 'game', layout: 'tabbar', style: { navigationStyle: 'custom' } })
+definePage({ name: 'game', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const route = useRoute()
 const router = useRouter()
 const store = useGameStore()

@@ -3,7 +3,7 @@
 import type { DonationPage } from '@/types/game'
 import { donationApi } from '@/api/turtle'
 
-definePage({ name: 'donate', layout: 'tabbar', style: { navigationStyle: 'custom' } })
+definePage({ name: 'donate', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const data = ref<DonationPage>({ channels: [], recent_donations: [], supporter_count: 0 })
 const selectedMethod = ref<'wechat' | 'alipay'>('wechat')
 const done = ref(false)

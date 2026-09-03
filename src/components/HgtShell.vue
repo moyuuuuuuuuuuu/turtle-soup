@@ -50,7 +50,7 @@ function returnToRoom() {
   router.push({ name: 'game', params: { id: activeRoom.value.game_id } })
 }
 onMounted(async () => {
-  // #ifdef MP-WEIXIN || MP-TOUTIAO
+  // #ifdef MP-WEIXIN
   const system = uni.getSystemInfoSync()
   const menu = typeof uni.getMenuButtonBoundingClientRect === 'function' ? uni.getMenuButtonBoundingClientRect() : null
   const statusBarHeight = system.statusBarHeight || 0
@@ -150,4 +150,7 @@ onMounted(async () => {
 .hgt-room-return{position:fixed;z-index:24;right:24px;bottom:40px;display:flex;box-sizing:border-box;min-width:170px;height:56px;margin:0;padding:0 16px;border:1px solid var(--foreground);border-radius:0;align-items:center;gap:12px;background:var(--foreground);color:var(--background);box-shadow:0 16px 45px #0005;text-align:left}.hgt-room-return::after{display:none}.hgt-room-return-icon{font-size:18px;line-height:1}.hgt-room-return-copy{display:flex;min-width:0;gap:3px;flex-direction:column}.hgt-room-return-copy>text:first-child{font-size:11px;letter-spacing:.14em}.hgt-room-return-copy>text:last-child{max-width:180px;overflow:hidden;font-size:9px;opacity:.68;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:767px){.hgt-sidebar{display:none}.hgt-main{margin-left:0;padding-top:var(--hgt-mobile-header-offset,56px);padding-bottom:calc(64px + env(safe-area-inset-bottom))}.hgt-mobile-header{position:fixed;z-index:25;left:0;right:0;top:0;box-sizing:border-box;height:56px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;background:var(--card);border-bottom:1px solid var(--border);letter-spacing:.12em}.hgt-mobile-brand{display:flex;min-width:0;align-items:center;gap:8px}.hgt-mobile-brand text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hgt-mobile-logo{width:34px;height:34px;flex:none}.hgt-mobile-actions{display:flex;gap:10px}.hgt-mobile-tabbar{position:fixed;z-index:25;left:0;right:0;bottom:0;min-height:64px;padding-bottom:env(safe-area-inset-bottom);display:flex;align-items:stretch;background:color-mix(in srgb,var(--card) 94%,transparent);border-top:1px solid var(--border);backdrop-filter:blur(14px)}.hgt-mobile-tab{position:relative;display:flex;min-width:0;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted-foreground)}.hgt-mobile-tab.active{color:var(--foreground)}.hgt-mobile-tab.active::before{content:'';position:absolute;top:-1px;left:28%;right:28%;height:2px;background:var(--foreground)}.hgt-mobile-tab-icon{font-size:16px;line-height:1}.hgt-mobile-tab-label{overflow:hidden;max-width:100%;font-size:10px;line-height:1.2;letter-spacing:.04em;white-space:nowrap;text-overflow:ellipsis}}
 @media(max-width:767px){.hgt-room-return{right:14px;bottom:calc(78px + env(safe-area-inset-bottom));min-width:0;width:auto;max-width:calc(100vw - 28px);height:50px;padding:0 14px}.hgt-room-return-copy>text:last-child{max-width:150px}}
+/* #ifdef MP-TOUTIAO */
+@media(max-width:767px){.hgt-main{padding-top:0}.hgt-mobile-header{display:none}}
+/* #endif */
 </style>

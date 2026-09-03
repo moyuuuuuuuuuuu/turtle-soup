@@ -13,7 +13,7 @@
     "animationDuration": 300
   },
   "pages": [
-    // #ifdef H5 || MP-TOUTIAO || MP-WEIXIN
+    // #ifdef H5 || MP-WEIXIN
     {
       "path": "pages/index/index",
       "type": "home",
@@ -25,12 +25,27 @@
     },
     // #endif
     {
+      "path": "pages/index/index",
+      "type": "home",
+      "name": "home",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
+      }
+    },
+    {
       "path": "pages/account/index",
       "type": "page",
       "name": "player-account",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -39,7 +54,10 @@
       "name": "donate",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -48,7 +66,10 @@
       "name": "game",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -65,7 +86,10 @@
       "name": "history",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -82,7 +106,10 @@
       "name": "player-login",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "玩家登录"
+        "navigationBarTitleText": "玩家登录",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -91,7 +118,10 @@
       "name": "public-rooms",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -100,7 +130,10 @@
       "name": "question-detail",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -109,7 +142,10 @@
       "name": "questions",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -118,7 +154,10 @@
       "name": "player-register",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "注册玩家"
+        "navigationBarTitleText": "注册玩家",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -127,7 +166,10 @@
       "name": "player-reset-password",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "找回密码"
+        "navigationBarTitleText": "找回密码",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     },
     {
@@ -136,7 +178,10 @@
       "name": "rooms",
       "layout": "tabbar",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
       }
     }
   ],

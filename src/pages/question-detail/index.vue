@@ -5,7 +5,7 @@ import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 
-definePage({ name: 'question-detail', layout: 'tabbar', style: { navigationStyle: 'custom' } })
+definePage({ name: 'question-detail', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const route = useRoute()
 const router = useRouter()
 const store = useGameStore()

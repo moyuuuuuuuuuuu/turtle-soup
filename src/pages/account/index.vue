@@ -5,7 +5,7 @@ import { playerApi } from '@/api/player'
 import { gameApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
 
-definePage({ name: 'player-account', layout: 'tabbar', style: { navigationStyle: 'custom' } })
+definePage({ name: 'player-account', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const router = useRouter()
 const store = usePlayerStore(); const sessions = ref<PlayerSession[]>([]); const history = ref<Array<{ status: string }>>([]); const editing = ref(false); const username = ref(''); const bio = ref(''); const email = ref(''); const emailCode = ref(''); const emailCurrentPassword = ref(''); const passwordCurrentPassword = ref(''); const newPassword = ref('')
 const loading = ref(true)

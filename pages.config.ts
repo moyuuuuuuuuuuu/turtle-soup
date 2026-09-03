@@ -16,7 +16,10 @@ export default defineUniPages({
     name: 'home',
     layout: 'tabbar',
     style: {
-      navigationStyle: 'custom',
+      'navigationStyle': 'custom',
+      'mp-toutiao': {
+        navigationStyle: 'default',
+      },
     },
   }],
   globalStyle: {

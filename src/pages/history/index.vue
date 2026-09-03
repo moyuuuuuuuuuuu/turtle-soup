@@ -4,7 +4,7 @@ import { ensureAnonymousSession, gameApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
 
 interface HistoryItem { id: string, status: string, title: string, difficulty: number, question_count?: number, created_at?: string }
-definePage({ name: 'history', layout: 'tabbar', style: { navigationStyle: 'custom' } })
+definePage({ name: 'history', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const router = useRouter()
 const player = usePlayerStore()
 const items = ref<HistoryItem[]>([])

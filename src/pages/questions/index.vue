@@ -2,7 +2,7 @@
 import type { PublicQuestion } from '@/types/game'
 import { questionApi } from '@/api/turtle'
 
-definePage({ name: 'questions', layout: 'tabbar', style: { navigationStyle: 'custom' } })
+definePage({ name: 'questions', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const router = useRouter()
 const route = useRoute()
 const roomId = computed(() => String(route.query.room_id || ''))

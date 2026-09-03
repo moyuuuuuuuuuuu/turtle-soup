@@ -3,7 +3,7 @@ import type { HomeStats, PublicQuestion } from '@/types/game'
 import { ensureAnonymousSession, homeApi, questionApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
 
-definePage({ name: 'home', layout: 'tabbar', style: { navigationStyle: 'custom' } })
+definePage({ name: 'home', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const router = useRouter()
 const player = usePlayerStore()
 const featured = ref<PublicQuestion[]>([])
