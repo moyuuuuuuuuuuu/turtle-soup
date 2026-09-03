@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<{ initialMode?: AuthMode }>(), { initialM
 const route = useRoute()
 const store = usePlayerStore()
 const mode = ref<AuthMode>(props.initialMode)
-const { light, overlay, toggleTheme } = useAnimatedTheme()
+const { light, overlay } = useAnimatedTheme()
 const busy = ref(false)
 const codeBusy = reactive<Record<EmailCodePurpose, boolean>>({ login: false, register: false, reset_password: false })
 const codeCountdown = reactive<Record<EmailCodePurpose, number>>({ login: 0, register: 0, reset_password: 0 })
@@ -162,9 +162,6 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
   <view class="auth-page" :class="{ light }">
     <HgtThemeTransition v-bind="overlay" />
     <AuthParticleBackground />
-    <button class="theme-toggle hgt-theme-trigger" @click="toggleTheme">
-      {{ light ? '☾' : '☀' }}
-    </button>
 
     <view class="brand-panel">
       <text class="eyebrow">

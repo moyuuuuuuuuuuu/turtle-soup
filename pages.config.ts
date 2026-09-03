@@ -10,18 +10,8 @@
 import { defineUniPages } from '@uni-helper/vite-plugin-uni-pages'
 
 export default defineUniPages({
-  pages: [{
-    path: 'pages/index/index',
-    type: 'home',
-    name: 'home',
-    layout: 'tabbar',
-    style: {
-      'navigationStyle': 'custom',
-      'mp-toutiao': {
-        navigationStyle: 'default',
-      },
-    },
-  }],
+  // Seed the entry page for uni-app; file scanning merges the page metadata.
+  pages: [{ path: 'pages/index/index', type: 'home' }],
   globalStyle: {
     // 导航栏配置
     navigationBarBackgroundColor: '@navBgColor',

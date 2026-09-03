@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { ConfigProviderProps } from '@wot-ui/ui/components/wd-config-provider/types'
 
-const { themeVars, theme } = useManualTheme()
+const { themeVars } = useManualTheme()
+const { light } = useAnimatedTheme()
+const theme = computed(() => light.value ? 'light' : 'dark')
 
 const buttonConfig: ConfigProviderProps['button'] = {
   size: 'large',
@@ -11,6 +13,7 @@ const buttonConfig: ConfigProviderProps['button'] = {
 <template>
   <wd-config-provider :theme-vars="themeVars" :theme="theme" :button="buttonConfig" :custom-class="`page-wraper ${theme}`">
     <ku-root-view />
+    <global-theme-toggle />
     <wd-notify />
     <wd-dialog />
     <wd-toast />

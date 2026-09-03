@@ -8,7 +8,7 @@
         "--remote-debugging-port=9222"
       ],
       "request": "launch",
-      "url": "http://localhost:5173",
+      "url": "http://localhost:5239",
       "webRoot": "${workspaceFolder}",
       "preLaunchTask": "uni:h5"
     }

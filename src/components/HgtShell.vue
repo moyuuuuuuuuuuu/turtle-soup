@@ -8,7 +8,7 @@ const router = useRouter()
 const route = useRoute()
 const player = usePlayerStore()
 const socket = useGameSocket()
-const { light, overlay, toggleTheme } = useAnimatedTheme()
+const { light, overlay } = useAnimatedTheme()
 const mobileHeaderStyle = ref<Record<string, string>>({})
 const mobileHeaderOffset = ref('56px')
 const activeRoom = computed(() => {
@@ -26,7 +26,13 @@ const navItems = [
 ]
 const desktopNav = computed(() => navItems.filter(item => !item.authenticated || player.user))
 const mobileNav = computed(() => navItems.filter(item => ['home', 'questions', 'public-rooms', 'history', 'player-account'].includes(item.name)))
-function go(item: typeof navItems[number]) {
+async function go(item: typeof navItems[number]) {
+  if (!player.ready)
+    await player.restore()
+  if (!player.user && ['public-rooms', 'history', 'player-account'].includes(item.name)) {
+    router.push({ name: 'player-login', query: { redirect: item.path } })
+    return
+  }
   if (item.name === 'home') {
     uni.switchTab({ url: item.path })
     return
@@ -95,9 +101,7 @@ onMounted(async () => {
       <view class="hgt-sidebar-footer">
         <text class="hgt-mono">
           v0.1.0
-        </text><button class="hgt-icon-button hgt-theme-trigger" @click="toggleTheme">
-          {{ light ? '☾' : '☀' }}
-        </button>
+        </text>
       </view>
     </aside>
     <header class="hgt-mobile-header" :style="mobileHeaderStyle">
@@ -106,11 +110,6 @@ onMounted(async () => {
         <text class="hgt-display">
           墨鱼海龟汤
         </text>
-      </view>
-      <view class="hgt-mobile-actions">
-        <button class="hgt-icon-button hgt-theme-trigger" @click="toggleTheme">
-          {{ light ? '☾' : '☀' }}
-        </button>
       </view>
     </header>
     <nav class="hgt-mobile-tabbar">

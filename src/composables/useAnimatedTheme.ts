@@ -12,6 +12,10 @@ interface ViewTransitionDocument extends Document {
   startViewTransition?: (update: () => void) => { finished: Promise<void> }
 }
 
+// Keep one reactive source for the whole application. Pages and layouts can stay
+// mounted at the same time, so a ref created per composable call would drift.
+const currentTheme = ref<HgtTheme>(storedTheme())
+
 function tapPoint(event: unknown): { x: number, y: number } {
   const value = event as {
     clientX?: number
@@ -34,12 +38,12 @@ function saveTheme(theme: HgtTheme): void {
 }
 
 export function useAnimatedTheme() {
-  const light = ref(storedTheme() === 'light')
+  const light = computed(() => currentTheme.value === 'light')
   const transitioning = ref(false)
   const overlay = reactive<ThemeTransitionOverlay>({ active: false, fading: false, expanding: false, style: {} })
 
   function commit(theme: HgtTheme) {
-    light.value = theme === 'light'
+    currentTheme.value = theme
     saveTheme(theme)
   }
 
@@ -47,7 +51,7 @@ export function useAnimatedTheme() {
     if (transitioning.value)
       return
 
-    const target: HgtTheme = light.value ? 'dark' : 'light'
+    const target: HgtTheme = currentTheme.value === 'light' ? 'dark' : 'light'
     const point = tapPoint(event)
 
     // #ifdef H5

@@ -16,6 +16,9 @@ import { WotResolver } from './src/resolver'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: process.env.UNI_PLATFORM === 'h5' ? '/' : './',
+  server: {
+    port: 5239,
+  },
   optimizeDeps: {
     exclude: ['@wot-ui/ui', 'uni-echarts'],
   },

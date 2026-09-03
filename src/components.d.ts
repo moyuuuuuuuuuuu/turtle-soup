@@ -10,6 +10,7 @@ declare module 'vue' {
     DemoBlock: typeof import('./components/DemoBlock.vue')['default']
     GlobalDialog: typeof import('./components/GlobalDialog.vue')['default']
     GlobalLoading: typeof import('./components/GlobalLoading.vue')['default']
+    GlobalThemeToggle: typeof import('./components/GlobalThemeToggle.vue')['default']
     GlobalToast: typeof import('./components/GlobalToast.vue')['default']
     HgtConfirmDialog: typeof import('./components/HgtConfirmDialog.vue')['default']
     HgtParticleBackground: typeof import('./components/HgtParticleBackground.vue')['default']
