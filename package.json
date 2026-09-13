@@ -44,7 +44,7 @@
     "build:mp-kuaishou": "uni build -p mp-kuaishou",
     "build:mp-lark": "uni build -p mp-lark",
     "build:mp-qq": "uni build -p mp-qq",
-    "build:mp-toutiao": "uni build -p mp-toutiao",
+    "build:mp-toutiao": "uni build -p mp-toutiao && node scripts/prepare-mp-toutiao.mjs",
     "build:mp-weixin": "uni build -p mp-weixin",
     "build:quickapp-webview": "uni build -p quickapp-webview",
     "build:quickapp-webview-huawei": "uni build -p quickapp-webview-huawei",
