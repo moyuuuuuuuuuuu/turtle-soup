@@ -42,7 +42,7 @@ export default defineConfig({
         'subPages/**/*.*',
         'subEcharts/**/*.*',
         'subAsyncEcharts/**/*.*',
-        ...(process.env.UNI_PLATFORM === 'h5' ? [] : ['donate/**/*.*']),
+        ...(process.env.UNI_PLATFORM && process.env.UNI_PLATFORM !== 'h5' ? ['donate/**/*.*'] : []),
       ],
     }),
     // https://github.com/uni-helper/vite-plugin-uni-layouts
