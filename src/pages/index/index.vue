@@ -219,9 +219,12 @@ onUnmounted(() => timer && clearInterval(timer))
       <view class="support-actions">
         <button class="secondary-action hgt-mono" @click="router.push({ name: 'history' })">
           游玩记录
-        </button><button class="secondary-action hgt-mono" @click="router.push({ name: 'donate' })">
+        </button>
+        <!-- #ifdef H5 -->
+        <button class="secondary-action hgt-mono" @click="router.push({ name: 'donate' })">
           支持我们
         </button>
+        <!-- #endif -->
       </view>
     </section>
   </view>

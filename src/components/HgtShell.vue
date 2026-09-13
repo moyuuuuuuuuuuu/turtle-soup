@@ -22,7 +22,9 @@ const navItems = [
   { name: 'public-rooms', path: '/pages/public-rooms/index', label: '公共房间', icon: '◐', authenticated: true },
   { name: 'history', path: '/pages/history/index', label: '记录', icon: '◎' },
   { name: 'player-account', path: '/pages/account/index', label: '我的', icon: '◇' },
+  // #ifdef H5
   { name: 'donate', path: '/pages/donate/index', label: '捐赠', icon: '◆' },
+  // #endif
 ]
 const desktopNav = computed(() => navItems.filter(item => !item.authenticated || player.user))
 const mobileNav = computed(() => navItems.filter(item => ['home', 'questions', 'public-rooms', 'history', 'player-account'].includes(item.name)))

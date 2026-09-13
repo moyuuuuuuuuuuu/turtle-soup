@@ -39,18 +39,6 @@
       }
     },
     {
-      "path": "pages/donate/index",
-      "type": "page",
-      "name": "donate",
-      "layout": "tabbar",
-      "style": {
-        "navigationStyle": "custom",
-        "mp-toutiao": {
-          "navigationStyle": "default"
-        }
-      }
-    },
-    {
       "path": "pages/game/index",
       "type": "page",
       "name": "game",
@@ -173,7 +161,21 @@
           "navigationStyle": "default"
         }
       }
+    },
+    // #ifdef H5
+    {
+      "path": "pages/donate/index",
+      "type": "page",
+      "name": "donate",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
+      }
     }
+    // #endif
   ],
   "subPackages": [],
   "tabBar": {

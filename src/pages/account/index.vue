@@ -171,6 +171,7 @@ async function logout(all = false) {
             </view>
           </view>
         </view>
+        <!-- #ifdef H5 -->
         <view class="support-card" @click="router.push({ name: 'donate' })">
           <view>
             <text class="hgt-mono section-title">
@@ -182,6 +183,7 @@ async function logout(all = false) {
             →
           </text>
         </view>
+        <!-- #endif -->
         <view class="logout-row">
           <button @click="logout(false)">
             退出当前设备
