@@ -210,7 +210,7 @@ async function refresh() {
   store.clear()
   socket.clearRoom()
   if (!gameId.value) {
-    pageError.value = '游戏链接无效，请重新选择题目'
+    pageError.value = '题目链接无效，请重新选择题目'
     return
   }
   try {
@@ -224,7 +224,7 @@ async function refresh() {
   catch (error) {
     store.clear()
     socket.clearRoom()
-    pageError.value = (error as Error).message || '游戏加载失败'
+    pageError.value = (error as Error).message || '题目加载失败'
   }
 }
 watch(routeGameId, (nextGameId) => {
@@ -997,7 +997,7 @@ onUnmounted(() => {
       GAME UNAVAILABLE
     </text>
     <text class="hgt-display game-load-title">
-      无法进入游戏
+      无法进入题目
     </text>
     <text class="game-load-copy">
       {{ pageError }}
@@ -1011,10 +1011,10 @@ onUnmounted(() => {
       LOADING
     </text>
     <text class="hgt-display game-load-title">
-      正在进入游戏
+      正在进入题目
     </text>
     <text class="game-load-copy">
-      正在读取游戏…
+      正在读取题目…
     </text>
   </view>
 </template>
@@ -1036,7 +1036,10 @@ onUnmounted(() => {
 @media(max-width:767px){.mobile-chat-dragbar{position:relative;display:flex;height:22px;flex:none;align-items:center;justify-content:center;border-bottom:1px solid var(--border);background:var(--card);color:var(--muted-foreground)}.mobile-chat-dragbar text{font-size:8px;letter-spacing:.14em}.mobile-chat-dragbar .chat-grip{top:4px}}
 .input-row button{width:112px;padding-right:12px;padding-left:12px;flex:0 0 112px;white-space:nowrap}
 @media(max-width:767px){.composer .input-row button{width:96px;padding-right:8px;padding-left:8px;flex-basis:96px;letter-spacing:.04em;white-space:nowrap}}
-/* #ifdef MP-WEIXIN || MP-TOUTIAO */
+/* #ifdef MP-WEIXIN */
 @media(max-width:767px){.game-page{height:calc(100vh - var(--hgt-mobile-header-offset,56px) - 64px - env(safe-area-inset-bottom));height:calc(100dvh - var(--hgt-mobile-header-offset,56px) - 64px - env(safe-area-inset-bottom))}.mobile-action-fab{z-index:100}.mini-cover-fab .mobile-fab-trigger,.mini-cover-fab .mobile-fab-option{font-size:11px;line-height:38px;text-align:center}.mini-cover-fab .mobile-fab-trigger{font-size:14px;line-height:44px}}
+/* #endif */
+/* #ifdef MP-TOUTIAO */
+@media(max-width:767px){.game-page{height:calc(100vh - 64px - env(safe-area-inset-bottom));height:calc(100dvh - 64px - env(safe-area-inset-bottom))}.mobile-action-fab{z-index:100}.mini-cover-fab .mobile-fab-trigger,.mini-cover-fab .mobile-fab-option{font-size:11px;line-height:38px;text-align:center}.mini-cover-fab .mobile-fab-trigger{font-size:14px;line-height:44px}}
 /* #endif */
 </style>

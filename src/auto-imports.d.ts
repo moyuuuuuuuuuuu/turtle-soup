@@ -51,6 +51,7 @@ declare global {
   const ensureAnonymousSession: typeof import('./api/turtle')['ensureAnonymousSession']
   const ensurePlayerAccessToken: typeof import('./api/player')['ensurePlayerAccessToken']
   const extendRef: typeof import('@vueuse/core')['extendRef']
+  const formatCount: typeof import('./utils/index')['formatCount']
   const gameApi: typeof import('./api/turtle')['gameApi']
   const getActivePinia: typeof import('pinia')['getActivePinia']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
@@ -424,6 +425,7 @@ declare module 'vue' {
     readonly ensureAnonymousSession: UnwrapRef<typeof import('./api/turtle')['ensureAnonymousSession']>
     readonly ensurePlayerAccessToken: UnwrapRef<typeof import('./api/player')['ensurePlayerAccessToken']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly formatCount: UnwrapRef<typeof import('./utils/index')['formatCount']>
     readonly gameApi: UnwrapRef<typeof import('./api/turtle')['gameApi']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
