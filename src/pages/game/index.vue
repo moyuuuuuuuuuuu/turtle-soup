@@ -285,35 +285,24 @@ async function toggleMute(member: { user_id: number, is_muted?: boolean }) {
   }
 }
 function openConfirm(options: { title: string, description: string, eyebrow?: string, tone?: 'default' | 'warning' | 'danger', action: () => void | Promise<void> }) {
-  // #ifdef MP-WEIXIN || MP-TOUTIAO
-  uni.showModal({
-    title: options.title,
-    content: options.description,
-    confirmText: '确认',
-    cancelText: '取消',
-    success: (result) => {
-      if (!result.confirm)
-        return
-      void Promise.resolve(options.action()).catch((error) => {
-        uni.showToast({ title: (error as Error).message || '操作失败，请稍后重试', icon: 'none' })
-      })
-    },
-  })
-  // #endif
-  // #ifdef H5
   confirmTitle.value = options.title
   confirmDescription.value = options.description
   confirmEyebrow.value = options.eyebrow || '请确认'
   confirmTone.value = options.tone || 'default'
   confirmAction = options.action
   confirmOpen.value = true
-  // #endif
 }
 async function runConfirmAction() {
   const action = confirmAction
   confirmAction = undefined
-  if (action)
-    await action()
+  if (action) {
+    try {
+      await action()
+    }
+    catch (error) {
+      uni.showToast({ title: (error as Error).message || '操作失败，请稍后重试', icon: 'none' })
+    }
+  }
 }
 function cancelConfirmAction() {
   confirmAction = undefined
@@ -1003,7 +992,7 @@ onUnmounted(() => {
       @cancel="cancelConfirmAction"
     />
   </template>
-  <view v-else class="game-load-state">
+  <view v-else-if="pageError" class="game-load-state">
     <text class="hgt-mono game-load-eyebrow">
       GAME UNAVAILABLE
     </text>
@@ -1011,11 +1000,22 @@ onUnmounted(() => {
       无法进入游戏
     </text>
     <text class="game-load-copy">
-      {{ pageError || '正在读取游戏…' }}
+      {{ pageError }}
     </text>
-    <button v-if="pageError" class="hgt-mono game-load-action" @click="returnToQuestionLibrary">
+    <button class="hgt-mono game-load-action" @click="returnToQuestionLibrary">
       返回题库
     </button>
+  </view>
+  <view v-else class="game-load-state">
+    <text class="hgt-mono game-load-eyebrow">
+      LOADING
+    </text>
+    <text class="hgt-display game-load-title">
+      正在进入游戏
+    </text>
+    <text class="game-load-copy">
+      正在读取游戏…
+    </text>
   </view>
 </template>
 
