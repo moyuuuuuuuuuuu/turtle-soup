@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PublicQuestion } from '@/types/game'
 import { questionApi } from '@/api/turtle'
+import { formatCount } from '@/utils'
 
 definePage({ name: 'questions', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const router = useRouter()
@@ -49,7 +50,6 @@ const riskTypeLabels: Record<string, string> = {
 const riskTypeOptions = Object.entries(riskTypeLabels).map(([value, label]) => ({ value, label }))
 const riskLevelLabel = (value: PublicQuestion['risk_level']) => riskLevelLabels[value] || value
 const riskTypeText = (types: string[] | undefined) => types?.length ? types.map(type => riskTypeLabels[type] || type).join('、') : '无特别标注'
-const formatCount = (value: number) => new Intl.NumberFormat('zh-CN').format(value || 0)
 async function load(reset = false) {
   if (loading.value)
     return

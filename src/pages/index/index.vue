@@ -2,6 +2,7 @@
 import type { HomeStats, PublicQuestion } from '@/types/game'
 import { ensureAnonymousSession, homeApi, questionApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
+import { formatCount } from '@/utils'
 
 definePage({ name: 'home', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const router = useRouter()
@@ -16,7 +17,6 @@ const titles = ['真相', '谜题', '汤底']
 let timer: ReturnType<typeof setInterval> | undefined
 
 const difficulty = (level: number) => ['未知', '简单', '普通', '中等', '困难', '极难'][level] || '未知'
-const formatCount = (value: number) => new Intl.NumberFormat('zh-CN').format(value || 0)
 function formatDuration(seconds: number | null) {
   if (seconds === null)
     return '—'
