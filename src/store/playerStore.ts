@@ -25,7 +25,7 @@ export const usePlayerStore = defineStore('player', () => {
     return restoring
   }
   async function load() { user.value = await playerApi.me() }
-  function accept(result: { user: PlayerUser }) { user.value = result.user }
+  function accept(result: { user: PlayerUser }) { user.value = result.user; ready.value = true }
   function clear() {
     useGameSocket().disconnectAndClear()
     useGameStore().clear()

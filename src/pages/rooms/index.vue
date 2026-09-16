@@ -1,10 +1,10 @@
 <script setup lang="ts">
-/* eslint-disable style/max-statements-per-line */
 import type { RoomSnapshot } from '@/types/game'
 import { gameApi, roomApi, TurtleApiError } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { supportsPublicRooms } from '@/utils/platform'
 
 definePage({ name: 'rooms', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const route = useRoute()
@@ -37,6 +37,31 @@ async function startFallbackGame(questionId: string) {
   uni.showToast({ title: '房间已结束，已切换为单人模式', icon: 'none' })
   router.replace({ name: 'game', params: { id: gameStore.current!.id } })
 }
+function inviteRedirectPath() {
+  const query = [`invite_code=${encodeURIComponent(inviteCode.value)}`]
+  if (fallbackQuestionId.value)
+    query.push(`question_id=${encodeURIComponent(fallbackQuestionId.value)}`)
+  return `/pages/rooms/index?${query.join('&')}`
+}
+function goLoginForInvite() {
+  if (inviteCode.value)
+    uni.showToast({ title: '登录后即可加入房间一起玩', icon: 'none' })
+  const loginUrl = inviteCode.value
+    ? `/pages/login/index?redirect=${encodeURIComponent(inviteRedirectPath())}`
+    : '/pages/login/index'
+  // #ifdef H5
+  router.replace({
+    path: '/pages/login/index',
+    query: inviteCode.value ? { redirect: encodeURIComponent(inviteRedirectPath()) } : {},
+  })
+  // #endif
+  // #ifndef H5
+  uni.redirectTo({
+    url: loginUrl,
+    fail: () => uni.showToast({ title: '无法打开登录页', icon: 'none' }),
+  })
+  // #endif
+}
 async function join(id?: string, questionId = fallbackQuestionId.value) {
   try {
     const room = await roomApi.join(id ? { id } : { invite_code: inviteCode.value })
@@ -53,11 +78,16 @@ async function join(id?: string, questionId = fallbackQuestionId.value) {
 }
 onMounted(async () => {
   try {
-    await player.restore(); if (!player.user)
-      return router.replace({ name: 'player-login', query: inviteCode.value ? { redirect: `/pages/rooms/index?invite_code=${encodeURIComponent(inviteCode.value)}${fallbackQuestionId.value ? `&question_id=${encodeURIComponent(fallbackQuestionId.value)}` : ''}` } : {} }); if (inviteCode.value) {
+    await player.restore()
+    if (!player.user) {
+      goLoginForInvite()
+      return
+    }
+    if (inviteCode.value) {
       await join()
       return
-    } await load()
+    }
+    await load()
   }
   catch (error) { uni.showToast({ title: (error as Error).message, icon: 'none' }) }
   finally { loading.value = false }
@@ -91,7 +121,7 @@ onMounted(async () => {
           </button>
         </view>
       </view>
-      <button class="public-entry hgt-mono" @click="router.push({ name: 'public-rooms' })">
+      <button v-if="supportsPublicRooms" class="public-entry hgt-mono" @click="router.push({ name: 'public-rooms' })">
         浏览公开房间 →
       </button>
       <view v-if="mine.length" class="room-section">

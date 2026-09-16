@@ -3,6 +3,7 @@ import { roomApi } from '@/api/turtle'
 import { useAnimatedTheme } from '@/composables/useAnimatedTheme'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { usePlayerStore } from '@/store/playerStore'
+import { supportsPublicRooms } from '@/utils/platform'
 
 const router = useRouter()
 const route = useRoute()
@@ -19,7 +20,9 @@ const showRoomReturn = computed(() => Boolean(player.user && activeRoom.value) &
 const navItems = [
   { name: 'home', path: '/pages/index/index', label: '首页', icon: '◈' },
   { name: 'questions', path: '/pages/questions/index', label: '题库', icon: '◉' },
-  { name: 'public-rooms', path: '/pages/public-rooms/index', label: '公共房间', icon: '◐', authenticated: true },
+  ...(supportsPublicRooms
+    ? [{ name: 'public-rooms', path: '/pages/public-rooms/index', label: '公共房间', icon: '◐', authenticated: true }]
+    : []),
   { name: 'history', path: '/pages/history/index', label: '记录', icon: '◎' },
   { name: 'player-account', path: '/pages/account/index', label: '我的', icon: '◇' },
   // #ifdef H5

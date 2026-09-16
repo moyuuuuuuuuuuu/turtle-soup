@@ -4,6 +4,7 @@ import { gameApi, questionApi, roomApi, TurtleApiError } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { supportsPublicRooms } from '@/utils/platform'
 
 definePage({ name: 'question-detail', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const route = useRoute()
@@ -90,6 +91,8 @@ async function start() {
 }
 
 function joinRoom() {
+  if (!supportsPublicRooms)
+    return
   router.push({ name: 'public-rooms' })
 }
 
@@ -138,7 +141,7 @@ onMounted(async () => {
           <button class="start hgt-mono" :loading="starting" @click="start">
             {{ starting ? '正在进入…' : roomId ? '与原队伍继续 →' : '开始推理 →' }}
           </button>
-          <view v-if="player.user && !roomId" class="room-actions">
+          <view v-if="supportsPublicRooms && player.user && !roomId" class="room-actions">
             <button class="room-action hgt-mono" @click="joinRoom">
               加入房间
             </button>

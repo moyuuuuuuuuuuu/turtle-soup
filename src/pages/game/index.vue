@@ -5,6 +5,7 @@ import { useGameSocket } from '@/composables/useGameSocket'
 import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { supportsPublicRooms } from '@/utils/platform'
 
 definePage({ name: 'game', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const route = useRoute()
@@ -238,7 +239,7 @@ async function ask() {
     return
   busy.value = true; errorMessage.value = ''
   try { store.setGame(await socket.ask(game.value!.id, question.value)); question.value = '' }
-  catch (error) { errorMessage.value = (error as Error).message; uni.showToast({ title: 'AI 判定失败，可原样重试', icon: 'none' }) }
+  catch (error) { errorMessage.value = (error as Error).message; uni.showToast({ title: '判定失败，可原样重试', icon: 'none' }) }
   finally { busy.value = false }
 }
 async function hint(level: number) {
@@ -457,7 +458,7 @@ async function invite() {
   if (!game.value?.room_id) {
     creatingRoom.value = true
     try {
-      const created = await roomApi.create({ game_id: game.value!.id, max_players: 6, visibility: 'public' })
+      const created = await roomApi.create({ game_id: game.value!.id, max_players: 6, visibility: supportsPublicRooms ? 'public' : 'private' })
       store.setGame(await gameApi.read(game.value!.id))
       await socket.roomJoin(created.id)
     }
@@ -627,11 +628,11 @@ onUnmounted(() => {
             <text class="hgt-mono">
               私密房间
             </text>
-            <text>{{ room.visibility === 'private' ? '仅可通过邀请码加入' : '会展示在公开房间列表' }}</text>
+            <text>{{ !supportsPublicRooms || room.visibility === 'private' ? '仅可通过邀请码加入' : '会展示在公开房间列表' }}</text>
           </view>
-          <wd-switch v-if="room.is_owner" :model-value="room.visibility === 'private'" :loading="roomPrivacyUpdating" size="18" shape="square" active-color="var(--foreground)" inactive-color="var(--border)" @change="updateRoomPrivacy" />
+          <wd-switch v-if="supportsPublicRooms && room.is_owner" :model-value="room.visibility === 'private'" :loading="roomPrivacyUpdating" size="18" shape="square" active-color="var(--foreground)" inactive-color="var(--border)" @change="updateRoomPrivacy" />
           <text v-else class="metadata-chip">
-            {{ room.visibility === 'private' ? '私密' : '公开' }}
+            {{ !supportsPublicRooms || room.visibility === 'private' ? '私密' : '公开' }}
           </text>
         </view>
         <view v-if="game.mode === 'multiplayer' && room" class="team-block">
@@ -755,11 +756,11 @@ onUnmounted(() => {
                   <text class="hgt-mono">
                     私密房间
                   </text>
-                  <text>{{ room.visibility === 'private' ? '仅可通过邀请码加入' : '会展示在公开房间列表' }}</text>
+                  <text>{{ !supportsPublicRooms || room.visibility === 'private' ? '仅可通过邀请码加入' : '会展示在公开房间列表' }}</text>
                 </view>
-                <wd-switch v-if="room.is_owner" :model-value="room.visibility === 'private'" :loading="roomPrivacyUpdating" size="18" shape="square" active-color="var(--foreground)" inactive-color="var(--border)" @change="updateRoomPrivacy" />
+                <wd-switch v-if="supportsPublicRooms && room.is_owner" :model-value="room.visibility === 'private'" :loading="roomPrivacyUpdating" size="18" shape="square" active-color="var(--foreground)" inactive-color="var(--border)" @change="updateRoomPrivacy" />
                 <text v-else class="metadata-chip">
-                  {{ room.visibility === 'private' ? '私密' : '公开' }}
+                  {{ !supportsPublicRooms || room.visibility === 'private' ? '私密' : '公开' }}
                 </text>
               </view>
               <view v-for="member in (game.mode === 'multiplayer' && room ? sortedRoomMembers : [])" :key="member.user_id" class="member">
@@ -852,14 +853,14 @@ onUnmounted(() => {
           </view>
           <view v-else class="solo-head chat-resize-handle" role="slider" aria-label="调整对话区域高度" aria-valuemin="38" aria-valuemax="92" :aria-valuenow="Math.round(mobileChatHeight)" tabindex="0" @touchstart="startMobileResize" @touchmove.stop.prevent="resizeMobileChat" @dblclick="toggleMobileChatHeight" @keydown.up.prevent="resizeMobileChatBy(5)" @keydown.down.prevent="resizeMobileChatBy(-5)">
             <view class="chat-grip" /><text class="hgt-mono">
-              ◈ AI 裁判在线
+              ◈ 裁判在线
             </text>
           </view>
           <!-- #endif -->
           <!-- #ifndef H5 -->
           <view class="solo-head chat-resize-handle" role="slider" aria-label="调整对话区域高度" aria-valuemin="38" aria-valuemax="92" :aria-valuenow="Math.round(mobileChatHeight)" tabindex="0" @touchstart="startMobileResize" @touchmove.stop.prevent="resizeMobileChat">
             <view class="chat-grip" /><text class="hgt-mono">
-              ◈ AI 裁判在线
+              ◈ 裁判在线
             </text>
           </view>
           <!-- #endif -->

@@ -75,13 +75,28 @@ function openMiniProgramPrivacy() {
   })
   // #endif
 }
+function normalizeRedirect(raw: string) {
+  if (!raw)
+    return ''
+  let value = raw
+  if (!value.startsWith('/pages/')) {
+    try {
+      value = decodeURIComponent(value)
+    }
+    catch {}
+  }
+  return value.startsWith('/pages/') ? value : ''
+}
 function finish(result: Awaited<ReturnType<typeof playerApi.passwordLogin>>) {
   store.accept(result)
   if (result.merged_games)
     uni.showToast({ title: `已合并 ${result.merged_games} 局记录`, icon: 'none' })
-  const redirect = String(route.query.redirect || '')
-  if (redirect.startsWith('/pages/')) {
-    uni.redirectTo({ url: redirect })
+  const redirect = normalizeRedirect(String(route.query.redirect || ''))
+  if (redirect) {
+    uni.redirectTo({
+      url: redirect,
+      fail: () => uni.switchTab({ url: '/pages/index/index' }),
+    })
     return
   }
   uni.switchTab({ url: '/pages/index/index' })

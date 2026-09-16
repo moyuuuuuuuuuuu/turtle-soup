@@ -4,6 +4,7 @@ import { gameApi, roomApi, TurtleApiError } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { supportsPublicRooms } from '@/utils/platform'
 
 definePage({ name: 'public-rooms', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const router = useRouter()
@@ -81,6 +82,10 @@ async function joinByCode() {
   }
 }
 onMounted(async () => {
+  if (!supportsPublicRooms) {
+    router.replace({ name: 'home' })
+    return
+  }
   await player.restore()
   if (!player.user) {
     router.replace({ name: 'player-login', query: { redirect: '/pages/public-rooms/index' } })
