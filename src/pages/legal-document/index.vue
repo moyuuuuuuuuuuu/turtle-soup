@@ -19,7 +19,7 @@ onMounted(async () => {
   uni.setNavigationBarTitle({ title: title.value })
   uni.setNavigationBarColor({
     frontColor: light.value ? '#000000' : '#ffffff',
-    backgroundColor: light.value ? '#edeae4' : '#111111',
+    backgroundColor: light.value ? '#f4f6f3' : '#071418',
   })
   try {
     const documents = await playerApi.legalDocuments()
@@ -55,5 +55,50 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.legal-page{--background:#080808;--foreground:#f0f0f0;--card:#111;--muted-foreground:#666;--border:#292929;box-sizing:border-box;min-height:100vh;padding:36px 28px 60px;background:var(--background);color:var(--foreground)}.legal-page.light{--background:#edeae4;--foreground:#1c1c1a;--card:#e4e0d9;--muted-foreground:#7a7972;--border:#c8c4bc}.legal-head{display:flex;padding-bottom:22px;border-bottom:1px solid var(--border);gap:8px;flex-direction:column}.legal-eyebrow{color:var(--muted-foreground);font-size:10px;letter-spacing:.22em}.legal-title{font-size:30px}.legal-state{padding:80px 0;color:var(--muted-foreground);font-size:12px;text-align:center}.legal-content{display:block;padding:28px 0;color:var(--foreground);font-size:14px;line-height:1.9}
+.legal-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 36px 28px 60px;
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+}
+.legal-page.light {
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+}
+.legal-head {
+  display: flex;
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--hgt-border);
+  gap: 8px;
+  flex-direction: column;
+}
+.legal-eyebrow {
+  color: var(--hgt-brand);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+}
+.legal-title {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 28px;
+  font-weight: 600;
+}
+.legal-state {
+  padding: 64px 0;
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  text-align: center;
+}
+.legal-content {
+  display: block;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 0;
+  color: var(--hgt-text);
+  font-size: 14px;
+  line-height: 1.85;
+}
 </style>

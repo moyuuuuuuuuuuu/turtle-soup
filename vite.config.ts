@@ -18,6 +18,19 @@ export default defineConfig({
   base: process.env.UNI_PLATFORM === 'h5' ? '/' : './',
   server: {
     port: 5239,
+    proxy: {
+      // H5 开发同源转发，规避浏览器 CORS（线上后端未放行 localhost）
+      '/api': {
+        target: 'https://turtle-soup.moyuu.ink',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/ws': {
+        target: 'wss://turtle-soup.moyuu.ink',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
   optimizeDeps: {
     exclude: ['@wot-ui/ui', 'uni-echarts'],

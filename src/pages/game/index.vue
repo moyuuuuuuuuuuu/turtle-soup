@@ -6,6 +6,7 @@ import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 import { supportsPublicRooms } from '@/utils/platform'
+import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'game', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 const route = useRoute()
@@ -17,6 +18,12 @@ const question = ref('')
 const teamMessage = ref('')
 const tab = ref<'judge' | 'team'>('judge')
 const inputMode = ref<'question' | 'bottom'>('question')
+const clueTab = ref<'clues' | 'mood' | 'notes'>('clues')
+const clueBoardCollapsed = ref(false)
+const localNotes = ref('')
+const moodTags = ref<string[]>([])
+const customClues = ref<string[]>([])
+const newClue = ref('')
 const busy = ref(false)
 const creatingRoom = ref(false)
 const roomPrivacyUpdating = ref(false)
@@ -30,12 +37,19 @@ const confirmTone = ref<'default' | 'warning' | 'danger'>('default')
 let confirmAction: (() => void | Promise<void>) | undefined
 const mobileSurfaceOpen = ref(false)
 const mobileTeamOpen = ref(false)
+const mobileClueOpen = ref(false)
 const mobileActionOpen = ref(false)
 const mobileActionPosition = reactive({ x: 0, y: 0 })
 const mobileActionStyle = computed<Record<string, string>>(() => ({ left: `${mobileActionPosition.x}px`, top: `${mobileActionPosition.y}px` }))
 const mobileActionPositionKey = 'turtle_mobile_game_action_position_v2'
 let mobileActionDragStart = { x: 0, y: 0, left: 0, top: 0 }
 let mobileActionDragged = false
+/** 线索板浮层位置（可拖到屏内任意处） */
+const cluePanelPosition = reactive({ x: 0, y: 0 })
+const cluePanelStyle = computed<Record<string, string>>(() => ({ left: `${cluePanelPosition.x}px`, top: `${cluePanelPosition.y}px` }))
+const cluePanelPositionKey = 'turtle_mobile_game_clue_panel_v1'
+let cluePanelDragStart = { x: 0, y: 0, left: 0, top: 0 }
+let cluePanelDragged = false
 const mobileSurfaceRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null)
 const mobileSurfaceOverflow = ref(false)
 const errorMessage = ref('')
@@ -54,7 +68,6 @@ const sortedRoomMembers = computed(() => [...(room.value?.members || [])].sort((
     return 0
   return left.role === 'owner' ? -1 : 1
 }))
-const canControlResult = computed(() => game.value?.mode !== 'multiplayer' || room.value?.is_owner === true)
 const typingMembers = socket.typingMembers
 const routeGameId = computed(() => String(route.query.id || route.params.id || ''))
 const gameId = ref(routeGameId.value)
@@ -242,6 +255,28 @@ async function ask() {
   catch (error) { errorMessage.value = (error as Error).message; uni.showToast({ title: '判定失败，可原样重试', icon: 'none' }) }
   finally { busy.value = false }
 }
+function addCustomClue() {
+  const text = newClue.value.trim()
+  if (!text)
+    return
+  customClues.value = [...customClues.value, text]
+  newClue.value = ''
+}
+function removeCustomClue(index: number) {
+  customClues.value = customClues.value.filter((_, i) => i !== index)
+}
+function toggleMood(tag: string) {
+  moodTags.value = moodTags.value.includes(tag)
+    ? moodTags.value.filter(item => item !== tag)
+    : [...moodTags.value, tag]
+}
+const moodOptions = ['紧张', '诡异', '悲伤', '荒诞', '温馨', '恐怖', '反转']
+const discoveredClues = computed(() => game.value?.discovered_points || [])
+const progressPercent = computed(() => {
+  if (!game.value?.question_limit)
+    return 0
+  return Math.min(100, Math.round((game.value.question_count / game.value.question_limit) * 100))
+})
 async function hint(level: number) {
   try { store.setGame(await socket.hint(game.value!.id, level)) }
   catch (error) { uni.showToast({ title: (error as Error).message, icon: 'none' }) }
@@ -387,7 +422,7 @@ function mobileWindowInfo() {
 function clampMobileActionPosition(x: number, y: number) {
   const { windowWidth, windowHeight } = mobileWindowInfo()
   return {
-    x: Math.min(Math.max(8, x), Math.max(8, windowWidth - 50)),
+    x: Math.min(Math.max(8, x), Math.max(8, windowWidth - 52)),
     y: Math.min(Math.max(8, y), Math.max(8, windowHeight - 50)),
   }
 }
@@ -395,8 +430,51 @@ function restoreMobileActionPosition() {
   const stored = uni.getStorageSync(mobileActionPositionKey) as unknown
   const saved = stored && typeof stored === 'object' ? stored as { x?: number, y?: number } : {}
   const { windowWidth, windowHeight } = mobileWindowInfo()
-  const position = clampMobileActionPosition(Number(saved?.x ?? windowWidth - 58), Number(saved?.y ?? windowHeight - 190))
+  const position = clampMobileActionPosition(Number(saved?.x ?? windowWidth - 58), Number(saved?.y ?? windowHeight - 220))
   Object.assign(mobileActionPosition, position)
+}
+function toggleCluePanel() {
+  mobileClueOpen.value = !mobileClueOpen.value
+  if (mobileClueOpen.value)
+    restoreCluePanelPosition()
+}
+function clampCluePanelPosition(x: number, y: number) {
+  const { windowWidth, windowHeight } = mobileWindowInfo()
+  const panelW = Math.min(320, windowWidth - 24)
+  const panelH = Math.min(360, windowHeight * 0.5)
+  return {
+    x: Math.min(Math.max(8, x), Math.max(8, windowWidth - panelW - 8)),
+    y: Math.min(Math.max(8, y), Math.max(8, windowHeight - panelH - 80)),
+  }
+}
+function restoreCluePanelPosition() {
+  const stored = uni.getStorageSync(cluePanelPositionKey) as unknown
+  const saved = stored && typeof stored === 'object' ? stored as { x?: number, y?: number } : {}
+  const { windowWidth, windowHeight } = mobileWindowInfo()
+  Object.assign(cluePanelPosition, clampCluePanelPosition(
+    Number(saved?.x ?? windowWidth - 328),
+    Number(saved?.y ?? windowHeight - 420),
+  ))
+}
+function startCluePanelDrag(event: MobileActionTouchEvent) {
+  const point = mobileActionPoint(event)
+  cluePanelDragged = false
+  cluePanelDragStart = { x: point.x, y: point.y, left: cluePanelPosition.x, top: cluePanelPosition.y }
+}
+function dragCluePanel(event: MobileActionTouchEvent) {
+  const point = mobileActionPoint(event)
+  const deltaX = point.x - cluePanelDragStart.x
+  const deltaY = point.y - cluePanelDragStart.y
+  if (Math.abs(deltaX) + Math.abs(deltaY) > 4)
+    cluePanelDragged = true
+  if (!cluePanelDragged)
+    return
+  Object.assign(cluePanelPosition, clampCluePanelPosition(cluePanelDragStart.left + deltaX, cluePanelDragStart.top + deltaY))
+}
+function finishCluePanelDrag() {
+  if (!cluePanelDragged)
+    return
+  uni.setStorageSync(cluePanelPositionKey, { ...cluePanelPosition })
 }
 function startMobileActionDrag(event: MobileActionTouchEvent) {
   const point = mobileActionPoint(event)
@@ -487,7 +565,7 @@ async function copyInviteLink() {
 }
 function backToQuestion() {
   if (game.value?.question_id)
-    uni.navigateTo({ url: `/pages/question-detail/index?id=${encodeURIComponent(game.value.question_id)}` })
+    void openQuestionDetail({ id: game.value.question_id })
   else router.push({ name: 'questions' })
 }
 function returnToQuestionLibrary() {
@@ -589,7 +667,7 @@ onUnmounted(() => {
 
 <template>
   <template v-if="game">
-    <view class="game-page">
+    <view class="game-page" :class="{ 'clue-collapsed': clueBoardCollapsed }">
       <aside class="puzzle-panel">
         <button class="back-question hgt-mono" @click="backToQuestion">
           ← 返回题目
@@ -797,26 +875,42 @@ onUnmounted(() => {
           </view>
         </view>
         <!-- #ifdef H5 -->
-        <view class="mobile-action-fab" :class="{ open: mobileActionOpen }" :style="mobileActionStyle" @touchstart="startMobileActionDrag" @touchmove.stop.prevent="dragMobileAction" @touchend="finishMobileActionDrag">
-          <view v-if="mobileActionOpen" class="mobile-action-menu">
-            <button v-if="!room || room.member_count < room.max_players" class="mobile-fab-option" :disabled="creatingRoom" aria-label="邀请队友" title="邀请队友" @click="mobileInvite">
+        <view
+          class="mobile-action-fab"
+          :class="{ open: mobileActionOpen }"
+          :style="mobileActionStyle"
+          @touchstart="startMobileActionDrag"
+          @touchmove.stop.prevent="dragMobileAction"
+          @touchend="finishMobileActionDrag"
+        >
+          <view v-if="mobileActionOpen" class="mobile-action-pill">
+            <button class="mobile-fab-option clue" :class="{ active: mobileClueOpen }" aria-label="线索板" title="线索板" @click.stop="toggleCluePanel">
+              线索 {{ discoveredClues.length + customClues.length }}
+            </button>
+            <button v-if="!room || room.member_count < room.max_players" class="mobile-fab-option" :disabled="creatingRoom" aria-label="邀请队友" title="邀请队友" @click.stop="mobileInvite">
               {{ creatingRoom ? '创建中' : '分享' }}
             </button>
-            <button v-if="game.mode === 'multiplayer' && room" class="mobile-fab-option leave" aria-label="退出房间" title="退出房间" @click="mobileLeaveRoom">
+            <button v-if="game.mode === 'multiplayer' && room" class="mobile-fab-option leave" aria-label="退出房间" title="退出房间" @click.stop="mobileLeaveRoom">
               退出
             </button>
-            <button v-if="game.mode === 'single' || room?.is_owner" class="mobile-fab-option danger" aria-label="放弃游戏" title="放弃游戏" @click="mobileAbandon">
+            <button v-if="game.mode === 'single' || room?.is_owner" class="mobile-fab-option danger" aria-label="放弃游戏" title="放弃游戏" @click.stop="mobileAbandon">
               放弃
             </button>
+            <button class="mobile-fab-option close" aria-label="收起" title="收起" @click.stop="toggleMobileActionMenu">
+              ×
+            </button>
           </view>
-          <button class="mobile-fab-trigger" :aria-label="mobileActionOpen ? '收起游戏操作' : '展开游戏操作'" :aria-expanded="mobileActionOpen" @click="toggleMobileActionMenu">
-            <wd-icon :name="mobileActionOpen ? 'close' : 'more'" size="21px" />
+          <button v-else class="mobile-fab-trigger" aria-label="展开游戏操作" :aria-expanded="mobileActionOpen" @click.stop="toggleMobileActionMenu">
+            <wd-icon name="more" size="21px" />
           </button>
         </view>
         <!-- #endif -->
         <!-- #ifndef H5 -->
         <cover-view class="mobile-action-fab mini-cover-fab" :class="{ open: mobileActionOpen }" :style="mobileActionStyle" @touchstart="startMobileActionDrag" @touchmove.stop.prevent="dragMobileAction" @touchend="finishMobileActionDrag">
-          <cover-view v-if="mobileActionOpen" class="mobile-action-menu">
+          <cover-view v-if="mobileActionOpen" class="mobile-action-pill">
+            <cover-view class="mobile-fab-option clue" @click="toggleCluePanel">
+              线索
+            </cover-view>
             <cover-view v-if="!room || room.member_count < room.max_players" class="mobile-fab-option" @click="mobileInvite">
               分享
             </cover-view>
@@ -826,9 +920,12 @@ onUnmounted(() => {
             <cover-view v-if="game.mode === 'single' || room?.is_owner" class="mobile-fab-option danger" @click="mobileAbandon">
               放弃
             </cover-view>
+            <cover-view class="mobile-fab-option close" @click="toggleMobileActionMenu">
+              ×
+            </cover-view>
           </cover-view>
-          <cover-view class="mobile-fab-trigger" @click="toggleMobileActionMenu">
-            {{ mobileActionOpen ? '×' : '•••' }}
+          <cover-view v-else class="mobile-fab-trigger" @click="toggleMobileActionMenu">
+            •••
           </cover-view>
         </cover-view>
         <!-- #endif -->
@@ -866,12 +963,20 @@ onUnmounted(() => {
           <!-- #endif -->
           <template v-if="tab === 'judge' || game.mode === 'single'">
             <scroll-view scroll-y :scroll-into-view="judgeScrollTarget" scroll-with-animation class="messages">
+              <view v-if="!game.messages?.length" class="chat-empty">
+                <text class="chat-empty-title">
+                  与 AI 主持人对话
+                </text>
+                <text class="chat-empty-copy">
+                  你可以向主持人提出任何与汤面有关的问题，<br>我会回答「是」「不是」或「不重要」。
+                </text>
+              </view>
               <view v-for="message in game.messages" :id="judgeMessageId(message.sequence)" :key="message.sequence" class="message" :class="message.role">
                 <view class="message-author">
                   <image v-if="message.role === 'player' && messageSender(message).avatar_url" :src="messageSender(message).avatar_url!" class="message-avatar" /><view v-else-if="message.role === 'player'" class="message-avatar avatar-fallback">
                     {{ messageSender(message).username.slice(0, 1) }}
                   </view><text class="message-role hgt-mono">
-                    {{ message.role === 'host' ? '裁判' : messageSender(message).username }}
+                    {{ message.role === 'host' ? 'AI 主持人' : messageSender(message).username }}
                   </text>
                 </view><text>{{ message.content }}</text>
               </view>
@@ -879,7 +984,8 @@ onUnmounted(() => {
             <view class="composer">
               <view v-if="errorMessage" class="error">
                 上次问题未扣次数：{{ errorMessage }}
-              </view><view class="hints">
+              </view>
+              <view class="hints">
                 <button v-for="level in [1, 2, 3]" :key="level" :disabled="game.used_hints.includes(level)" @click="hint(level)">
                   提示 {{ level }}
                 </button>
@@ -896,6 +1002,14 @@ onUnmounted(() => {
           <!-- #ifdef H5 -->
           <template v-else>
             <scroll-view scroll-y :scroll-into-view="teamScrollTarget" scroll-with-animation class="messages">
+              <view v-if="!(room?.messages || []).length" class="chat-empty">
+                <text class="chat-empty-title">
+                  队伍讨论
+                </text>
+                <text class="chat-empty-copy">
+                  这里的消息仅队友可见，不会进入裁判判定。
+                </text>
+              </view>
               <view v-for="message in room?.messages || []" :id="teamMessageId(message.sequence)" :key="message.sequence" class="message team">
                 <text class="message-role hgt-mono">
                   {{ message.username }}
@@ -914,6 +1028,191 @@ onUnmounted(() => {
         <!-- #endif -->
         </view>
       </main>
+      <!-- PC 线索板（可折叠） -->
+      <aside class="clue-board" :class="{ 'is-collapsed': clueBoardCollapsed }">
+        <view v-if="clueBoardCollapsed" class="clue-collapsed-rail">
+          <button class="clue-icon-btn" aria-label="展开线索板" title="展开线索板" @click="clueBoardCollapsed = false">
+            ‹
+          </button>
+          <text class="clue-collapsed-count">
+            {{ discoveredClues.length + customClues.length }}
+          </text>
+          <text class="clue-collapsed-label">
+            线索
+          </text>
+        </view>
+        <template v-else>
+          <view class="clue-board-header">
+            <view class="clue-tabs">
+              <button :class="{ active: clueTab === 'clues' }" @click="clueTab = 'clues'">
+                线索 <text class="tab-count">
+                  {{ discoveredClues.length + customClues.length }}
+                </text>
+              </button>
+              <button :class="{ active: clueTab === 'mood' }" @click="clueTab = 'mood'">
+                情绪
+              </button>
+              <button :class="{ active: clueTab === 'notes' }" @click="clueTab = 'notes'">
+                笔记
+              </button>
+            </view>
+            <button class="clue-icon-btn" aria-label="收起线索板" title="收起线索板" @click="clueBoardCollapsed = true">
+              »
+            </button>
+          </view>
+
+          <scroll-view scroll-y class="clue-body">
+            <template v-if="clueTab === 'clues'">
+              <view v-if="!discoveredClues.length && !customClues.length" class="clue-empty">
+                还没有确认的线索，继续提问吧
+              </view>
+              <view v-for="(point, index) in discoveredClues" :key="`d-${index}`" class="clue-item found">
+                <text class="clue-mark">
+                  ★
+                </text>
+                <text class="clue-text">
+                  {{ point }}
+                </text>
+              </view>
+              <view v-for="(clue, index) in customClues" :key="`c-${index}`" class="clue-item custom">
+                <text class="clue-mark">
+                  ·
+                </text>
+                <text class="clue-text">
+                  {{ clue }}
+                </text>
+                <button class="clue-remove" @click="removeCustomClue(index)">
+                  ×
+                </button>
+              </view>
+              <view class="clue-add">
+                <input v-model="newClue" placeholder="添加线索…" @confirm="addCustomClue">
+                <button @click="addCustomClue">
+                  +
+                </button>
+              </view>
+            </template>
+
+            <template v-else-if="clueTab === 'mood'">
+              <view class="mood-grid">
+                <view
+                  v-for="mood in moodOptions"
+                  :key="mood"
+                  class="mood-chip"
+                  :class="{ active: moodTags.includes(mood) }"
+                  @click="toggleMood(mood)"
+                >
+                  {{ mood }}
+                </view>
+              </view>
+              <text class="clue-hint">
+                标记当前氛围，帮助回忆推理脉络
+              </text>
+            </template>
+
+            <template v-else>
+              <textarea
+                v-model="localNotes"
+                class="notes-area"
+                placeholder="记下你的推理假设…"
+                :maxlength="2000"
+              />
+            </template>
+          </scroll-view>
+
+          <view class="clue-foot">
+            <view class="clue-progress-label">
+              <text>推理进度</text>
+              <text class="clue-progress-num">
+                {{ game.question_count }}/{{ game.question_limit }}
+              </text>
+            </view>
+            <view class="clue-progress">
+              <view :style="{ width: `${progressPercent}%` }" />
+            </view>
+            <button class="btn-submit-truth" :disabled="inputMode === 'bottom'" @click="inputMode = 'bottom'">
+              提交真相
+            </button>
+          </view>
+        </template>
+      </aside>
+      <!-- 手机/平板：可拖拽线索板浮层 -->
+      <view v-if="mobileClueOpen" class="mobile-clue-sheet">
+        <view class="mobile-clue-panel" :style="cluePanelStyle">
+          <view
+            class="mobile-clue-head clue-drag-handle"
+            @touchstart="startCluePanelDrag"
+            @touchmove.stop.prevent="dragCluePanel"
+            @touchend="finishCluePanelDrag"
+          >
+            <text class="mobile-clue-title">
+              线索板 · 可拖动
+            </text>
+            <button class="mobile-clue-close" @click="mobileClueOpen = false">
+              ×
+            </button>
+          </view>
+          <view class="clue-tabs">
+            <button :class="{ active: clueTab === 'clues' }" @click="clueTab = 'clues'">
+              线索
+            </button>
+            <button :class="{ active: clueTab === 'mood' }" @click="clueTab = 'mood'">
+              情绪
+            </button>
+            <button :class="{ active: clueTab === 'notes' }" @click="clueTab = 'notes'">
+              笔记
+            </button>
+          </view>
+          <scroll-view scroll-y class="clue-body mobile-clue-body">
+            <template v-if="clueTab === 'clues'">
+              <view v-if="!discoveredClues.length && !customClues.length" class="clue-empty">
+                还没有确认的线索
+              </view>
+              <view v-for="(point, index) in discoveredClues" :key="`md-${index}`" class="clue-item found">
+                <text class="clue-mark">
+                  ★
+                </text>
+                <text class="clue-text">
+                  {{ point }}
+                </text>
+              </view>
+              <view v-for="(clue, index) in customClues" :key="`mc-${index}`" class="clue-item custom">
+                <text class="clue-text">
+                  {{ clue }}
+                </text>
+                <button class="clue-remove" @click="removeCustomClue(index)">
+                  ×
+                </button>
+              </view>
+              <view class="clue-add">
+                <input v-model="newClue" placeholder="添加线索…" @confirm="addCustomClue">
+                <button @click="addCustomClue">
+                  +
+                </button>
+              </view>
+            </template>
+            <template v-else-if="clueTab === 'mood'">
+              <view class="mood-grid">
+                <view
+                  v-for="mood in moodOptions"
+                  :key="mood"
+                  class="mood-chip"
+                  :class="{ active: moodTags.includes(mood) }"
+                  @click="toggleMood(mood)"
+                >
+                  {{ mood }}
+                </view>
+              </view>
+            </template>
+            <template v-else>
+              <textarea v-model="localNotes" class="notes-area" placeholder="记下你的推理假设…" :maxlength="2000" />
+            </template>
+          </scroll-view>
+          <button class="btn-submit-truth" @click="inputMode = 'bottom'; mobileClueOpen = false">
+            提交真相
+          </button>
+        </view>
+      </view>
     </view>
     <wd-popup v-if="room && inviteOpen" v-model="inviteOpen" position="center" :root-portal="true" custom-class="invite-popup">
       <view class="invite-modal">
@@ -954,30 +1253,49 @@ onUnmounted(() => {
     </wd-popup>
     <wd-popup v-if="resultOpen" v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
       <view class="result-modal">
-        <text class="hgt-mono label">
-          本局结束
-        </text>
-        <text class="hgt-display result-heading">
-          汤底揭晓
-        </text>
-        <text class="result-bottom">
-          {{ game.bottom }}
-        </text>
-        <view v-if="game.points?.length" class="result-points">
-          <text class="hgt-mono label">
-            关键推理点
+        <image class="result-bg" src="/static/hgt/bg/bg_lighthouse.jpg" mode="aspectFill" />
+        <view class="result-veil" />
+        <view class="result-content">
+          <text class="result-kicker">
+            TRUTH REVEALED
           </text>
-          <text v-for="point in game.points" :key="point.key" class="result-point">
-            {{ point.content }}
+          <text class="result-heading">
+            真相，已浮出水面
           </text>
-        </view>
-        <view v-if="canControlResult" class="result-actions">
-          <button class="hgt-mono outline" @click="goHome">
-            返回首页
-          </button>
-          <button class="hgt-mono continue-button" :disabled="busy" @click="continuePlaying">
-            继续游玩
-          </button>
+          <text class="result-sub">
+            所有的疑问，终于有了答案
+          </text>
+          <view class="result-paper">
+            <image class="result-paper-texture" src="/static/hgt/paper/paper_01.png" mode="aspectFill" />
+            <view class="result-paper-veil" />
+            <view class="result-paper-inner">
+              <text class="result-paper-label">
+                汤底
+              </text>
+              <text class="result-bottom">
+                {{ game.bottom }}
+              </text>
+            </view>
+            <text class="result-stamp">
+              真相已揭晓
+            </text>
+          </view>
+          <view v-if="game.points?.length" class="result-points">
+            <text class="result-points-label">
+              关键推理点
+            </text>
+            <text v-for="point in game.points" :key="point.key" class="result-point">
+              {{ point.content }}
+            </text>
+          </view>
+          <view class="result-actions">
+            <button class="btn-ghost-result" @click="goHome">
+              返回首页
+            </button>
+            <button class="btn-primary-result" :disabled="busy" @click="continuePlaying">
+              再来一碗
+            </button>
+          </view>
         </view>
       </view>
     </wd-popup>
@@ -1021,26 +1339,1472 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.back-question{display:flex;width:max-content;height:30px;margin:0 0 18px;padding:0;border:0;border-radius:0;align-items:center;background:transparent;color:var(--muted-foreground);font-size:10px;line-height:1;letter-spacing:.12em}.back-question::after{border:0}
-.game-load-state{box-sizing:border-box;display:flex;min-height:100vh;padding:48px 24px;align-items:center;justify-content:center;flex-direction:column;text-align:center}.game-load-eyebrow{color:var(--muted-foreground);font-size:10px;letter-spacing:.2em}.game-load-title{margin-top:18px;font-size:32px}.game-load-copy{max-width:420px;margin-top:14px;color:var(--muted-foreground);font-size:13px;line-height:1.8}.game-load-action{display:flex;width:180px;height:44px;margin:28px 0 0;padding:0;border:1px solid var(--foreground);border-radius:0;align-items:center;justify-content:center;background:var(--foreground);color:var(--background);font-size:11px;letter-spacing:.14em}.game-load-action::after{border:0}
-.game-page{position:relative;height:100vh;display:grid;overflow:hidden;grid-template-columns:330px 1fr}.puzzle-panel{border-right:1px solid var(--border);background:var(--card);padding:32px;display:flex;flex-direction:column}.puzzle-id,.label,.message-role,.typing{font-size:10px;color:var(--muted-foreground);letter-spacing:.15em}.puzzle-title{font-size:28px;margin:16px 0}.surface{font-size:14px;line-height:1.9;color:var(--accent);padding-bottom:28px;border-bottom:1px solid var(--border)}.team-block,.question-count{padding:25px 0;border-bottom:1px solid var(--border)}.section-row{display:flex;justify-content:space-between;align-items:center}.member{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12px}.member-info{display:flex;min-width:0;flex-direction:column;gap:3px}.member-avatar-wrap{position:relative;display:flex;width:32px;height:32px;flex:none}.avatar{width:32px;height:32px;border-radius:50%}.avatar-fallback{display:flex;align-items:center;justify-content:center;background:var(--secondary)}.member-muted-badge{position:absolute;right:-3px;bottom:-3px;display:flex;width:15px;height:15px;border:2px solid var(--card);border-radius:50%;align-items:center;justify-content:center;background:#dc2626;color:#fff;box-sizing:border-box}.member-role{margin-left:auto;font-size:9px;color:var(--muted-foreground)}.member-actions{display:flex;gap:4px}.member-actions button{display:flex;height:24px;margin:0;padding:0 7px;border:1px solid var(--border);border-radius:0;align-items:center;background:transparent;color:var(--muted-foreground);font-size:9px}.member-actions .kick{color:#ef4444}.count{font-size:20px}.progress{height:2px;background:var(--border);margin-top:12px}.progress>view{height:100%;background:var(--foreground)}.panel-actions{margin-top:auto;display:flex;flex-direction:column;gap:10px}.outline,.danger{margin:0;border-radius:0;background:transparent;border:1px solid var(--border);color:var(--muted-foreground);font-size:11px}.danger{color:#f87171}.conversation{position:relative;min-width:0;min-height:0;display:flex;overflow:hidden;flex-direction:column}.mobile-puzzle-summary{display:none;flex:none}.chat-panel{display:flex;min-height:0;flex:1;flex-direction:column}.chat-grip{display:none}.tabs{height:65px;border-bottom:1px solid var(--border);display:flex;flex:none}.tabs button{display:flex;margin:0;padding:0 28px;border-radius:0;flex:1;flex-direction:column;align-items:flex-start;justify-content:center;background:transparent;color:var(--muted-foreground);font-size:13px}.tabs button+button{border-left:1px solid var(--border)}.tabs button text{font-size:9px;display:block}.tabs button.active{color:var(--foreground);border-bottom:1px solid var(--foreground)}.tab-title{display:flex;align-items:center;gap:7px}.tab-title .unread-badge{display:inline-flex;min-width:17px;height:17px;padding:0 4px;border-radius:9px;align-items:center;justify-content:center;background:#ef4444;color:#fff;box-sizing:border-box;font-size:9px;line-height:17px}.message-author{display:flex;align-items:center;gap:8px}.message-avatar{width:24px;height:24px;border-radius:50%;font-size:10px}button::after{display:none}.solo-head{height:64px;border-bottom:1px solid var(--border);display:flex;flex:none;align-items:center;padding:0 28px;color:#4ade80}.messages{height:0;min-height:0;flex:1;padding:24px;box-sizing:border-box}.message{max-width:75%;padding:14px 16px;margin-bottom:14px;border:1px solid var(--border);display:flex;flex-direction:column;gap:7px;line-height:1.6;font-size:13px}.message.player{margin-left:auto;background:var(--secondary)}.message.host,.message.team{background:var(--card)}.composer{border-top:1px solid var(--border);padding:16px 22px;background:var(--card);flex:none}.error{color:#facc15;font-size:11px;margin-bottom:10px}.hints{display:flex;gap:8px;margin-bottom:10px}.hints button{margin:0;padding:0 12px;height:30px;line-height:28px;border-radius:0;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);font-size:10px}.hints .bottom-mode{margin-left:auto}.hints .bottom-mode.active{border-color:var(--foreground);background:var(--foreground);color:var(--background)}.input-row{display:flex}.input-row input{height:46px;flex:1;border:1px solid var(--border);padding:0 15px}.input-row button{margin:0;width:100px;border-radius:0;background:var(--foreground);color:var(--background)}.invite-mask{position:fixed;z-index:50;inset:0;display:flex;padding:24px;align-items:center;justify-content:center;background:#000a}.invite-modal{box-sizing:border-box;width:min(520px,100%);padding:28px;border:1px solid var(--border);background:var(--card);box-shadow:0 24px 80px #0008}.invite-heading{display:block;margin:8px 0 22px;font-size:27px}.invite-link-row{display:flex;margin-bottom:24px}.invite-code{display:flex;min-height:44px;padding:0 14px;border:1px solid var(--border);flex:1;align-items:center;color:var(--foreground)}.copy-button,.close-invite{display:flex;height:44px;margin:0;padding:0 18px;border:1px solid var(--foreground);border-radius:0;align-items:center;justify-content:center;background:var(--foreground);color:var(--background);font-size:11px}.invite-members-title{display:block;margin-bottom:10px;color:var(--muted-foreground)}.invite-member{display:flex;padding:11px 0;border-bottom:1px solid var(--border);align-items:center;gap:10px;font-size:12px}.close-invite{width:100%;margin-top:22px;background:transparent;color:var(--foreground)}
-.result-mask{position:fixed;z-index:60;inset:0;display:flex;padding:24px;align-items:center;justify-content:center;background:#000b}.result-modal{box-sizing:border-box;width:min(620px,100%);max-height:85vh;padding:34px;border:1px solid var(--border);overflow-y:auto;background:var(--card);box-shadow:0 24px 80px #0008}.result-heading{display:block;margin:10px 0 24px;font-size:32px}.result-bottom{display:block;padding:20px;border-left:2px solid var(--foreground);background:var(--secondary);font-size:15px;line-height:1.9}.result-points{display:flex;margin-top:24px;gap:10px;flex-direction:column}.result-point{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.6}.result-actions{display:flex;margin-top:28px;gap:12px}.result-actions button{display:flex;height:44px;margin:0;padding:0;flex:1;align-items:center;justify-content:center;border-radius:0}.continue-button{border:1px solid var(--foreground);background:var(--foreground);color:var(--background);font-size:11px}
-:deep(.invite-popup){box-sizing:border-box;width:min(520px,calc(100vw - 48px));border:1px solid var(--border);border-radius:0;background:var(--card);color:var(--foreground)}:deep(.result-popup){box-sizing:border-box;width:min(620px,calc(100vw - 48px));border:1px solid var(--border);border-radius:0;background:var(--card);color:var(--foreground)}:deep(.invite-popup) .invite-modal,:deep(.result-popup) .result-modal{width:100%;border:0;box-shadow:none}
-.puzzle-metadata{display:flex;padding:18px 0;border-bottom:1px solid var(--border);gap:14px;flex-direction:column}.metadata-group{display:flex;gap:8px;flex-direction:column}.metadata-label{color:var(--muted-foreground);font-size:9px;letter-spacing:.14em}.metadata-items{display:flex;flex-wrap:wrap;gap:6px}.metadata-chip{flex:none;padding:3px 7px;border:1px solid var(--border);color:var(--muted-foreground);font-size:9px;line-height:1.35;white-space:nowrap}.risk-chip{border-color:color-mix(in srgb,#d97706 55%,var(--border));color:#d97706}
-.room-privacy-row{display:flex;padding:16px 0 2px;align-items:center;justify-content:space-between;gap:14px}.room-privacy-copy{display:flex;min-width:0;gap:4px;flex-direction:column}.room-privacy-copy>text:first-child{font-size:10px;color:var(--foreground);letter-spacing:.12em}.room-privacy-copy>text:last-child{font-size:9px;color:var(--muted-foreground);line-height:1.5}
-@media(max-width:767px){.game-page{box-sizing:border-box;height:calc(100vh - 120px - env(safe-area-inset-bottom));height:calc(100dvh - 120px - env(safe-area-inset-bottom));grid-template-columns:1fr}.puzzle-panel{display:none}.mobile-puzzle-summary{display:block;max-height:62%;overflow-y:auto;border-bottom:1px solid var(--border);background:var(--card)}.chat-panel{position:absolute;z-index:4;right:0;bottom:0;left:0;height:var(--mobile-chat-height);min-height:0;background:var(--background);box-shadow:0 -12px 32px rgba(0,0,0,.14)}.chat-resize-handle{cursor:ns-resize;touch-action:none;user-select:none}.chat-grip{position:absolute;top:5px;left:50%;display:block;width:38px;height:3px;border-radius:2px;background:var(--border);transform:translateX(-50%)}.mobile-puzzle-row{display:flex;height:52px;padding:0 14px;align-items:center;gap:12px}.mobile-help,.mobile-expand{display:flex;width:30px;height:30px;margin:0;padding:0;border:1px solid var(--border);border-radius:0;align-items:center;justify-content:center;background:transparent;color:var(--foreground);line-height:1}.mobile-puzzle-title{overflow:hidden;flex:1;font-size:20px;text-overflow:ellipsis;white-space:nowrap}.mobile-question-count{font-size:11px;color:var(--muted-foreground)}.mobile-surface-wrap{position:relative;padding:10px 52px 11px 16px;border-top:1px solid var(--border)}.mobile-surface{display:-webkit-box;padding:0;border:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3}.mobile-surface.expanded{display:block;overflow:visible}.mobile-surface-wrap .mobile-expand{position:absolute;right:14px;bottom:14px}.mobile-team{padding:0 16px;border-top:1px solid var(--border)}.mobile-team-toggle{display:flex;width:100%;height:42px;margin:0;padding:0;border:0;border-radius:0;align-items:center;gap:12px;background:transparent;color:var(--foreground)}.mobile-team-toggle .section-row{flex:1}.mobile-team-details{padding:0 0 14px}.mobile-action-fab{position:fixed;z-index:40;width:44px;height:44px;touch-action:none;user-select:none}.mobile-action-menu{position:absolute;top:0;right:54px;display:flex;height:44px;padding:3px;border:1px solid color-mix(in srgb,var(--border) 86%,transparent);border-radius:24px;gap:0;background:color-mix(in srgb,var(--card) 96%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.12);box-sizing:border-box;backdrop-filter:blur(16px);pointer-events:auto;animation:mobile-actions-in .18s cubic-bezier(.2,.8,.2,1)}.mobile-fab-trigger,.mobile-fab-option{display:flex;margin:0;padding:0;align-items:center;justify-content:center;pointer-events:auto}.mobile-fab-trigger{width:44px;height:44px;min-height:44px;border:1px solid color-mix(in srgb,var(--foreground) 86%,transparent);border-radius:50%;background:var(--foreground);color:var(--background);box-shadow:0 8px 24px rgba(0,0,0,.18);transition:background .18s ease,color .18s ease,box-shadow .18s ease}.mobile-action-fab.open .mobile-fab-trigger{border-color:color-mix(in srgb,var(--border) 86%,transparent);background:color-mix(in srgb,var(--card) 96%,transparent);color:var(--foreground);box-shadow:0 8px 24px rgba(0,0,0,.12);backdrop-filter:blur(16px)}.mobile-fab-option{width:auto;min-width:64px;height:36px;min-height:36px;padding:0 15px;border:0;border-radius:18px;background:transparent;color:var(--foreground);box-shadow:none;font-size:12px;font-weight:500;line-height:1;letter-spacing:.08em;white-space:nowrap}.mobile-fab-option+.mobile-fab-option{position:relative}.mobile-fab-option+.mobile-fab-option::before{position:absolute;top:10px;bottom:10px;left:0;width:1px;background:var(--border);content:''}.mobile-fab-option.leave{color:var(--muted-foreground)}.mobile-fab-option.danger{color:#dc5a5a}.mobile-fab-option:active{background:var(--secondary)}.tabs{height:50px}.solo-head{position:relative;height:50px;padding:0 18px}.messages{padding:14px 16px}.message{max-width:88%}.composer{padding:8px 12px 10px}.composer .input-row{height:48px;border:1px solid var(--border);background:var(--background)}.composer .input-row input{box-sizing:border-box;height:100%;min-width:0;padding:0 14px;border:0;background:transparent;color:var(--foreground);font-size:13px}.composer .input-row button{display:flex;width:84px;height:100%;min-height:0;padding:0;border:0;border-left:1px solid var(--border);align-items:center;justify-content:center;background:var(--foreground);color:var(--background);font-size:12px;line-height:1;letter-spacing:.08em}}
-@keyframes mobile-actions-in{from{opacity:0;transform:translateX(6px) scale(.96)}to{opacity:1;transform:none}}
-@media(max-width:767px){.mobile-team-metadata{padding:12px 0}.mobile-team-metadata .metadata-group{gap:6px}}
-@media(max-width:767px){.mobile-room-privacy{padding:12px 0;border-bottom:1px solid var(--border)}}
-@media(max-width:767px){.mobile-team-details .member{flex-wrap:nowrap}.mobile-member-actions{width:auto;margin-left:auto}.mobile-member-actions .mobile-icon-button{display:flex;width:30px;height:30px;padding:0;flex:none;align-items:center;justify-content:center}}
-.mobile-chat-dragbar{display:none}
-@media(max-width:767px){.mobile-chat-dragbar{position:relative;display:flex;height:22px;flex:none;align-items:center;justify-content:center;border-bottom:1px solid var(--border);background:var(--card);color:var(--muted-foreground)}.mobile-chat-dragbar text{font-size:8px;letter-spacing:.14em}.mobile-chat-dragbar .chat-grip{top:4px}}
-.input-row button{width:112px;padding-right:12px;padding-left:12px;flex:0 0 112px;white-space:nowrap}
-@media(max-width:767px){.composer .input-row button{width:96px;padding-right:8px;padding-left:8px;flex-basis:96px;letter-spacing:.04em;white-space:nowrap}}
+.game-page {
+  position: relative;
+  display: grid;
+  height: calc(100vh - var(--hgt-header-h, 64px));
+  height: calc(100dvh - var(--hgt-header-h, 64px));
+  overflow: hidden;
+  grid-template-columns: 300px minmax(0, 1fr) 280px;
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+}
+.game-page.clue-collapsed {
+  grid-template-columns: 300px minmax(0, 1fr) 48px;
+}
+
+.back-question {
+  display: flex;
+  width: max-content;
+  height: 30px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  align-items: center;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 12px;
+}
+.back-question::after { border: 0; }
+
+.game-load-state {
+  display: flex;
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 48px 24px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  background: var(--hgt-bg);
+}
+.game-load-eyebrow {
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+}
+.game-load-title {
+  margin-top: 16px;
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 28px;
+  font-weight: 600;
+}
+.game-load-copy {
+  max-width: 420px;
+  margin-top: 12px;
+  color: var(--hgt-text-2);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.game-load-action {
+  display: flex;
+  width: 180px;
+  height: 44px;
+  margin: 28px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  font-size: 14px;
+}
+.game-load-action::after { border: 0; }
+
+/* ===== Left panel ===== */
+.puzzle-panel {
+  display: flex;
+  padding: 24px 20px;
+  border-right: 1px solid var(--hgt-border);
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--hgt-card);
+}
+.puzzle-id {
+  color: var(--hgt-brand);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+.puzzle-title {
+  margin: 10px 0 8px;
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+.surface {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--hgt-border);
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  line-height: 1.75;
+}
+.label {
+  color: var(--hgt-text-3);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+.puzzle-metadata {
+  display: flex;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hgt-border);
+  gap: 10px;
+  flex-direction: column;
+}
+.metadata-group {
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+}
+.metadata-label {
+  color: var(--hgt-text-3);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+.metadata-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.metadata-chip {
+  padding: 3px 8px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-xs);
+  color: var(--hgt-text-2);
+  font-size: 11px;
+}
+.risk-chip {
+  border-color: rgba(196, 154, 85, 0.5);
+  color: var(--hgt-warning);
+}
+.room-privacy-row {
+  display: flex;
+  padding: 12px 0 4px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.room-privacy-copy {
+  display: flex;
+  min-width: 0;
+  gap: 3px;
+  flex-direction: column;
+}
+.room-privacy-copy > text:first-child {
+  color: var(--hgt-text);
+  font-size: 11px;
+}
+.room-privacy-copy > text:last-child {
+  color: var(--hgt-text-3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.team-block,
+.question-count {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hgt-border);
+}
+.section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.member {
+  display: flex;
+  margin-top: 12px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.member-info {
+  display: flex;
+  min-width: 0;
+  gap: 2px;
+  flex-direction: column;
+}
+.member-avatar-wrap {
+  position: relative;
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-card-2);
+  color: var(--hgt-brand);
+}
+.member-muted-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: flex;
+  box-sizing: border-box;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--hgt-card);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-danger);
+  color: #fff;
+}
+.member-role {
+  margin-left: auto;
+  color: var(--hgt-brand);
+  font-size: 10px;
+}
+.member-actions {
+  display: flex;
+  gap: 4px;
+}
+.member-actions button {
+  display: flex;
+  height: 24px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-xs);
+  align-items: center;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 11px;
+}
+.member-actions .kick {
+  color: var(--hgt-danger);
+}
+.count {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.progress,
+.clue-progress {
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 2px;
+  background: var(--hgt-border);
+  overflow: hidden;
+}
+.progress > view,
+.clue-progress > view {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--hgt-brand);
+  transition: width var(--hgt-dur-base) var(--hgt-ease-out);
+}
+.panel-actions {
+  display: flex;
+  margin-top: auto;
+  padding-top: 16px;
+  gap: 8px;
+  flex-direction: column;
+}
+.outline,
+.danger {
+  height: 40px;
+  margin: 0;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 13px;
+}
+.outline::after,
+.danger::after { border: 0; }
+.danger {
+  border-color: rgba(201, 74, 85, 0.4);
+  color: var(--hgt-danger);
+}
+
+/* ===== Conversation ===== */
+.conversation {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--hgt-bg);
+}
+.mobile-puzzle-summary {
+  display: none;
+}
+.mobile-action-fab { display: none; }
+.mobile-action-fab { overflow: visible; }
+.mobile-clue-bar { display: none; }
+.mobile-clue-sheet { display: none; }
+
+.chat-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: var(--hgt-bg);
+}
+.mobile-chat-dragbar { display: none; }
+.chat-grip {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  display: block;
+  width: 38px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hgt-border);
+  transform: translateX(-50%);
+}
+.tabs {
+  display: flex;
+  flex: none;
+  border-bottom: 1px solid var(--hgt-border);
+  background: var(--hgt-bg-deep);
+}
+.tabs button {
+  position: relative;
+  flex: 1;
+  height: 52px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 13px;
+}
+.tabs button::after { border: 0; }
+.tabs button.active {
+  color: var(--hgt-brand);
+}
+.tabs button.active::after {
+  position: absolute;
+  right: 20%;
+  bottom: 0;
+  left: 20%;
+  height: 2px;
+  background: var(--hgt-brand);
+  content: '';
+}
+.solo-head {
+  position: relative;
+  display: flex;
+  height: 44px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--hgt-border);
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-bg-deep);
+  color: var(--hgt-text-2);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+.messages {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 20px;
+  box-sizing: border-box;
+}
+.chat-empty {
+  display: flex;
+  height: 100%;
+  min-height: 200px;
+  padding: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-direction: column;
+  text-align: center;
+}
+.chat-empty-title {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.chat-empty-copy {
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.message {
+  display: flex;
+  max-width: min(72%, 560px);
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-md);
+  gap: 8px;
+  flex-direction: column;
+  background: var(--hgt-card);
+  box-shadow: var(--hgt-shadow-sm);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.message.host {
+  align-self: flex-start;
+  border-color: var(--hgt-border-soft);
+  background: var(--hgt-card-2);
+}
+.message.player {
+  align-self: flex-end;
+  border-color: rgba(91, 200, 189, 0.35);
+  background: var(--hgt-brand-soft);
+}
+.message.team {
+  max-width: 80%;
+}
+.message-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.message-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+.message-role {
+  color: var(--hgt-text-3);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.message.player .message-role {
+  color: var(--hgt-brand);
+}
+
+.composer {
+  flex: none;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--hgt-border);
+  background: var(--hgt-bg-deep);
+}
+.error {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: var(--hgt-radius-xs);
+  background: rgba(201, 74, 85, 0.12);
+  color: var(--hgt-danger);
+  font-size: 12px;
+}
+.hints {
+  display: flex;
+  margin-bottom: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hints button {
+  height: 30px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-full);
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 12px;
+}
+.hints button::after { border: 0; }
+.hints button.bottom-mode.active {
+  border-color: var(--hgt-warning);
+  color: var(--hgt-warning);
+  background: rgba(196, 154, 85, 0.12);
+}
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+.input-row input {
+  flex: 1;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-card);
+  color: var(--hgt-text);
+  font-size: 14px;
+}
+.input-row button {
+  display: flex;
+  width: 96px;
+  flex: none;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  font-size: 14px;
+  font-weight: 600;
+}
+.input-row button::after { border: 0; }
+.typing {
+  margin-bottom: 6px;
+  color: var(--hgt-text-3);
+  font-size: 11px;
+}
+
+/* ===== Clue board (PC) ===== */
+.clue-board {
+  display: flex;
+  min-height: 0;
+  border-left: 1px solid var(--hgt-border);
+  flex-direction: column;
+  background: var(--hgt-card);
+}
+.clue-board.is-collapsed {
+  align-items: stretch;
+}
+.clue-board-header {
+  display: flex;
+  flex: none;
+  border-bottom: 1px solid var(--hgt-border);
+  align-items: center;
+}
+.clue-tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+}
+.clue-icon-btn {
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  width: 48px;
+  height: 52px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 20px;
+  line-height: 1;
+}
+.clue-icon-btn::after { border: 0; }
+.clue-icon-btn:hover {
+  color: var(--hgt-brand);
+}
+.clue-collapsed-rail {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 0 16px;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+}
+.clue-collapsed-rail .clue-icon-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  color: var(--hgt-brand);
+  font-size: 20px;
+}
+.clue-collapsed-count {
+  display: flex;
+  box-sizing: border-box;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--hgt-radius-full);
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-brand-soft);
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
+  line-height: 1;
+}
+.clue-collapsed-label {
+  color: var(--hgt-text-3);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  writing-mode: vertical-rl;
+}
+.clue-tabs button {
+  position: relative;
+  display: flex;
+  flex: 1;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 52px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+}
+.clue-tabs button::after { border: 0; }
+.clue-tabs button.active {
+  color: var(--hgt-brand);
+}
+.clue-tabs button.active::after {
+  position: absolute;
+  right: 28%;
+  bottom: 0;
+  left: 28%;
+  height: 2px;
+  border-radius: 1px 1px 0 0;
+  background: var(--hgt-brand);
+  content: '';
+}
+.tab-count {
+  margin-left: 4px;
+  color: var(--hgt-brand);
+  font-size: 11px;
+}
+.clue-body {
+  flex: 1;
+  min-height: 0;
+  padding: 14px;
+  box-sizing: border-box;
+}
+.clue-empty {
+  padding: 24px 8px;
+  color: var(--hgt-text-3);
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.6;
+}
+.clue-item {
+  display: flex;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--hgt-card-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.clue-item.found {
+  border-color: rgba(91, 200, 189, 0.35);
+}
+.clue-mark {
+  flex: none;
+  color: var(--hgt-brand);
+}
+.clue-text {
+  flex: 1;
+  color: var(--hgt-text);
+}
+.clue-remove {
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--hgt-text-3);
+  font-size: 16px;
+  line-height: 1;
+}
+.clue-remove::after { border: 0; }
+.clue-add {
+  display: flex;
+  margin-top: 10px;
+  gap: 6px;
+}
+.clue-add input {
+  flex: 1;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+  font-size: 13px;
+}
+.clue-add button {
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  font-size: 18px;
+  line-height: 1;
+}
+.clue-add button::after { border: 0; }
+.mood-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mood-chip {
+  padding: 8px 12px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-full);
+  color: var(--hgt-text-2);
+  font-size: 13px;
+}
+.mood-chip.active {
+  border-color: var(--hgt-brand);
+  background: var(--hgt-brand-soft);
+  color: var(--hgt-brand);
+}
+.clue-hint {
+  display: block;
+  margin-top: 14px;
+  color: var(--hgt-text-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.notes-area {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 220px;
+  padding: 12px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.clue-foot {
+  flex: none;
+  padding: 14px;
+  border-top: 1px solid var(--hgt-border);
+}
+.clue-progress-label {
+  display: flex;
+  margin-bottom: 8px;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--hgt-text-2);
+  font-size: 12px;
+}
+.clue-progress-num {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-mono);
+}
+.btn-submit-truth {
+  width: 100%;
+  height: 44px;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  font-size: 15px;
+  font-weight: 600;
+}
+.btn-submit-truth::after { border: 0; }
+.btn-submit-truth:disabled {
+  opacity: 0.55;
+}
+
+/* ===== Invite / result popups ===== */
+.invite-modal {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 28px;
+  gap: 12px;
+  flex-direction: column;
+  background: var(--hgt-card);
+  color: var(--hgt-text);
+}
+.invite-heading {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+.invite-link-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.invite-code {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--hgt-border-soft);
+  border-radius: var(--hgt-radius-sm);
+  color: var(--hgt-brand);
+  font-size: 13px;
+}
+.copy-button,
+.close-invite {
+  height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  font-size: 13px;
+}
+.copy-button::after,
+.close-invite::after { border: 0; }
+.invite-members-title {
+  margin-top: 8px;
+  color: var(--hgt-text-3);
+  font-size: 12px;
+}
+.invite-member {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hgt-border);
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.invite-member .avatar {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+}
+.invite-member .member-role {
+  margin-left: auto;
+}
+
+.result-modal {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 32px));
+  max-height: 88vh;
+  border-radius: var(--hgt-radius-lg);
+  overflow: hidden;
+  flex-direction: column;
+  background: var(--hgt-bg-deep);
+  color: var(--hgt-text);
+  box-shadow: var(--hgt-shadow-float);
+}
+.result-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.result-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 20, 24, 0.55), rgba(12, 32, 39, 0.92));
+}
+.result-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  padding: 32px 28px;
+  gap: 12px;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.result-kicker {
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+}
+.result-heading {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.result-sub {
+  color: var(--hgt-text-2);
+  font-size: 13px;
+}
+.result-paper {
+  position: relative;
+  margin-top: 8px;
+  border-radius: var(--hgt-radius-md);
+  overflow: hidden;
+  box-shadow: var(--hgt-shadow-md);
+}
+.result-paper-texture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.result-paper-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(208, 220, 182, 0.72);
+}
+.result-paper-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  padding: 22px 24px;
+  gap: 10px;
+  flex-direction: column;
+}
+.result-paper-label {
+  color: #5a5e48;
+  font-size: 12px;
+  letter-spacing: 0.28em;
+}
+.result-bottom {
+  color: var(--hgt-paper-ink);
+  font-family: var(--hgt-font-display);
+  font-size: 15px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+}
+.result-stamp {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 12px;
+  padding: 6px 12px;
+  border: 2px solid rgba(201, 74, 85, 0.85);
+  border-radius: 4px;
+  color: rgba(201, 74, 85, 0.95);
+  font-family: var(--hgt-font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  transform: rotate(-12deg);
+  background: rgba(208, 220, 182, 0.35);
+}
+.result-points {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+.result-points-label {
+  color: var(--hgt-text-3);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+.result-point {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hgt-border);
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.result-actions {
+  display: flex;
+  margin-top: 12px;
+  gap: 10px;
+}
+.btn-ghost-result,
+.btn-primary-result {
+  display: flex;
+  height: 44px;
+  margin: 0;
+  padding: 0 20px;
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+.btn-ghost-result {
+  border: 1px solid var(--hgt-border-soft);
+  background: transparent;
+  color: var(--hgt-text);
+}
+.btn-primary-result {
+  border: 0;
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+}
+.btn-ghost-result::after,
+.btn-primary-result::after { border: 0; }
+
+:deep(.invite-popup),
+:deep(.result-popup) {
+  box-sizing: border-box;
+  width: min(520px, calc(100vw - 32px));
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-lg);
+  background: var(--hgt-card);
+  color: var(--hgt-text);
+  overflow: hidden;
+}
+:deep(.result-popup) {
+  width: min(560px, calc(100vw - 32px));
+  background: transparent;
+  border: 0;
+}
+:deep(.result-popup) .result-modal {
+  width: 100%;
+}
+
+/* ===== Tablet ===== */
+@media (max-width: 1199px) {
+  .game-page {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  .clue-board {
+    display: none;
+  }
+  .mobile-clue-bar {
+    position: fixed;
+    z-index: 46;
+    display: block;
+  }
+  .mobile-clue-btn {
+    display: flex;
+    box-sizing: border-box;
+    height: 42px;
+    margin: 0;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--hgt-radius-full);
+    align-items: center;
+    justify-content: center;
+    background: var(--hgt-brand);
+    color: var(--hgt-on-brand);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: var(--hgt-shadow-float);
+    white-space: nowrap;
+  }
+  .mobile-clue-btn::after { border: 0; }
+  .mobile-clue-sheet {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+  .mobile-clue-panel {
+    position: fixed;
+    display: flex;
+    box-sizing: border-box;
+    width: min(320px, calc(100vw - 24px));
+    max-height: min(360px, 50vh);
+    border: 1px solid var(--hgt-border);
+    border-radius: var(--hgt-radius-lg);
+    flex-direction: column;
+    background: var(--hgt-card);
+    box-shadow: var(--hgt-shadow-float);
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  .mobile-clue-head {
+    display: flex;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--hgt-border);
+    align-items: center;
+    justify-content: space-between;
+    background: var(--hgt-card-2);
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+  }
+  .mobile-clue-panel .clue-tabs {
+    border-bottom: 1px solid var(--hgt-border);
+  }
+  .mobile-clue-title {
+    color: var(--hgt-text);
+    font-family: var(--hgt-font-display);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .mobile-clue-close {
+    display: flex;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--hgt-border);
+    border-radius: var(--hgt-radius-sm);
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--hgt-text-2);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .mobile-clue-close::after { border: 0; }
+  .mobile-clue-body {
+    max-height: 220px;
+    pointer-events: auto;
+  }
+  .mobile-clue-panel .btn-submit-truth {
+    margin: 0;
+    border-radius: 0;
+    flex: none;
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 767px) {
+  .game-page {
+    height: calc(100vh - var(--hgt-mobile-header-offset, 56px) - 64px - env(safe-area-inset-bottom));
+    height: calc(100dvh - var(--hgt-mobile-header-offset, 56px) - 64px - env(safe-area-inset-bottom));
+    grid-template-columns: 1fr;
+  }
+  .puzzle-panel,
+  .clue-board {
+    display: none;
+  }
+  .mobile-puzzle-summary {
+    display: block;
+    max-height: 42%;
+    overflow-y: auto;
+    border-bottom: 1px solid var(--hgt-border);
+    background: var(--hgt-card);
+  }
+  .mobile-puzzle-row {
+    display: flex;
+    height: 48px;
+    padding: 0 14px;
+    align-items: center;
+    gap: 12px;
+  }
+  .mobile-help,
+  .mobile-expand {
+    display: flex;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--hgt-border);
+    border-radius: var(--hgt-radius-xs);
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--hgt-text);
+  }
+  .mobile-help::after,
+  .mobile-expand::after { border: 0; }
+  .mobile-puzzle-title {
+    overflow: hidden;
+    flex: 1;
+    color: var(--hgt-text);
+    font-family: var(--hgt-font-display);
+    font-size: 17px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-question-count {
+    color: var(--hgt-text-2);
+    font-size: 12px;
+  }
+  .mobile-surface-wrap {
+    position: relative;
+    padding: 8px 48px 12px 16px;
+    border-top: 1px solid var(--hgt-border);
+  }
+  .mobile-surface {
+    display: -webkit-box;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    color: var(--hgt-text-2);
+    font-size: 13px;
+    line-height: 1.6;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+  .mobile-surface.expanded {
+    display: block;
+    overflow: visible;
+  }
+  .mobile-surface-wrap .mobile-expand {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+  }
+  .mobile-team {
+    padding: 0 16px;
+    border-top: 1px solid var(--hgt-border);
+  }
+  .mobile-team-toggle {
+    display: flex;
+    width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    color: var(--hgt-text);
+  }
+  .mobile-team-toggle::after { border: 0; }
+  .mobile-team-toggle .section-row {
+    flex: 1;
+  }
+  .mobile-team-details {
+    padding: 0 0 12px;
+  }
+  .mobile-clue-bar {
+    position: fixed;
+    z-index: 46;
+    display: block;
+  }
+  .mobile-clue-btn {
+    display: flex;
+    box-sizing: border-box;
+    height: 42px;
+    margin: 0;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--hgt-radius-full);
+    align-items: center;
+    justify-content: center;
+    background: var(--hgt-brand);
+    color: var(--hgt-on-brand);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: var(--hgt-shadow-float);
+    white-space: nowrap;
+  }
+  .mobile-clue-btn::after { border: 0; }
+  .mobile-clue-sheet {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+  .mobile-clue-panel {
+    position: fixed;
+    display: flex;
+    box-sizing: border-box;
+    width: min(320px, calc(100vw - 24px));
+    max-height: min(360px, 50vh);
+    border: 1px solid var(--hgt-border);
+    border-radius: var(--hgt-radius-lg);
+    flex-direction: column;
+    background: var(--hgt-card);
+    box-shadow: var(--hgt-shadow-float);
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  .mobile-clue-head {
+    display: flex;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--hgt-border);
+    align-items: center;
+    justify-content: space-between;
+    background: var(--hgt-card-2);
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+  }
+  .mobile-clue-panel .clue-tabs {
+    border-bottom: 1px solid var(--hgt-border);
+  }
+  .mobile-clue-title {
+    color: var(--hgt-text);
+    font-family: var(--hgt-font-display);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .mobile-clue-close {
+    display: flex;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--hgt-border);
+    border-radius: var(--hgt-radius-sm);
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--hgt-text-2);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .mobile-clue-close::after { border: 0; }
+  .mobile-clue-body {
+    max-height: 220px;
+    pointer-events: auto;
+  }
+  .mobile-clue-panel .btn-submit-truth {
+    margin: 0;
+    border-radius: 0;
+    flex: none;
+  }
+  .chat-panel {
+    position: absolute;
+    z-index: 4;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--mobile-chat-height);
+    min-height: 0;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.2);
+  }
+  .chat-resize-handle {
+    cursor: ns-resize;
+    touch-action: none;
+    user-select: none;
+  }
+  .mobile-chat-dragbar {
+    position: relative;
+    display: flex;
+    height: 22px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--hgt-border);
+    background: var(--hgt-card);
+    color: var(--hgt-text-3);
+  }
+  .mobile-chat-dragbar text {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+  .mobile-chat-dragbar .chat-grip {
+    top: 4px;
+  }
+  .message {
+    max-width: 88%;
+  }
+  .input-row button {
+    width: 80px;
+  }
+  .mobile-action-fab {
+    position: fixed;
+    z-index: 40;
+    display: block;
+    overflow: visible;
+  }
+  .mobile-action-fab.open {
+    /* 锚点仍是触发钮位置，胶囊向左伸出，开合不改动 left/top */
+    transform: translateX(calc(-100% + 44px));
+    border-radius: var(--hgt-radius-full);
+  }
+  .mobile-action-pill {
+    display: flex;
+    box-sizing: border-box;
+    max-width: calc(100vw - 16px);
+    height: 48px;
+    padding: 6px;
+    border: 1px solid var(--hgt-border);
+    border-radius: var(--hgt-radius-full);
+    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+    background: var(--hgt-bg-deep);
+    box-shadow: var(--hgt-shadow-float);
+    white-space: nowrap;
+  }
+  .mobile-fab-trigger {
+    display: flex;
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    background: var(--hgt-bg-deep);
+    border: 1px solid var(--hgt-border);
+    color: var(--hgt-text);
+    line-height: 1;
+    box-shadow: var(--hgt-shadow-float);
+  }
+  .mobile-fab-trigger::after { border: 0; }
+  .mobile-fab-option {
+    display: flex;
+    height: 36px;
+    margin: 0;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--hgt-radius-full);
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--hgt-text);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .mobile-fab-option::after { border: 0; }
+  .mobile-fab-option.danger {
+    color: var(--hgt-danger);
+  }
+  .mobile-fab-option.leave {
+    color: var(--hgt-text-2);
+  }
+  .mobile-fab-option.close {
+    width: 36px;
+    padding: 0;
+    color: var(--hgt-text-2);
+    font-size: 18px;
+    font-weight: 400;
+  }
+  .mobile-fab-option.clue {
+    color: var(--hgt-brand);
+    background: var(--hgt-brand-soft);
+  }
+  .mobile-fab-option.clue.active {
+    background: var(--hgt-brand);
+    color: var(--hgt-on-brand);
+  }
+}
+
 /* #ifdef MP-WEIXIN */
-@media(max-width:767px){.game-page{height:calc(100vh - var(--hgt-mobile-header-offset,56px) - 64px - env(safe-area-inset-bottom));height:calc(100dvh - var(--hgt-mobile-header-offset,56px) - 64px - env(safe-area-inset-bottom))}.mobile-action-fab{z-index:100}.mini-cover-fab .mobile-fab-trigger,.mini-cover-fab .mobile-fab-option{font-size:11px;line-height:38px;text-align:center}.mini-cover-fab .mobile-fab-trigger{font-size:14px;line-height:44px}}
+@media (max-width: 767px) {
+  .game-page {
+    height: calc(100vh - var(--hgt-mobile-header-offset, 56px) - 64px - env(safe-area-inset-bottom));
+    height: calc(100dvh - var(--hgt-mobile-header-offset, 56px) - 64px - env(safe-area-inset-bottom));
+  }
+  .mobile-action-fab {
+    z-index: 100;
+  }
+}
 /* #endif */
 /* #ifdef MP-TOUTIAO */
-@media(max-width:767px){.game-page{height:calc(100vh - 64px - env(safe-area-inset-bottom));height:calc(100dvh - 64px - env(safe-area-inset-bottom))}.mobile-action-fab{z-index:100}.mini-cover-fab .mobile-fab-trigger,.mini-cover-fab .mobile-fab-option{font-size:11px;line-height:38px;text-align:center}.mini-cover-fab .mobile-fab-trigger{font-size:14px;line-height:44px}}
+@media (max-width: 767px) {
+  .game-page {
+    height: calc(100vh - 64px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 64px - env(safe-area-inset-bottom));
+  }
+  .mobile-action-fab {
+    z-index: 100;
+  }
+}
 /* #endif */
 </style>

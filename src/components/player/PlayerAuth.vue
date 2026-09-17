@@ -32,12 +32,12 @@ const legalDocuments = ref<LegalDocuments>({ service_terms: '', privacy_policy: 
 const legalDocumentVisible = ref(false)
 const legalDocumentKind = ref<keyof LegalDocuments>('service_terms')
 
-const tabs: Array<{ key: AuthMode, label: string }> = [
-  { key: 'password', label: '账号登录' },
-  { key: 'code', label: '邮箱验证' },
-  { key: 'register', label: '注册' },
-  { key: 'reset', label: '找回密码' },
-]
+const modeTitle = computed(() => ({
+  password: '账号登录',
+  code: '邮箱验证',
+  register: '注册',
+  reset: '找回密码',
+} as const satisfies Record<AuthMode, string>)[mode.value])
 
 watch(mode, () => { emailCode.value = '' })
 
@@ -138,17 +138,23 @@ async function submit() {
     return
   if (mode.value === 'register' && password.value !== passwordConfirmation.value)
     return uni.showToast({ title: '两次输入的密码不一致', icon: 'none' })
+  const submittingMode = mode.value
   busy.value = true
   try {
-    if (mode.value === 'password')
+    if (submittingMode === 'password')
       finish(await playerApi.passwordLogin(email.value, password.value))
-    else if (mode.value === 'code')
+    else if (submittingMode === 'code')
       finish(await playerApi.codeLogin(email.value, emailCode.value))
-    else if (mode.value === 'register')
+    else if (submittingMode === 'register')
       finish(await playerApi.register({ username: username.value, email: email.value, password: password.value, email_code: emailCode.value }))
     else finish(await playerApi.resetPassword(email.value, emailCode.value, password.value))
   }
-  catch (error) { uni.showToast({ title: message(error), icon: 'none' }) }
+  catch (error) {
+    // 登录/验证失败只提示错误，停留在当前表单，不主动进入找回密码
+    if (submittingMode === 'password' || submittingMode === 'code')
+      mode.value = submittingMode
+    uni.showToast({ title: message(error), icon: 'none' })
+  }
   finally { busy.value = false }
 }
 type MiniProgramPlatform = 'wechat' | 'douyin'
@@ -203,23 +209,13 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
     <view class="form-panel">
       <view class="form-card">
         <!-- #ifdef H5 -->
-        <scroll-view class="tabs" scroll-x :show-scrollbar="false">
-          <view class="tabs-inner">
-            <button v-for="tab in tabs" :key="tab.key" class="tab" :class="{ active: mode === tab.key }" @click="mode = tab.key">
-              {{ tab.label }}
-            </button>
-          </view>
-        </scroll-view>
-        <!-- #endif -->
-
-        <!-- #ifdef H5 -->
+        <view class="form-title">
+          {{ modeTitle }}
+        </view>
         <view :key="mode" class="form-body">
           <template v-if="mode === 'password'">
             <label class="field"><text>用户名</text><input v-model="email" type="text" placeholder="请输入用户名"></label>
-            <label class="field">
-              <view class="label-row"><text>密码</text><button @click="mode = 'reset'">忘记密码？</button></view>
-              <input v-model="password" type="text" password confirm-type="done" placeholder="请输入密码" @confirm="submit">
-            </label>
+            <label class="field"><text>密码</text><input v-model="password" type="text" password confirm-type="done" placeholder="请输入密码" @confirm="submit"></label>
             <view class="action-stack">
               <button class="primary" :disabled="busy" @click="submit">
                 {{ busy ? '登录中…' : '登 录' }}
@@ -230,9 +226,17 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
               <button class="ghost" @click="mode = 'code'">
                 邮箱验证码登录
               </button>
-              <button class="ghost" @click="mode = 'register'">
-                还没有账号？立即注册 →
-              </button>
+            </view>
+            <view class="auth-links">
+              <text class="auth-link" @click="mode = 'register'">
+                注册账号
+              </text>
+              <text class="auth-link-sep">
+                ·
+              </text>
+              <text class="auth-link" @click="mode = 'reset'">
+                忘记密码
+              </text>
             </view>
             <text class="agreement">
               登录即表示同意 <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
@@ -372,13 +376,345 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
-.auth-page{--bg:#080808;--fg:#f0f0f0;--card:#111;--muted:#707070;--border:#292929;position:relative;display:flex;min-height:100vh;overflow:hidden;background:var(--bg);color:var(--fg);transition:.25s}.auth-page.light{--bg:#edeae4;--fg:#1c1c1a;--card:#e4e0d9;--muted:#74736e;--border:#c8c4bc}.particles{position:absolute;inset:0;opacity:.32;background-image:radial-gradient(circle at 15% 20%,var(--muted) 0 1px,transparent 1.5px),radial-gradient(circle at 82% 68%,var(--muted) 0 1px,transparent 1.5px),linear-gradient(115deg,transparent 48%,var(--border) 49%,transparent 50%);background-size:38px 38px,54px 54px,100% 100%;pointer-events:none}.theme-toggle{position:absolute;z-index:4;top:max(20px,env(safe-area-inset-top));right:20px;width:34px;height:34px;padding:0;border:1px solid var(--border);border-radius:0;background:var(--card);color:var(--muted);font:14px 'Courier New',monospace}.theme-toggle::after,.tab::after,.ghost::after{border:0}.brand-panel{position:relative;z-index:1;box-sizing:border-box;display:flex;width:42%;min-height:100vh;padding:58px 64px 42px;flex-direction:column;justify-content:space-between;border-right:1px solid var(--border)}.eyebrow,.brand-rule,.brand-footer,.field>text,.label-row,.tab,.primary,.ghost,.agreement,.copyright{font-family:'Courier New',monospace}.eyebrow{font-size:11px;letter-spacing:.38em;color:var(--muted)}.brand-title{display:block;font-family:Georgia,'Times New Roman',serif;font-size:clamp(52px,7vw,88px);line-height:1;letter-spacing:.08em}.brand-rule{display:flex;align-items:center;gap:14px;margin-top:24px;font-size:11px;letter-spacing:.25em;color:var(--muted)}.brand-rule::before{width:64px;height:1px;background:var(--border);content:''}.brand-description{display:block;max-width:270px;margin-top:26px;font-size:14px;line-height:1.9;color:var(--muted)}.brand-footer{display:flex;align-items:flex-end;justify-content:space-between;font-size:11px;color:var(--muted)}.brand-footer view{display:flex;gap:10px;flex-direction:column}.form-panel{position:relative;z-index:1;box-sizing:border-box;display:flex;min-height:100vh;padding:72px 64px;flex:1;align-items:center;justify-content:center}.form-card{width:100%;max-width:448px}.tabs{width:100%;border-bottom:1px solid var(--border);white-space:nowrap}.tabs-inner{display:flex}.tab{position:relative;margin-right:24px;padding:0 0 14px;border:0;border-radius:0;background:transparent;color:var(--muted);font-size:11px;line-height:1.4;letter-spacing:.1em}.tab.active{color:var(--fg)}.tab.active::before{position:absolute;right:0;bottom:-1px;left:0;height:1px;background:var(--fg);content:''}.form-body{display:flex;margin-top:38px;gap:20px;flex-direction:column;animation:auth-in .4s ease}.field{display:flex;gap:7px;flex-direction:column}.field>text,.label-row{font-size:11px;letter-spacing:.16em;color:var(--muted)}.label-row{display:flex;align-items:center;justify-content:space-between}.label-row button{padding:0;border:0;background:transparent;color:var(--muted);font-size:11px}.field input,.code-row input{box-sizing:border-box;width:100%;height:46px;padding:0 15px;border:1px solid var(--border);border-radius:0;background:transparent;color:var(--fg);font-size:14px;outline:none}.field input:focus,.code-row input:focus{border-color:var(--fg)}.code-row{display:flex;gap:9px}.code-row input{flex:1}.code-row button{min-width:100px;padding:0 15px;border:1px solid var(--fg);border-radius:0;background:transparent;color:var(--fg);font:11px 'Courier New',monospace;letter-spacing:.12em}.code-row button[disabled]{border-color:var(--border);color:var(--muted)}.password-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.primary{height:48px;margin-top:4px;border:1px solid var(--fg);border-radius:0;background:var(--fg);color:var(--bg);font-size:11px;letter-spacing:.24em}.primary[disabled]{opacity:.6}.ghost{height:34px;padding:0;border:0;background:transparent;color:var(--muted);font-size:11px;letter-spacing:.12em}.divider{display:flex;align-items:center;gap:16px;color:var(--muted);font:11px 'Courier New',monospace}.divider::before,.divider::after{height:1px;background:var(--border);content:'';flex:1}.agreement,.copyright{font-size:10px;line-height:1.7;color:var(--muted)}.notice{padding:2px 0 2px 15px;border-left:2px solid var(--border);font-size:12px;line-height:1.7;color:var(--muted)}.copyright{display:block;margin-top:36px;text-align:center}@keyframes auth-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}@media(max-width:767px){.auth-page{display:block;min-height:100vh}.brand-panel{width:100%;min-height:auto;padding:calc(54px + env(safe-area-inset-top)) 28px 34px;border-right:0;border-bottom:1px solid var(--border)}.eyebrow{margin-bottom:34px}.brand-title{font-size:50px}.brand-description,.brand-footer{display:none}.form-panel{min-height:auto;padding:38px 24px calc(40px + env(safe-area-inset-bottom))}.tabs{margin-right:-24px;width:calc(100% + 24px)}.password-grid{grid-template-columns:1fr}.form-body{margin-top:30px}}
-.theme-toggle,.tab,.code-row button,.primary,.ghost{display:flex;box-sizing:border-box;align-items:center;justify-content:center;line-height:1}.primary{width:100%}
-.auth-page{--muted:#666;--border:#222;font-family:Inter,sans-serif}.auth-page.light{--muted:#7a7972}.theme-toggle{width:32px;height:32px;font:13px/1 'JetBrains Mono',monospace}.brand-panel{padding:64px}.eyebrow,.brand-rule,.brand-footer,.field>text,.label-row,.tab,.primary,.ghost,.agreement,.copyright{font-family:'JetBrains Mono',monospace}.eyebrow{font-size:12px;letter-spacing:.4em}.brand-logo{display:block;width:150px;height:150px;margin-bottom:18px}.brand-title{font-family:Cinzel,serif;letter-spacing:.06em}.brand-rule{gap:12px;margin-top:20px;font-size:12px;letter-spacing:.28em}.brand-description{margin-top:24px;line-height:1.625}.brand-footer{font-size:12px}.tabs-inner{justify-content:flex-start}.tab{margin-right:24px;margin-left:0;padding-bottom:12px;font-size:12px;line-height:16px;letter-spacing:.05em}.form-body{margin-top:40px}.field{width:100%;gap:6px}.field>text,.label-row{font-size:12px;letter-spacing:.18em}.label-row{box-sizing:border-box;width:100%}.label-row button{margin-right:0;margin-left:auto;font:12px/16px 'JetBrains Mono',monospace;letter-spacing:normal}.field input,.code-row input{padding:0 16px;font-family:Inter,sans-serif;line-height:20px}.password-grid{gap:16px}.primary{height:44px;margin-top:0;font-size:12px;line-height:16px;letter-spacing:.25em}.ghost{width:100%;height:36px;font-size:12px;line-height:16px;letter-spacing:.15em}.action-stack{display:flex;margin-top:8px;gap:12px;flex-direction:column}.register-actions{display:flex;margin-top:4px;gap:12px;flex-direction:column}.divider{font:12px/16px 'JetBrains Mono',monospace}.agreement{font-size:12px;line-height:1.625}.agreement-link{color:var(--fg)}.copyright{margin-top:40px;font-size:12px;line-height:16px}
-.mini-program-auth{align-items:stretch;text-align:center}.mini-program-title{font-family:Georgia,'Times New Roman',serif;font-size:28px;letter-spacing:.08em}.mini-program-description{color:var(--muted);font-size:13px;line-height:1.8}.platform-login{gap:12px;letter-spacing:.12em}.platform-logo{width:22px;height:22px;flex:none}.wechat-login{background:#07c160;border-color:#07c160;color:#fff}.douyin-login{background:#17171b;border-color:#17171b;color:#fff}.light .douyin-login{background:#17171b;color:#fff}
-@media(max-width:767px){.brand-panel{padding:48px 40px}.eyebrow{margin-bottom:0}.brand-copy{margin:32px 0}.brand-logo{width:96px;height:96px;margin-bottom:14px}.brand-title{font-size:42px}.form-panel{padding:48px 32px}.tabs{margin-right:0;width:100%}.password-grid{grid-template-columns:1fr 1fr}.form-body{margin-top:40px}}
-.brand-title{font-size:clamp(48px,5vw,76px);white-space:nowrap}
-@media(min-width:768px) and (max-width:1180px){.brand-panel{padding-right:40px;padding-left:40px}.brand-title{font-size:clamp(38px,5vw,56px)}}
-@media(max-width:767px){.brand-title{font-size:42px}}
+.auth-page {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+  transition: background var(--hgt-dur-base), color var(--hgt-dur-base);
+}
+.auth-page.light {
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+}
+.theme-toggle {
+  position: absolute;
+  z-index: 4;
+  top: max(20px, env(safe-area-inset-top));
+  right: 20px;
+  display: flex;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-card);
+  color: var(--hgt-text-2);
+  font-size: 14px;
+  line-height: 1;
+}
+.theme-toggle::after,
+.ghost::after {
+  border: 0;
+}
+
+.brand-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  box-sizing: border-box;
+  width: 42%;
+  min-height: 100vh;
+  padding: 56px 48px 40px;
+  border-right: 1px solid var(--hgt-border);
+  flex-direction: column;
+  justify-content: space-between;
+  background:
+    linear-gradient(160deg, rgba(12, 32, 39, 0.88), rgba(7, 20, 24, 0.96)),
+    url('/static/hgt/bg/bg_deep_ocean.jpg') center / cover;
+}
+.eyebrow {
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+}
+.brand-copy {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+.brand-logo {
+  display: block;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 12px;
+}
+.brand-title {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: clamp(36px, 5vw, 52px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+}
+.brand-rule {
+  display: flex;
+  margin-top: 16px;
+  align-items: center;
+  gap: 12px;
+  color: var(--hgt-text-2);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+}
+.brand-rule::before {
+  width: 48px;
+  height: 1px;
+  background: var(--hgt-border-soft);
+  content: '';
+}
+.brand-description {
+  display: block;
+  max-width: 280px;
+  margin-top: 20px;
+  color: var(--hgt-text-2);
+  font-size: 14px;
+  line-height: 1.75;
+}
+.brand-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  color: var(--hgt-text-3);
+  font-size: 11px;
+}
+.brand-footer view {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.form-panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  box-sizing: border-box;
+  width: 58%;
+  min-height: 100vh;
+  padding: 48px 40px;
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-bg);
+}
+.form-card {
+  box-sizing: border-box;
+  width: min(420px, 100%);
+  padding: 28px 28px 24px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-lg);
+  background: var(--hgt-card);
+  box-shadow: var(--hgt-shadow-lg);
+}
+.form-title {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.form-body {
+  display: flex;
+  margin-top: 20px;
+  gap: 14px;
+  flex-direction: column;
+}
+.field {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  flex-direction: column;
+}
+.field > text {
+  color: var(--hgt-text-2);
+  font-size: 13px;
+}
+.auth-links {
+  display: flex;
+  margin-top: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.auth-link {
+  color: var(--hgt-text-3);
+  font-size: 12px;
+}
+.auth-link-sep {
+  color: var(--hgt-text-3);
+  font-size: 12px;
+}
+.field input,
+.code-row input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-card-2);
+  color: var(--hgt-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+.code-row {
+  display: flex;
+  gap: 8px;
+}
+.code-row input {
+  flex: 1;
+  min-width: 0;
+}
+.code-row button {
+  display: flex;
+  box-sizing: border-box;
+  height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--hgt-brand);
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.code-row button::after {
+  border: 0;
+}
+.password-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+.primary {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  height: 46px;
+  margin: 4px 0 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+.primary::after {
+  border: 0;
+}
+.primary:disabled {
+  opacity: 0.55;
+}
+.ghost {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  line-height: 1;
+}
+.action-stack,
+.register-actions {
+  display: flex;
+  margin-top: 4px;
+  gap: 10px;
+  flex-direction: column;
+}
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hgt-text-3);
+  font-size: 12px;
+}
+.notice {
+  padding: 12px 14px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-card-2);
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.agreement {
+  color: var(--hgt-text-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.agreement-link {
+  color: var(--hgt-brand);
+}
+.copyright {
+  margin-top: 20px;
+  color: var(--hgt-text-3);
+  font-size: 11px;
+  text-align: center;
+}
+.mini-program-auth {
+  align-items: stretch;
+  text-align: center;
+}
+.mini-program-title {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.mini-program-description {
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.platform-login {
+  gap: 10px;
+}
+.platform-logo {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.wechat-login {
+  background: #07c160;
+  color: #fff;
+}
+.douyin-login {
+  background: #17171b;
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .brand-panel {
+    display: none;
+  }
+  .form-panel {
+    width: 100%;
+    padding: 32px 20px;
+  }
+  .password-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

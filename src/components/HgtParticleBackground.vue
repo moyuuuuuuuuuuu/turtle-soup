@@ -60,7 +60,7 @@ onMounted(() => {
   }
   const draw = () => {
     const lightTheme = document.documentElement.classList.contains('hgt-light-theme')
-    const particleRgb = lightTheme ? '28,28,26' : '255,255,255'
+    const particleRgb = lightTheme ? '46,154,144' : '91,200,189'
     context.clearRect(0, 0, canvas.width, canvas.height)
     particles.forEach((particle, index) => {
       moveParticle(particle, canvas.width, canvas.height)

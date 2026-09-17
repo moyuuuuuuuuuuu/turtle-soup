@@ -15,12 +15,13 @@ withDefaults(defineProps<{
   modelValue: boolean
   eyebrow?: string
   title: string
-  description: string
+  description?: string
   confirmText?: string
   cancelText?: string
   tone?: 'default' | 'warning' | 'danger'
 }>(), {
   eyebrow: '请确认',
+  description: '',
   confirmText: '确认',
   cancelText: '取消',
   tone: 'default',
@@ -54,9 +55,13 @@ function close(confirmed: boolean) {
       <text class="confirm-title hgt-display">
         {{ title }}
       </text>
-      <text class="confirm-description">
-        {{ description }}
-      </text>
+      <view v-if="description || $slots.default" class="confirm-body">
+        <slot>
+          <text class="confirm-description">
+            {{ description }}
+          </text>
+        </slot>
+      </view>
       <view class="confirm-actions">
         <button class="confirm-button cancel hgt-mono" @tap.stop="close(false)">
           {{ cancelText }}
@@ -81,20 +86,28 @@ function close(confirmed: boolean) {
   padding:24px 16px;
   align-items:center;
   justify-content:center;
-  background:rgba(0,0,0,.48);
+  background:rgba(0,0,0,.52);
   animation:hgt-confirm-fade .18s ease-out;
 }
 .hgt-confirm-panel{
+  position:relative;
   box-sizing:border-box;
-  width:min(360px,100%);
+  width:min(400px,100%);
   max-height:min(80vh,640px);
-  padding:28px 24px;
+  padding:28px 24px 24px;
   overflow:auto;
   border:1px solid var(--border);
-  background:var(--background);
+  border-radius:var(--hgt-radius-md, 12px);
+  background:var(--card);
   color:var(--foreground);
-  box-shadow:0 22px 70px rgba(0,0,0,.28);
+  box-shadow:0 22px 70px rgba(0,0,0,.34);
   animation:hgt-confirm-in .22s cubic-bezier(.2,.8,.2,1);
+}
+.hgt-confirm-panel.tone-warning{
+  border-color:rgba(196,154,85,.45);
+}
+.hgt-confirm-panel.tone-danger{
+  border-color:rgba(201,74,85,.5);
 }
 .confirm-eyebrow{
   display:block;
@@ -106,15 +119,19 @@ function close(confirmed: boolean) {
 }
 .confirm-title{
   display:block;
-  margin-top:20px;
-  font-size:28px;
-  line-height:1.2;
+  margin-top:18px;
+  font-size:26px;
+  font-weight:600;
+  line-height:1.25;
+}
+.confirm-body{
+  margin-top:16px;
 }
 .confirm-description{
   display:block;
-  margin-top:16px;
   padding:12px 14px;
-  border-left:2px solid var(--foreground);
+  border-left:2px solid var(--border-soft, var(--border));
+  border-radius:0 var(--hgt-radius-sm, 8px) var(--hgt-radius-sm, 8px) 0;
   background:var(--secondary);
   color:var(--muted-foreground);
   font-size:13px;
@@ -130,12 +147,12 @@ function close(confirmed: boolean) {
 .confirm-button{
   display:flex;
   box-sizing:border-box;
-  height:46px;
-  min-height:46px;
+  height:44px;
+  min-height:44px;
   margin:0;
-  padding:0 10px;
-  border:1px solid var(--foreground);
-  border-radius:0;
+  padding:0 12px;
+  border:1px solid var(--border-soft, var(--border));
+  border-radius:var(--hgt-radius-sm, 8px);
   align-items:center;
   justify-content:center;
   font-size:12px;
@@ -147,32 +164,44 @@ function close(confirmed: boolean) {
 .confirm-button::after{display:none}
 .confirm-button.cancel{
   flex:1;
-  color:var(--foreground);
+  color:var(--muted-foreground);
   background:transparent;
 }
-.confirm-button.submit,
-.tone-warning .confirm-button.submit,
-.tone-danger .confirm-button.submit{
+.confirm-button.submit{
   flex:1.35;
-  border-color:var(--foreground);
-  color:var(--background);
-  background:var(--foreground);
+  border-color:var(--accent, var(--hgt-brand));
+  color:var(--hgt-on-brand, var(--background));
+  background:var(--accent, var(--hgt-brand));
+  font-weight:600;
 }
-.tone-warning .confirm-eyebrow{color:#d97706}
-.tone-danger .confirm-eyebrow{color:#dc2626}
+.tone-warning .confirm-eyebrow{color:var(--hgt-warning, #c49a55)}
+.tone-warning .confirm-description{
+  border-left-color:rgba(196,154,85,.7);
+  background:rgba(196,154,85,.12);
+  color:var(--foreground);
+}
+.tone-danger .confirm-eyebrow{color:var(--hgt-danger, #c94a55)}
+.tone-danger .confirm-description{
+  border-left-color:rgba(201,74,85,.7);
+  background:rgba(201,74,85,.12);
+  color:var(--foreground);
+}
+.tone-danger .confirm-button.submit{
+  border-color:var(--hgt-danger, #c94a55);
+  color:#fff;
+  background:var(--hgt-danger, #c94a55);
+}
 @keyframes hgt-confirm-fade{from{opacity:0}to{opacity:1}}
 @keyframes hgt-confirm-in{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
 @media(max-width:360px){
   .hgt-confirm-panel{padding:22px 16px}
-  .confirm-title{font-size:24px}
+  .confirm-title{font-size:22px}
   .confirm-actions{flex-direction:column}
   .confirm-button.cancel,
-  .confirm-button.submit,
-  .tone-warning .confirm-button.submit,
-  .tone-danger .confirm-button.submit{flex:none;width:100%}
+  .confirm-button.submit{flex:none;width:100%}
 }
 @media(min-width:768px){
-  .hgt-confirm-panel{padding:34px}
-  .confirm-title{font-size:32px}
+  .hgt-confirm-panel{padding:32px 28px 28px}
+  .confirm-title{font-size:30px}
 }
 </style>

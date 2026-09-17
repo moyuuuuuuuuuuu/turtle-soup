@@ -14,10 +14,14 @@ declare global {
   const alovaInstance: typeof import('./api/index')['alovaInstance']
   const api: typeof import('./api/index')['default']
   const apiDefinitions: typeof import('./api/apiDefinitions')['default']
+  const applyPrettyQuestionDetailUrl: typeof import('./utils/questionRoute')['applyPrettyQuestionDetailUrl']
   const applyRootTheme: typeof import('./utils/theme')['applyRootTheme']
   const applyStoredTheme: typeof import('./utils/theme')['applyStoredTheme']
   const asyncComputed: typeof import('@vueuse/core')['asyncComputed']
   const autoResetRef: typeof import('@vueuse/core')['autoResetRef']
+  const bootstrapPrettyQuestionRoute: typeof import('./utils/questionRoute')['bootstrapPrettyQuestionRoute']
+  const buildQuestionDetailPrettyPath: typeof import('./utils/questionRoute')['buildQuestionDetailPrettyPath']
+  const buildQuestionDetailUrl: typeof import('./utils/questionRoute')['buildQuestionDetailUrl']
   const computed: typeof import('vue')['computed']
   const computedAsync: typeof import('@vueuse/core')['computedAsync']
   const computedEager: typeof import('@vueuse/core')['computedEager']
@@ -120,12 +124,14 @@ declare global {
   const onUnload: typeof import('@dcloudio/uni-app')['onUnload']
   const onUnmounted: typeof import('vue')['onUnmounted']
   const onUpdated: typeof import('vue')['onUpdated']
+  const openQuestionDetail: typeof import('./utils/questionRoute')['openQuestionDetail']
   const pausableWatch: typeof import('@vueuse/core')['pausableWatch']
   const persistPlugin: typeof import('./store/persist')['persistPlugin']
   const playerApi: typeof import('./api/player')['playerApi']
   const provide: typeof import('vue')['provide']
   const provideLocal: typeof import('@vueuse/core')['provideLocal']
   const questionApi: typeof import('./api/turtle')['questionApi']
+  const questionCoverUrl: typeof import('./utils/questionCover')['questionCoverUrl']
   const reactify: typeof import('@vueuse/core')['reactify']
   const reactifyObject: typeof import('@vueuse/core')['reactifyObject']
   const reactive: typeof import('vue')['reactive']
@@ -151,6 +157,7 @@ declare global {
   const storeToRefs: typeof import('pinia')['storeToRefs']
   const storedTheme: typeof import('./utils/theme')['storedTheme']
   const subscribeSystemThemeChange: typeof import('./utils/systemTheme')['subscribeSystemThemeChange']
+  const supportsPublicRooms: typeof import('./utils/platform')['supportsPublicRooms']
   const syncRef: typeof import('@vueuse/core')['syncRef']
   const syncRefs: typeof import('@vueuse/core')['syncRefs']
   const templateRef: typeof import('@vueuse/core')['templateRef']
@@ -388,10 +395,14 @@ declare module 'vue' {
     readonly alovaInstance: UnwrapRef<typeof import('./api/index')['alovaInstance']>
     readonly api: UnwrapRef<typeof import('./api/index')['default']>
     readonly apiDefinitions: UnwrapRef<typeof import('./api/apiDefinitions')['default']>
+    readonly applyPrettyQuestionDetailUrl: UnwrapRef<typeof import('./utils/questionRoute')['applyPrettyQuestionDetailUrl']>
     readonly applyRootTheme: UnwrapRef<typeof import('./utils/theme')['applyRootTheme']>
     readonly applyStoredTheme: UnwrapRef<typeof import('./utils/theme')['applyStoredTheme']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
+    readonly bootstrapPrettyQuestionRoute: UnwrapRef<typeof import('./utils/questionRoute')['bootstrapPrettyQuestionRoute']>
+    readonly buildQuestionDetailPrettyPath: UnwrapRef<typeof import('./utils/questionRoute')['buildQuestionDetailPrettyPath']>
+    readonly buildQuestionDetailUrl: UnwrapRef<typeof import('./utils/questionRoute')['buildQuestionDetailUrl']>
     readonly computed: UnwrapRef<typeof import('vue')['computed']>
     readonly computedAsync: UnwrapRef<typeof import('@vueuse/core')['computedAsync']>
     readonly computedEager: UnwrapRef<typeof import('@vueuse/core')['computedEager']>
@@ -494,12 +505,14 @@ declare module 'vue' {
     readonly onUnload: UnwrapRef<typeof import('@dcloudio/uni-app')['onUnload']>
     readonly onUnmounted: UnwrapRef<typeof import('vue')['onUnmounted']>
     readonly onUpdated: UnwrapRef<typeof import('vue')['onUpdated']>
+    readonly openQuestionDetail: UnwrapRef<typeof import('./utils/questionRoute')['openQuestionDetail']>
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly persistPlugin: UnwrapRef<typeof import('./store/persist')['persistPlugin']>
     readonly playerApi: UnwrapRef<typeof import('./api/player')['playerApi']>
     readonly provide: UnwrapRef<typeof import('vue')['provide']>
     readonly provideLocal: UnwrapRef<typeof import('@vueuse/core')['provideLocal']>
     readonly questionApi: UnwrapRef<typeof import('./api/turtle')['questionApi']>
+    readonly questionCoverUrl: UnwrapRef<typeof import('./utils/questionCover')['questionCoverUrl']>
     readonly reactify: UnwrapRef<typeof import('@vueuse/core')['reactify']>
     readonly reactifyObject: UnwrapRef<typeof import('@vueuse/core')['reactifyObject']>
     readonly reactive: UnwrapRef<typeof import('vue')['reactive']>
@@ -525,6 +538,7 @@ declare module 'vue' {
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly storedTheme: UnwrapRef<typeof import('./utils/theme')['storedTheme']>
     readonly subscribeSystemThemeChange: UnwrapRef<typeof import('./utils/systemTheme')['subscribeSystemThemeChange']>
+    readonly supportsPublicRooms: UnwrapRef<typeof import('./utils/platform')['supportsPublicRooms']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
     readonly templateRef: UnwrapRef<typeof import('@vueuse/core')['templateRef']>

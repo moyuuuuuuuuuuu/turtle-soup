@@ -14,7 +14,7 @@ export function resolveApiBaseUrl() {
   if (configuredApiBaseUrl)
     return configuredApiBaseUrl.replace(/\/$/, '')
 
-  let baseUrl = 'http://hgt.test/api/v1'
+  let baseUrl = 'https://turtle-soup.moyuu.ink/api/v1'
   // #ifdef H5
   baseUrl = '/api/v1'
   // #endif
@@ -25,7 +25,7 @@ export function resolveWebSocketUrl() {
   if (configuredWebSocketUrl)
     return configuredWebSocketUrl
 
-  let socketUrl = 'ws://hgt.test/ws/'
+  let socketUrl = 'wss://turtle-soup.moyuu.ink/ws/'
   // #ifdef H5
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   socketUrl = `${protocol}//${window.location.host}/ws/`

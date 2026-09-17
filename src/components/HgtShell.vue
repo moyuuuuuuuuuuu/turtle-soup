@@ -9,29 +9,59 @@ const router = useRouter()
 const route = useRoute()
 const player = usePlayerStore()
 const socket = useGameSocket()
-const { light, overlay } = useAnimatedTheme()
+const { light, overlay, toggleTheme } = useAnimatedTheme()
 const mobileHeaderStyle = ref<Record<string, string>>({})
 const mobileHeaderOffset = ref('56px')
+
 const activeRoom = computed(() => {
   const room = socket.roomSnapshot.value
   return room && ['waiting', 'playing'].includes(room.status) && room.game_id ? room : null
 })
 const showRoomReturn = computed(() => Boolean(player.user && activeRoom.value) && route.name !== 'game')
+
 const navItems = [
-  { name: 'home', path: '/pages/index/index', label: '首页', icon: '◈' },
-  { name: 'questions', path: '/pages/questions/index', label: '题库', icon: '◉' },
+  { name: 'home', path: '/pages/index/index', label: '首页', icon: 'H' },
+  { name: 'questions', path: '/pages/questions/index', label: '题库', icon: 'Q' },
+  { name: 'game', path: '/pages/game/index', label: '推理', icon: 'P', hideDesktop: true },
   ...(supportsPublicRooms
-    ? [{ name: 'public-rooms', path: '/pages/public-rooms/index', label: '公共房间', icon: '◐', authenticated: true }]
+    ? [{ name: 'public-rooms', path: '/pages/public-rooms/index', label: '多人', icon: 'M', authenticated: true }]
     : []),
-  { name: 'history', path: '/pages/history/index', label: '记录', icon: '◎' },
-  { name: 'player-account', path: '/pages/account/index', label: '我的', icon: '◇' },
+  { name: 'history', path: '/pages/history/index', label: '我的推理', icon: 'R' },
+  { name: 'player-account', path: '/pages/account/index', label: '我的', icon: 'U', mobileOnly: true },
   // #ifdef H5
-  { name: 'donate', path: '/pages/donate/index', label: '捐赠', icon: '◆' },
+  { name: 'donate', path: '/pages/donate/index', label: '捐赠', icon: 'D' },
   // #endif
-]
-const desktopNav = computed(() => navItems.filter(item => !item.authenticated || player.user))
-const mobileNav = computed(() => navItems.filter(item => ['home', 'questions', 'public-rooms', 'history', 'player-account'].includes(item.name)))
-async function go(item: typeof navItems[number]) {
+] as const
+
+const desktopNav = computed(() =>
+  navItems.filter((item) => {
+    if ('hideDesktop' in item && item.hideDesktop)
+      return false
+    if ('mobileOnly' in item && item.mobileOnly)
+      return false
+    if ('authenticated' in item && item.authenticated && !player.user)
+      return false
+    return true
+  }),
+)
+
+const mobileNav = computed(() =>
+  [
+    { name: 'home', path: '/pages/index/index', label: '首页', icon: '⌂' },
+    { name: 'questions', path: '/pages/questions/index', label: '题库', icon: '☰' },
+    { name: 'history', path: '/pages/history/index', label: '推理', icon: '◈' },
+    ...(supportsPublicRooms
+      ? [{ name: 'public-rooms', path: '/pages/public-rooms/index', label: '多人', icon: '◎' }]
+      : []),
+    { name: 'player-account', path: '/pages/account/index', label: '我的', icon: '☺' },
+  ],
+)
+
+const logoSrc = computed(() =>
+  light.value ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png',
+)
+
+async function go(item: { name: string, path: string }) {
   if (!player.ready)
     await player.restore()
   if (!player.user && ['public-rooms', 'history', 'player-account'].includes(item.name)) {
@@ -42,8 +72,13 @@ async function go(item: typeof navItems[number]) {
     uni.switchTab({ url: item.path })
     return
   }
+  if (item.name === 'history') {
+    router.push({ name: 'history' })
+    return
+  }
   router.push(item.path)
 }
+
 async function recoverActiveRoom() {
   if (!player.user || activeRoom.value)
     return
@@ -55,11 +90,17 @@ async function recoverActiveRoom() {
   }
   catch {}
 }
+
 function returnToRoom() {
   if (!player.user || !activeRoom.value?.game_id)
     return
   router.push({ name: 'game', params: { id: activeRoom.value.game_id } })
 }
+
+function openSearch() {
+  router.push({ name: 'questions' })
+}
+
 onMounted(async () => {
   // #ifdef MP-WEIXIN
   const system = uni.getSystemInfoSync()
@@ -68,10 +109,11 @@ onMounted(async () => {
   const navigationHeight = menu ? menu.height + Math.max(0, menu.top - statusBarHeight) * 2 : 44
   const totalHeight = statusBarHeight + navigationHeight
   mobileHeaderOffset.value = `${totalHeight}px`
+  const padRight = menu ? Math.max(16, system.windowWidth - menu.left + 12) : 16
   mobileHeaderStyle.value = {
     height: `${totalHeight}px`,
     paddingTop: `${statusBarHeight}px`,
-    paddingRight: menu ? `${Math.max(16, system.windowWidth - menu.left + 12)}px` : '16px',
+    paddingRight: `${padRight}px`,
   }
   // #endif
   if (!player.ready)
@@ -84,53 +126,101 @@ onMounted(async () => {
   <view class="hgt-app" :class="{ 'hgt-light': light }" :style="{ '--hgt-mobile-header-offset': mobileHeaderOffset }">
     <HgtThemeTransition v-bind="overlay" />
     <HgtParticleBackground />
-    <aside class="hgt-sidebar">
-      <view class="hgt-brand">
-        <image class="hgt-brand-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
-        <view class="hgt-brand-copy">
-          <text class="hgt-display hgt-brand-title">
-            墨鱼海龟汤
-          </text>
-          <text class="hgt-mono hgt-brand-subtitle">
-            MOYUU · LATERAL THINKING
-          </text>
+
+    <!-- PC / 平板 顶栏 -->
+    <header class="hgt-topbar">
+      <view class="hgt-topbar-inner">
+        <view class="hgt-topbar-brand" @click="go({ name: 'home', path: '/pages/index/index' })">
+          <image class="hgt-topbar-logo" :src="logoSrc" mode="aspectFit" />
+          <view class="hgt-topbar-brand-copy">
+            <text class="hgt-display hgt-topbar-title">
+              墨鱼海龟汤
+            </text>
+            <text class="hgt-mono hgt-topbar-sub">
+              TURTLE SOUP
+            </text>
+          </view>
+        </view>
+
+        <nav class="hgt-topbar-nav">
+          <view
+            v-for="item in desktopNav"
+            :key="item.name"
+            class="hgt-topbar-link"
+            :class="{ active: route.name === item.name }"
+            @click="go(item)"
+          >
+            {{ item.label }}
+          </view>
+        </nav>
+
+        <view class="hgt-topbar-actions">
+          <button class="hgt-icon-btn" aria-label="搜索" @click="openSearch">
+            <text>⌕</text>
+          </button>
+          <button class="hgt-icon-btn hgt-theme-btn" :aria-label="light ? '切换到深色' : '切换到浅色'" @click="toggleTheme">
+            <text>{{ light ? '☾' : '☀' }}</text>
+          </button>
+          <view
+            class="hgt-avatar-btn"
+            @click="go({ name: player.user ? 'player-account' : 'player-login', path: player.user ? '/pages/account/index' : '/pages/login/index' })"
+          >
+            <image
+              v-if="player.user?.avatar_url"
+              class="hgt-avatar-img"
+              :src="player.user.avatar_url"
+              mode="aspectFill"
+            />
+            <text v-else class="hgt-avatar-fallback">
+              {{ player.user ? (player.user.username || '玩')[0] : '客' }}
+            </text>
+          </view>
         </view>
       </view>
-      <view class="hgt-nav">
-        <view v-for="item in desktopNav" :key="item.name" class="hgt-nav-item" :class="{ active: route.name === item.name }" @click="go(item)">
-          <text class="hgt-mono hgt-nav-icon">
-            {{ item.icon }}
-          </text><text>{{ item.label }}</text>
-        </view>
-      </view>
-      <view class="hgt-sidebar-footer">
-        <text class="hgt-mono">
-          v0.1.0
-        </text>
-      </view>
-    </aside>
+    </header>
+
+    <!-- 手机顶栏 -->
     <header class="hgt-mobile-header" :style="mobileHeaderStyle">
-      <view class="hgt-mobile-brand">
-        <image class="hgt-mobile-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
-        <text class="hgt-display">
+      <view class="hgt-mobile-brand" @click="go({ name: 'home', path: '/pages/index/index' })">
+        <image class="hgt-mobile-logo" :src="logoSrc" mode="aspectFit" />
+        <text class="hgt-display hgt-mobile-title">
           墨鱼海龟汤
         </text>
       </view>
+      <view class="hgt-mobile-actions">
+        <button class="hgt-icon-btn" aria-label="搜索" @click="openSearch">
+          <text>⌕</text>
+        </button>
+        <button class="hgt-icon-btn hgt-theme-btn" :aria-label="light ? '切换到深色' : '切换到浅色'" @click="toggleTheme">
+          <text>{{ light ? '☾' : '☀' }}</text>
+        </button>
+      </view>
     </header>
-    <nav class="hgt-mobile-tabbar">
-      <view v-for="item in mobileNav" :key="item.name" class="hgt-mobile-tab" :class="{ active: route.name === item.name }" @click="go(item)">
-        <text class="hgt-mono hgt-mobile-tab-icon">
+
+    <!-- 手机底栏 -->
+    <nav class="hgt-tabbar">
+      <view
+        v-for="item in mobileNav"
+        :key="item.name"
+        class="hgt-tab"
+        :class="{ active: route.name === item.name }"
+        @click="go(item)"
+      >
+        <text class="hgt-tab-icon">
           {{ item.icon }}
-        </text><text class="hgt-mobile-tab-label">
+        </text>
+        <text class="hgt-tab-label">
           {{ item.label }}
         </text>
       </view>
     </nav>
+
     <main class="hgt-main">
       <slot />
     </main>
+
     <button v-if="showRoomReturn" class="hgt-room-return" @click="returnToRoom">
-      <text class="hgt-room-return-icon hgt-mono">
+      <text class="hgt-room-return-icon">
         ↩
       </text>
       <view class="hgt-room-return-copy">
@@ -144,17 +234,351 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.hgt-app { --background:#080808;--foreground:#f0f0f0;--card:#111;--secondary:#1a1a1a;--muted-foreground:#666;--accent:#d4d4d4;--border:#222;position:relative;isolation:isolate;min-height:100vh;background:var(--background);color:var(--foreground);font-family:Arial,sans-serif; }
-.hgt-app.hgt-light { --background:#edeae4;--foreground:#1c1c1a;--card:#e4e0d9;--secondary:#d9d5ce;--muted-foreground:#7a7972;--accent:#2e2e2c;--border:#c8c4bc; }
-.hgt-sidebar { position:fixed;left:0;top:0;bottom:0;width:224px;z-index:20;display:flex;flex-direction:column;background:var(--card);border-right:1px solid var(--border); }
-.hgt-brand { padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}.hgt-brand-logo{width:44px;height:44px;flex:none}.hgt-brand-copy{display:flex;min-width:0;flex-direction:column;gap:4px}.hgt-brand-title{font-size:16px;letter-spacing:.12em;white-space:nowrap}.hgt-brand-subtitle{font-size:8px;letter-spacing:.08em;color:var(--muted-foreground);white-space:nowrap}
-.hgt-nav{padding:24px 0;flex:1}.hgt-nav-item{position:relative;padding:13px 24px;display:flex;gap:13px;align-items:center;color:var(--muted-foreground);font-size:12px;letter-spacing:.16em}.hgt-nav-item.active{color:var(--foreground);background:var(--secondary)}.hgt-nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--foreground)}
-.hgt-sidebar-footer{padding:20px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;color:var(--muted-foreground);font-size:11px}.hgt-icon-button{margin:0;padding:0;width:34px;height:34px;line-height:32px;border:1px solid var(--border);border-radius:0;background:transparent;color:var(--foreground);font-size:14px}.hgt-icon-button::after{display:none}
-.hgt-main{position:relative;z-index:1;box-sizing:border-box;min-height:100vh;margin-left:224px}.hgt-mobile-header,.hgt-mobile-tabbar{display:none}
-.hgt-room-return{position:fixed;z-index:24;right:24px;bottom:40px;display:flex;box-sizing:border-box;min-width:170px;height:56px;margin:0;padding:0 16px;border:1px solid var(--foreground);border-radius:0;align-items:center;gap:12px;background:var(--foreground);color:var(--background);box-shadow:0 16px 45px #0005;text-align:left}.hgt-room-return::after{display:none}.hgt-room-return-icon{font-size:18px;line-height:1}.hgt-room-return-copy{display:flex;min-width:0;gap:3px;flex-direction:column}.hgt-room-return-copy>text:first-child{font-size:11px;letter-spacing:.14em}.hgt-room-return-copy>text:last-child{max-width:180px;overflow:hidden;font-size:9px;opacity:.68;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:767px){.hgt-sidebar{display:none}.hgt-main{margin-left:0;padding-top:var(--hgt-mobile-header-offset,56px);padding-bottom:calc(64px + env(safe-area-inset-bottom))}.hgt-mobile-header{position:fixed;z-index:25;left:0;right:0;top:0;box-sizing:border-box;height:56px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;background:var(--card);border-bottom:1px solid var(--border);letter-spacing:.12em}.hgt-mobile-brand{display:flex;min-width:0;align-items:center;gap:8px}.hgt-mobile-brand text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hgt-mobile-logo{width:34px;height:34px;flex:none}.hgt-mobile-actions{display:flex;gap:10px}.hgt-mobile-tabbar{position:fixed;z-index:25;left:0;right:0;bottom:0;min-height:64px;padding-bottom:env(safe-area-inset-bottom);display:flex;align-items:stretch;background:color-mix(in srgb,var(--card) 94%,transparent);border-top:1px solid var(--border);backdrop-filter:blur(14px)}.hgt-mobile-tab{position:relative;display:flex;min-width:0;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted-foreground)}.hgt-mobile-tab.active{color:var(--foreground)}.hgt-mobile-tab.active::before{content:'';position:absolute;top:-1px;left:28%;right:28%;height:2px;background:var(--foreground)}.hgt-mobile-tab-icon{font-size:16px;line-height:1}.hgt-mobile-tab-label{overflow:hidden;max-width:100%;font-size:10px;line-height:1.2;letter-spacing:.04em;white-space:nowrap;text-overflow:ellipsis}}
-@media(max-width:767px){.hgt-room-return{right:14px;bottom:calc(78px + env(safe-area-inset-bottom));min-width:0;width:auto;max-width:calc(100vw - 28px);height:50px;padding:0 14px}.hgt-room-return-copy>text:last-child{max-width:150px}}
+.hgt-app {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background: var(--hgt-bg);
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-body);
+}
+
+/* ===== Top bar (PC) ===== */
+.hgt-topbar {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  display: block;
+  height: var(--hgt-header-h);
+  border-bottom: 1px solid var(--hgt-border);
+  background: color-mix(in srgb, var(--hgt-bg-deep) 92%, transparent);
+  backdrop-filter: blur(12px);
+}
+.hgt-topbar-inner {
+  display: flex;
+  box-sizing: border-box;
+  width: min(var(--hgt-content-max), 100%);
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 28px;
+  align-items: center;
+  gap: 28px;
+}
+.hgt-topbar-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.hgt-topbar-logo {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+.hgt-topbar-brand-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.hgt-topbar-title {
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  color: var(--hgt-text);
+}
+.hgt-topbar-sub {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--hgt-text-3);
+  white-space: nowrap;
+}
+.hgt-topbar-nav {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.hgt-topbar-link {
+  padding: 8px 14px;
+  border-radius: var(--hgt-radius-sm);
+  color: var(--hgt-text-2);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  transition: color var(--hgt-dur-fast) var(--hgt-ease-out), background var(--hgt-dur-fast) var(--hgt-ease-out);
+}
+.hgt-topbar-link:hover {
+  color: var(--hgt-text);
+  background: var(--hgt-brand-soft);
+}
+.hgt-topbar-link.active {
+  color: var(--hgt-brand);
+  background: var(--hgt-brand-soft);
+}
+.hgt-topbar-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
+.hgt-icon-btn {
+  display: flex;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 16px;
+  line-height: 1;
+  transition: border-color var(--hgt-dur-fast), color var(--hgt-dur-fast), background var(--hgt-dur-fast);
+}
+.hgt-icon-btn:hover {
+  border-color: var(--hgt-brand);
+  color: var(--hgt-brand);
+  background: var(--hgt-brand-soft);
+}
+.hgt-icon-btn::after {
+  border: 0;
+}
+.hgt-avatar-btn {
+  display: flex;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--hgt-border-soft);
+  border-radius: var(--hgt-radius-full);
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--hgt-card-2);
+  cursor: pointer;
+}
+.hgt-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+.hgt-avatar-fallback {
+  color: var(--hgt-brand);
+  font-size: 13px;
+}
+
+/* ===== Mobile header ===== */
+.hgt-mobile-header {
+  display: none;
+}
+.hgt-mobile-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.hgt-mobile-logo {
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+.hgt-mobile-title {
+  overflow: hidden;
+  color: var(--hgt-text);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hgt-mobile-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== Main ===== */
+.hgt-main {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  min-height: calc(100vh - var(--hgt-header-h));
+}
+
+/* ===== Mobile tabbar ===== */
+.hgt-tabbar {
+  display: none;
+}
+
+/* ===== Room return fab ===== */
+.hgt-room-return {
+  position: fixed;
+  z-index: 24;
+  right: 24px;
+  bottom: 40px;
+  display: flex;
+  box-sizing: border-box;
+  min-width: 170px;
+  height: 52px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--hgt-radius-md);
+  align-items: center;
+  gap: 12px;
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  box-shadow: var(--hgt-shadow-float);
+  text-align: left;
+  transition: transform var(--hgt-dur-fast) var(--hgt-ease-out), filter var(--hgt-dur-fast);
+}
+.hgt-room-return:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+.hgt-room-return::after {
+  border: 0;
+}
+.hgt-room-return-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.hgt-room-return-copy {
+  display: flex;
+  min-width: 0;
+  gap: 3px;
+  flex-direction: column;
+}
+.hgt-room-return-copy > text:first-child {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+}
+.hgt-room-return-copy > text:last-child {
+  overflow: hidden;
+  max-width: 160px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Tablet ===== */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .hgt-topbar-inner {
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .hgt-topbar-link {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  .hgt-topbar-sub {
+    display: none;
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 767px) {
+  .hgt-topbar {
+    display: none;
+  }
+  .hgt-mobile-header {
+    position: fixed;
+    z-index: 25;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    box-sizing: border-box;
+    height: var(--hgt-mobile-header-offset, 56px);
+    padding: 0 16px;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--hgt-border);
+    background: color-mix(in srgb, var(--hgt-bg-deep) 94%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .hgt-main {
+    min-height: 100vh;
+    padding-top: var(--hgt-mobile-header-offset, 56px);
+    padding-bottom: calc(var(--hgt-tabbar-h) + env(safe-area-inset-bottom));
+  }
+  .hgt-tabbar {
+    position: fixed;
+    z-index: 25;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    min-height: var(--hgt-tabbar-h);
+    padding-bottom: env(safe-area-inset-bottom);
+    align-items: stretch;
+    border-top: 1px solid var(--hgt-border);
+    background: color-mix(in srgb, var(--hgt-bg-deep) 94%, transparent);
+    backdrop-filter: blur(14px);
+  }
+  .hgt-tab {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    gap: 4px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--hgt-text-2);
+    transition: color var(--hgt-dur-fast);
+  }
+  .hgt-tab.active {
+    color: var(--hgt-brand);
+  }
+  .hgt-tab.active::before {
+    position: absolute;
+    top: -1px;
+    right: 30%;
+    left: 30%;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: var(--hgt-brand);
+    content: '';
+  }
+  .hgt-tab-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+  .hgt-tab-label {
+    overflow: hidden;
+    max-width: 100%;
+    font-size: 10px;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hgt-room-return {
+    right: 14px;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    min-width: 0;
+    width: auto;
+    max-width: calc(100vw - 28px);
+    height: 48px;
+    padding: 0 14px;
+  }
+  .hgt-room-return-copy > text:last-child {
+    max-width: 140px;
+  }
+}
+
 /* #ifdef MP-TOUTIAO */
-@media(max-width:767px){.hgt-main{padding-top:0}.hgt-mobile-header{display:none}}
+@media (max-width: 767px) {
+  .hgt-main {
+    padding-top: 0;
+  }
+  .hgt-mobile-header {
+    display: none;
+  }
+}
 /* #endif */
 </style>
