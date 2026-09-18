@@ -24,6 +24,12 @@ function relative(value: string) {
 
 <template>
   <view class="donate-page">
+    <image class="donate-bg" src="/static/hgt/bg/bg_underwater_cave.jpg" mode="aspectFill" />
+    <view class="donate-props" aria-hidden="true">
+      <image src="/static/hgt/prop/prop_bottle.png" mode="aspectFit" />
+      <image src="/static/hgt/prop/prop_letter.png" mode="aspectFit" />
+      <image src="/static/hgt/prop/prop_photo.png" mode="aspectFit" />
+    </view>
     <view class="page-head">
       <text class="eyebrow hgt-mono">
         ◆ 支持我们
@@ -90,10 +96,41 @@ function relative(value: string) {
 
 <style scoped>
 .donate-page {
+  position: relative;
   min-height: 100%;
   padding-bottom: 48px;
   background: var(--hgt-bg);
   color: var(--hgt-text);
+  overflow: hidden;
+}
+.donate-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.18;
+  pointer-events: none;
+}
+.donate-props {
+  position: absolute;
+  right: 24px;
+  top: 96px;
+  z-index: 0;
+  display: flex;
+  width: 140px;
+  gap: 8px;
+  flex-direction: column;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.donate-props image {
+  width: 100%;
+  height: 88px;
+}
+.donate-page > .page-head,
+.donate-page > .donate-grid {
+  position: relative;
+  z-index: 1;
 }
 .page-head {
   display: flex;

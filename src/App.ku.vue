@@ -13,7 +13,6 @@ const buttonConfig: ConfigProviderProps['button'] = {
 <template>
   <wd-config-provider :theme-vars="themeVars" :theme="theme" :button="buttonConfig" :custom-class="`page-wraper ${theme}`">
     <ku-root-view />
-    <global-theme-toggle />
     <wd-notify />
     <wd-dialog />
     <wd-toast />

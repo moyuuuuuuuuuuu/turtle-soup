@@ -29,6 +29,7 @@ declare global {
   const computedWithControl: typeof import('@vueuse/core')['computedWithControl']
   const controlledComputed: typeof import('@vueuse/core')['controlledComputed']
   const controlledRef: typeof import('@vueuse/core')['controlledRef']
+  const coverPlaceholderUrl: typeof import('./utils/questionCover')['coverPlaceholderUrl']
   const createApis: typeof import('./api/createApis')['createApis']
   const createApp: typeof import('vue')['createApp']
   const createEventHook: typeof import('@vueuse/core')['createEventHook']
@@ -52,10 +53,16 @@ declare global {
   const donationApi: typeof import('./api/turtle')['donationApi']
   const eagerComputed: typeof import('@vueuse/core')['eagerComputed']
   const effectScope: typeof import('vue')['effectScope']
+  const emptyHistoryUrl: typeof import('./utils/questionCover')['emptyHistoryUrl']
+  const emptyLoadingUrl: typeof import('./utils/questionCover')['emptyLoadingUrl']
+  const emptyNetworkUrl: typeof import('./utils/questionCover')['emptyNetworkUrl']
+  const emptyNoneUrl: typeof import('./utils/questionCover')['emptyNoneUrl']
+  const emptySearchUrl: typeof import('./utils/questionCover')['emptySearchUrl']
   const ensureAnonymousSession: typeof import('./api/turtle')['ensureAnonymousSession']
   const ensurePlayerAccessToken: typeof import('./api/player')['ensurePlayerAccessToken']
   const extendRef: typeof import('@vueuse/core')['extendRef']
   const formatCount: typeof import('./utils/index')['formatCount']
+  const friendLinkApi: typeof import('./api/turtle')['friendLinkApi']
   const gameApi: typeof import('./api/turtle')['gameApi']
   const getActivePinia: typeof import('pinia')['getActivePinia']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
@@ -125,6 +132,8 @@ declare global {
   const onUnmounted: typeof import('vue')['onUnmounted']
   const onUpdated: typeof import('vue')['onUpdated']
   const openQuestionDetail: typeof import('./utils/questionRoute')['openQuestionDetail']
+  const paperTagUrl: typeof import('./utils/questionCover')['paperTagUrl']
+  const paperTextureUrl: typeof import('./utils/questionCover')['paperTextureUrl']
   const pausableWatch: typeof import('@vueuse/core')['pausableWatch']
   const persistPlugin: typeof import('./store/persist')['persistPlugin']
   const playerApi: typeof import('./api/player')['playerApi']
@@ -410,6 +419,7 @@ declare module 'vue' {
     readonly computedWithControl: UnwrapRef<typeof import('@vueuse/core')['computedWithControl']>
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
+    readonly coverPlaceholderUrl: UnwrapRef<typeof import('./utils/questionCover')['coverPlaceholderUrl']>
     readonly createApis: UnwrapRef<typeof import('./api/createApis')['createApis']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
     readonly createEventHook: UnwrapRef<typeof import('@vueuse/core')['createEventHook']>
@@ -433,10 +443,16 @@ declare module 'vue' {
     readonly donationApi: UnwrapRef<typeof import('./api/turtle')['donationApi']>
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
+    readonly emptyHistoryUrl: UnwrapRef<typeof import('./utils/questionCover')['emptyHistoryUrl']>
+    readonly emptyLoadingUrl: UnwrapRef<typeof import('./utils/questionCover')['emptyLoadingUrl']>
+    readonly emptyNetworkUrl: UnwrapRef<typeof import('./utils/questionCover')['emptyNetworkUrl']>
+    readonly emptyNoneUrl: UnwrapRef<typeof import('./utils/questionCover')['emptyNoneUrl']>
+    readonly emptySearchUrl: UnwrapRef<typeof import('./utils/questionCover')['emptySearchUrl']>
     readonly ensureAnonymousSession: UnwrapRef<typeof import('./api/turtle')['ensureAnonymousSession']>
     readonly ensurePlayerAccessToken: UnwrapRef<typeof import('./api/player')['ensurePlayerAccessToken']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
     readonly formatCount: UnwrapRef<typeof import('./utils/index')['formatCount']>
+    readonly friendLinkApi: UnwrapRef<typeof import('./api/turtle')['friendLinkApi']>
     readonly gameApi: UnwrapRef<typeof import('./api/turtle')['gameApi']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
@@ -506,6 +522,8 @@ declare module 'vue' {
     readonly onUnmounted: UnwrapRef<typeof import('vue')['onUnmounted']>
     readonly onUpdated: UnwrapRef<typeof import('vue')['onUpdated']>
     readonly openQuestionDetail: UnwrapRef<typeof import('./utils/questionRoute')['openQuestionDetail']>
+    readonly paperTagUrl: UnwrapRef<typeof import('./utils/questionCover')['paperTagUrl']>
+    readonly paperTextureUrl: UnwrapRef<typeof import('./utils/questionCover')['paperTextureUrl']>
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly persistPlugin: UnwrapRef<typeof import('./store/persist')['persistPlugin']>
     readonly playerApi: UnwrapRef<typeof import('./api/player')['playerApi']>

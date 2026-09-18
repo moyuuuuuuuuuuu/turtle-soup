@@ -20,4 +20,5 @@ export interface RoomMember { user_id: number, username: string, avatar_url?: st
 export interface RoomMessage { sequence: number, user_id: number, username: string, avatar_url?: string | null, content: string, create_time: string }
 export interface RoomSnapshot { id: string, invite_code: string, name: string, status: 'waiting' | 'playing' | 'finished' | 'closed', visibility: 'private' | 'public', max_players: number, member_count: number, owner_user_id: number, is_owner: boolean, question_id?: string | null, question?: PublicQuestion | null, game_id?: string | null, members: RoomMember[], messages: RoomMessage[], create_time: string }
 export interface DonationPage { channels: Array<{ method: 'wechat' | 'alipay', name: string, qr_code_url: string }>, recent_donations: Array<{ id: string, donor_name: string, amount: string, method?: string | null, message?: string | null, donated_at: string }>, supporter_count: number }
+export interface FriendLink { id: string, name: string, url: string, logo_url?: string | null, description?: string | null }
 export interface ApiEnvelope<T> { code: string, message: string, data: T, request_id: string, timestamp: number }

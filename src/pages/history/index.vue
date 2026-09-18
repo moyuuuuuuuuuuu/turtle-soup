@@ -2,6 +2,7 @@
 import type { GameSnapshot } from '@/types/game'
 import { ensureAnonymousSession, gameApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
+import { emptyHistoryUrl } from '@/utils/questionCover'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 interface HistoryItem { id: string, status: string, title: string, difficulty: number, question_count?: number, created_at?: string }
@@ -74,8 +75,8 @@ onMounted(async () => {
         </button>
       </scroll-view>
       <view v-if="!filtered.length" class="empty">
-        <image class="empty-img" src="/static/hgt/empty/empty_none.png" mode="aspectFit" />
-        <text>暂无记录，去题库开一碗吧</text>
+        <image class="empty-img" :src="emptyHistoryUrl" mode="aspectFit" />
+        <text>航海日志还空着，去题库开一碗吧</text>
       </view>
       <view v-else class="records">
         <view class="table-head">
@@ -238,9 +239,11 @@ onMounted(async () => {
   color: var(--hgt-text-2);
 }
 .empty-img {
-  width: 120px;
-  height: 120px;
-  opacity: 0.85;
+  width: 176px;
+  height: 176px;
+  opacity: 1;
+  border-radius: 0;
+  filter: drop-shadow(0 12px 32px rgba(4, 12, 14, 0.2));
 }
 .records {
   margin: 24px 48px;

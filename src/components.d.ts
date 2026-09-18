@@ -10,9 +10,9 @@ declare module 'vue' {
     DemoBlock: typeof import('./components/DemoBlock.vue')['default']
     GlobalDialog: typeof import('./components/GlobalDialog.vue')['default']
     GlobalLoading: typeof import('./components/GlobalLoading.vue')['default']
-    GlobalThemeToggle: typeof import('./components/GlobalThemeToggle.vue')['default']
     GlobalToast: typeof import('./components/GlobalToast.vue')['default']
     HgtConfirmDialog: typeof import('./components/HgtConfirmDialog.vue')['default']
+    HgtFlashlight: typeof import('./components/HgtFlashlight.vue')['default']
     HgtParticleBackground: typeof import('./components/HgtParticleBackground.vue')['default']
     HgtShell: typeof import('./components/HgtShell.vue')['default']
     HgtThemeTransition: typeof import('./components/HgtThemeTransition.vue')['default']
@@ -20,7 +20,6 @@ declare module 'vue' {
     PlayerLegalDocumentPopup: typeof import('./components/player/LegalDocumentPopup.vue')['default']
     PlayerPlayerAuth: typeof import('./components/player/PlayerAuth.vue')['default']
     PrivacyPopup: typeof import('./components/PrivacyPopup.vue')['default']
-    WdButton: typeof import('@wot-ui/ui/components/wd-button/wd-button.vue')['default']
     WdConfigProvider: typeof import('@wot-ui/ui/components/wd-config-provider/wd-config-provider.vue')['default']
     WdDialog: typeof import('@wot-ui/ui/components/wd-dialog/wd-dialog.vue')['default']
     WdIcon: typeof import('@wot-ui/ui/components/wd-icon/wd-icon.vue')['default']
@@ -29,7 +28,6 @@ declare module 'vue' {
     WdNotify: typeof import('@wot-ui/ui/components/wd-notify/wd-notify.vue')['default']
     WdPopup: typeof import('@wot-ui/ui/components/wd-popup/wd-popup.vue')['default']
     WdSwitch: typeof import('@wot-ui/ui/components/wd-switch/wd-switch.vue')['default']
-    WdTextarea: typeof import('@wot-ui/ui/components/wd-textarea/wd-textarea.vue')['default']
     WdToast: typeof import('@wot-ui/ui/components/wd-toast/wd-toast.vue')['default']
   }
 }

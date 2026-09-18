@@ -1,4 +1,4 @@
-import type { ApiEnvelope, DonationPage, GameSnapshot, HomeStats, PublicQuestion, RoomSnapshot } from '@/types/game'
+import type { ApiEnvelope, DonationPage, FriendLink, GameSnapshot, HomeStats, PublicQuestion, RoomSnapshot } from '@/types/game'
 import { currentAccessToken, invalidatePlayerSession, playerApi } from '@/api/player'
 import { resolveApiBaseUrl } from '@/config/endpoints'
 
@@ -80,3 +80,4 @@ export const roomApi = {
   close: (id: string) => request<void>('/rooms/close', 'POST', { id }),
 }
 export const donationApi = { page: () => request<DonationPage>('/donations') }
+export const friendLinkApi = { list: () => request<{ items: FriendLink[] }>('/friend-links') }

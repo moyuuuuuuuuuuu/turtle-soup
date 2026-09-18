@@ -74,6 +74,20 @@ page {
   --hgt-tabbar-h: 64px;
   --hgt-content-max: 1280px;
 
+  /* 统一深海/夜景页背景处理（首页 hero、登录、猜测等共用） */
+  --hgt-atmo-img: url('/static/hgt/bg/bg_deep_ocean_hero.jpg');
+  --hgt-atmo-filter: saturate(1.05) brightness(1.06) contrast(1.05);
+  --hgt-atmo-veil:
+    linear-gradient(90deg,
+      rgba(7, 20, 24, 0.58) 0%,
+      rgba(7, 20, 24, 0.36) 40%,
+      rgba(7, 20, 24, 0.18) 72%,
+      rgba(7, 20, 24, 0.10) 100%),
+    linear-gradient(180deg,
+      rgba(7, 20, 24, 0.06) 0%,
+      rgba(7, 20, 24, 0.18) 48%,
+      rgba(7, 20, 24, 0.36) 100%);
+
   /* legacy aliases used by existing pages */
   --app-background: var(--hgt-bg);
   --app-foreground: var(--hgt-text);

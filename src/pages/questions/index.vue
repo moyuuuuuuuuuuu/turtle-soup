@@ -2,7 +2,7 @@
 import type { PublicQuestion } from '@/types/game'
 import { questionApi } from '@/api/turtle'
 import { formatCount } from '@/utils'
-import { questionCoverUrl } from '@/utils/questionCover'
+import { emptyLoadingUrl, emptyNetworkUrl, emptyNoneUrl, emptySearchUrl, questionCoverUrl } from '@/utils/questionCover'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'questions', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
@@ -17,15 +17,18 @@ const viewMode = ref<'grid' | 'list'>('grid')
 const loading = ref(false)
 const loadError = ref(false)
 const page = ref(1)
-const pageSize = 21
+/** 移动端两列布局用偶数 page_size；桌面三列保持 21 */
+function resolvePageSize() {
+  // #ifdef H5
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 20 : 21
+  // #endif
+  // #ifndef H5
+  return 20
+  // #endif
+}
 const total = ref(0)
 const activeRiskId = ref<string | null>(null)
-const filtered = computed(() => items.value.filter((item) => {
-  const matchesKeyword = !keyword.value || item.title.includes(keyword.value) || item.surface.includes(keyword.value)
-  const matchesRisk = !item.risk_types?.some(type => excludedRiskTypes.value.includes(type))
-  return matchesKeyword && matchesRisk
-}))
-const activeFilterCount = computed(() => (difficulty.value ? 1 : 0) + excludedRiskTypes.value.length)
+const activeFilterCount = computed(() => (difficulty.value ? 1 : 0) + excludedRiskTypes.value.length + (keyword.value.trim() ? 1 : 0))
 const loadmoreState = computed<'loading' | 'finished' | 'error'>(() => {
   if (loadError.value)
     return 'error'
@@ -51,8 +54,11 @@ const riskTypeLabels: Record<string, string> = {
 const riskTypeOptions = Object.entries(riskTypeLabels).map(([value, label]) => ({ value, label }))
 const riskLevelLabel = (value: PublicQuestion['risk_level']) => riskLevelLabels[value] || value
 const riskTypeText = (types: string[] | undefined) => types?.length ? types.map(type => riskTypeLabels[type] || type).join('、') : '无特别标注'
+// 风险类型仍为前端过滤；keyword / difficulty 由服务端筛选
+const filtered = computed(() => items.value.filter(item => !item.risk_types?.some(type => excludedRiskTypes.value.includes(type))))
+let keywordSearchTimer: ReturnType<typeof setTimeout> | null = null
 async function load(reset = false) {
-  if (loading.value)
+  if (loading.value && !reset)
     return
   if (reset) {
     page.value = 1
@@ -62,10 +68,12 @@ async function load(reset = false) {
   loading.value = true
   loadError.value = false
   try {
+    const trimmedKeyword = keyword.value.trim()
     const result = await questionApi.list({
       ...(difficulty.value ? { difficulty: difficulty.value } : {}),
+      ...(trimmedKeyword ? { keyword: trimmedKeyword } : {}),
       page: page.value,
-      page_size: pageSize,
+      page_size: resolvePageSize(),
     })
     items.value = reset ? result.items : [...items.value, ...result.items]
     total.value = result.pagination.total || items.value.length
@@ -87,6 +95,18 @@ function changeDifficulty(value?: number) {
   difficulty.value = value
   void load(true)
 }
+function onKeywordInput() {
+  if (keywordSearchTimer)
+    clearTimeout(keywordSearchTimer)
+  keywordSearchTimer = setTimeout(() => {
+    keywordSearchTimer = null
+    void load(true)
+  }, 300)
+}
+function clearKeyword() {
+  keyword.value = ''
+  void load(true)
+}
 function toggleExcludedRiskType(value: string) {
   excludedRiskTypes.value = excludedRiskTypes.value.includes(value)
     ? excludedRiskTypes.value.filter(type => type !== value)
@@ -94,10 +114,17 @@ function toggleExcludedRiskType(value: string) {
 }
 function clearFilters() {
   excludedRiskTypes.value = []
+  keyword.value = ''
   if (difficulty.value !== undefined)
     changeDifficulty()
+  else
+    void load(true)
 }
 onMounted(() => load(true))
+onUnmounted(() => {
+  if (keywordSearchTimer)
+    clearTimeout(keywordSearchTimer)
+})
 onReachBottom(loadMore)
 function openQuestion(id: string) {
   void openQuestionDetail({ id, roomId: roomId.value || undefined })
@@ -127,7 +154,10 @@ function toggleRisk(id: string) {
           <text class="search-icon">
             ⌕
           </text>
-          <input v-model="keyword" placeholder="搜索题目、汤面...">
+          <input v-model="keyword" placeholder="搜索题目、汤面..." confirm-type="search" @input="onKeywordInput" @confirm="onKeywordInput">
+          <button v-if="keyword" class="search-clear" aria-label="清除搜索" @click="clearKeyword">
+            ×
+          </button>
         </view>
         <button class="filter-trigger" :class="{ active: filtersVisible || activeFilterCount }" @click="filtersVisible = !filtersVisible">
           <text>筛选</text>
@@ -201,12 +231,19 @@ function toggleRisk(id: string) {
     </view>
 
     <view v-if="loading && !items.length" class="empty">
-      <image class="empty-img" src="/static/hgt/empty/empty_none.png" mode="aspectFit" />
+      <image class="empty-img" :src="emptyLoadingUrl" mode="aspectFit" />
       <text>正在潜入题库…</text>
     </view>
+    <view v-else-if="loadError && !items.length" class="empty">
+      <image class="empty-img" :src="emptyNetworkUrl" mode="aspectFit" />
+      <text>网络好像迷路了</text>
+      <button class="btn-ghost" @click="load(true)">
+        重新加载
+      </button>
+    </view>
     <view v-else-if="!filtered.length" class="empty">
-      <image class="empty-img" src="/static/hgt/empty/empty_none.png" mode="aspectFit" />
-      <text>没有找到匹配的谜题</text>
+      <image class="empty-img" :src="keyword.trim() ? emptySearchUrl : emptyNoneUrl" mode="aspectFit" />
+      <text>{{ keyword.trim() ? '换个关键词试试吧' : '没有找到匹配的谜题' }}</text>
     </view>
     <view v-else class="question-wrap" :class="viewMode">
       <view
@@ -331,6 +368,24 @@ function toggleRisk(id: string) {
 .search-icon {
   color: var(--hgt-text-3);
 }
+.search-clear {
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  background: var(--hgt-card-2);
+  color: var(--hgt-text-2);
+  font-size: 14px;
+  line-height: 1;
+}
+.search-clear::after { border: 0; }
 .filter-trigger,
 .view-toggle button,
 .filter-options button,
@@ -452,7 +507,9 @@ function toggleRisk(id: string) {
 .empty-img {
   width: 120px;
   height: 120px;
-  opacity: 0.85;
+  opacity: 0.9;
+  border-radius: var(--hgt-radius-lg);
+  filter: drop-shadow(0 6px 18px rgba(4, 12, 14, 0.35));
 }
 .question-wrap {
   padding: 12px 48px 24px;
@@ -650,7 +707,38 @@ function toggleRisk(id: string) {
     margin-left: 0;
   }
   .question-wrap.grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .question-wrap.grid .card-body {
+    padding: 10px 10px 12px;
+    gap: 6px;
+  }
+  .question-wrap.grid .card-title {
+    font-size: 14px;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .question-wrap.grid .card-surface {
+    font-size: 12px;
+  }
+  .question-wrap.grid .card-meta {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  .question-wrap.grid .card-tags {
+    top: 6px;
+    left: 6px;
+    gap: 4px;
+  }
+  .question-wrap.grid .tag-cat,
+  .question-wrap.grid .tag-diff {
+    padding: 2px 6px;
+    font-size: 10px;
   }
   .question-wrap.list .question-card {
     grid-template-columns: 1fr;

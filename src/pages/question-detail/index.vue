@@ -5,7 +5,7 @@ import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 import { supportsPublicRooms } from '@/utils/platform'
-import { questionCoverUrl } from '@/utils/questionCover'
+import { paperTagUrl, paperTextureUrl, questionCoverUrl } from '@/utils/questionCover'
 import { applyPrettyQuestionDetailUrl } from '@/utils/questionRoute'
 
 definePage({ name: 'question-detail', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
@@ -176,16 +176,20 @@ onMounted(async () => {
 
           <!-- Paper surface -->
           <view class="paper">
-            <image class="paper-texture" src="/static/hgt/paper/paper_01.png" mode="aspectFill" />
-            <view class="paper-veil" />
-            <view class="paper-inner">
-              <text class="paper-label">
-                汤面
-              </text>
-              <text class="paper-body">
-                {{ question.surface }}
-              </text>
+            <view class="paper-sheet">
+              <image class="paper-texture" :src="paperTextureUrl(question.id)" mode="aspectFill" />
+              <view class="paper-veil" />
+              <view class="paper-inner">
+                <text class="paper-label">
+                  汤面
+                </text>
+                <text class="paper-body">
+                  {{ question.surface }}
+                </text>
+              </view>
             </view>
+            <image class="paper-tape" src="/static/hgt/ui/tape.png" mode="aspectFit" />
+            <image class="paper-tag" :src="paperTagUrl" mode="aspectFit" />
           </view>
 
           <view v-if="question.risk_level !== 'safe'" class="risk-panel" :class="[question.risk_level, { open: riskExpanded }]">
@@ -218,6 +222,7 @@ onMounted(async () => {
       </view>
     </template>
     <view v-else class="empty">
+      <image class="empty-img" src="/static/hgt/cover/cover_placeholder.png" mode="aspectFit" />
       <text>谜题不存在或已下架</text>
     </view>
 
@@ -384,29 +389,72 @@ onMounted(async () => {
 .paper {
   position: relative;
   min-height: 220px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 10px;
+}
+.paper-sheet {
+  position: relative;
+  min-height: 220px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--hgt-radius-md);
   overflow: hidden;
+  background: var(--hgt-paper);
   box-shadow: var(--hgt-shadow-float);
 }
 .paper-texture {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  opacity: 0.92;
+}
+.paper-texture :deep(uni-image),
+.paper-texture :deep(.uni-image),
+.paper-texture :deep(.uni-image-wrapper) {
+  width: 100%;
+  height: 100%;
+}
+.paper-tape {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  width: 104px;
+  height: 32px;
+  transform: translateX(-50%) rotate(-2deg);
+  opacity: 0.92;
+  pointer-events: none;
+}
+.paper-tag {
+  position: absolute;
+  z-index: 2;
+  top: 22px;
+  right: 6px;
+  width: 34px;
+  height: 84px;
+  opacity: 0.88;
+  pointer-events: none;
 }
 .paper-veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(160deg, rgba(208, 220, 182, 0.55), rgba(208, 220, 182, 0.78));
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--hgt-paper) 18%, transparent),
+    color-mix(in srgb, var(--hgt-paper) 42%, transparent)
+  );
 }
 .paper-inner {
   position: relative;
   z-index: 1;
   display: flex;
-  padding: 28px 32px;
+  min-height: 220px;
+  padding: 28px 40px 28px 32px;
   gap: 14px;
+  box-sizing: border-box;
   flex-direction: column;
+  justify-content: center;
 }
 .paper-label {
   color: #5a5e48;
@@ -564,7 +612,15 @@ onMounted(async () => {
   min-height: 320px;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 12px;
   color: var(--hgt-text-2);
+}
+.empty .empty-img {
+  width: 180px;
+  height: 180px;
+  border-radius: var(--hgt-radius-lg);
+  filter: drop-shadow(0 6px 18px rgba(4, 12, 14, 0.35));
 }
 
 /* 桌面：封面偏右，正文区保持可读 */
@@ -609,7 +665,12 @@ onMounted(async () => {
     font-size: 24px;
   }
   .paper-inner {
-    padding: 20px;
+    min-height: 200px;
+    padding: 22px 28px 22px 20px;
+  }
+  .paper-tag {
+    width: 28px;
+    height: 70px;
   }
   .paper-body {
     font-size: 16px;

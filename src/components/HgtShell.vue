@@ -30,6 +30,7 @@ const navItems = [
   { name: 'player-account', path: '/pages/account/index', label: '我的', icon: 'U', mobileOnly: true },
   // #ifdef H5
   { name: 'donate', path: '/pages/donate/index', label: '捐赠', icon: 'D' },
+  { name: 'friends', path: '/pages/friends/index', label: '友链', icon: 'F' },
   // #endif
 ] as const
 
@@ -126,6 +127,7 @@ onMounted(async () => {
   <view class="hgt-app" :class="{ 'hgt-light': light }" :style="{ '--hgt-mobile-header-offset': mobileHeaderOffset }">
     <HgtThemeTransition v-bind="overlay" />
     <HgtParticleBackground />
+    <HgtFlashlight :light="light" />
 
     <!-- PC / 平板 顶栏 -->
     <header class="hgt-topbar">
@@ -156,10 +158,14 @@ onMounted(async () => {
 
         <view class="hgt-topbar-actions">
           <button class="hgt-icon-btn" aria-label="搜索" @click="openSearch">
-            <text>⌕</text>
+            <view class="hgt-icon-btn-inner">
+              <wd-icon name="search-line" size="18" />
+            </view>
           </button>
           <button class="hgt-icon-btn hgt-theme-btn" :aria-label="light ? '切换到深色' : '切换到浅色'" @click="toggleTheme">
-            <text>{{ light ? '☾' : '☀' }}</text>
+            <view class="hgt-icon-btn-inner">
+              <wd-icon :name="light ? 'moon' : 'sun'" size="18" />
+            </view>
           </button>
           <view
             class="hgt-avatar-btn"
@@ -171,8 +177,14 @@ onMounted(async () => {
               :src="player.user.avatar_url"
               mode="aspectFill"
             />
+            <image
+              v-else-if="player.user"
+              class="hgt-avatar-img"
+              src="/static/hgt/avatars/avatar_default.png"
+              mode="aspectFill"
+            />
             <text v-else class="hgt-avatar-fallback">
-              {{ player.user ? (player.user.username || '玩')[0] : '客' }}
+              客
             </text>
           </view>
         </view>
@@ -189,10 +201,14 @@ onMounted(async () => {
       </view>
       <view class="hgt-mobile-actions">
         <button class="hgt-icon-btn" aria-label="搜索" @click="openSearch">
-          <text>⌕</text>
+          <view class="hgt-icon-btn-inner">
+            <wd-icon name="search-line" size="18" />
+          </view>
         </button>
         <button class="hgt-icon-btn hgt-theme-btn" :aria-label="light ? '切换到深色' : '切换到浅色'" @click="toggleTheme">
-          <text>{{ light ? '☾' : '☀' }}</text>
+          <view class="hgt-icon-btn-inner">
+            <wd-icon :name="light ? 'moon' : 'sun'" size="18" />
+          </view>
         </button>
       </view>
     </header>
@@ -325,6 +341,7 @@ onMounted(async () => {
   gap: 10px;
 }
 .hgt-icon-btn {
+  position: relative;
   display: flex;
   box-sizing: border-box;
   width: 36px;
@@ -335,11 +352,25 @@ onMounted(async () => {
   border-radius: var(--hgt-radius-sm);
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   background: transparent;
   color: var(--hgt-text-2);
-  font-size: 16px;
   line-height: 1;
   transition: border-color var(--hgt-dur-fast), color var(--hgt-dur-fast), background var(--hgt-dur-fast);
+}
+.hgt-icon-btn-inner {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+.hgt-icon-btn-inner :deep(.wd-icon) {
+  display: block;
+  flex: none;
+  line-height: 1;
 }
 .hgt-icon-btn:hover {
   border-color: var(--hgt-brand);

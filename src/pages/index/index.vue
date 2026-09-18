@@ -4,7 +4,7 @@ import { ensureAnonymousSession, homeApi, questionApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
 import { formatCount } from '@/utils'
 import { supportsPublicRooms } from '@/utils/platform'
-import { questionCoverUrl } from '@/utils/questionCover'
+import { emptyNetworkUrl, emptyNoneUrl, questionCoverUrl } from '@/utils/questionCover'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'home', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
@@ -60,34 +60,41 @@ async function loadHome() {
     await ensureAnonymousSession()
     const tagId = activeCategory.value.tagId
     const page = categoryPage.value
+    // 与首页网格对齐：PC 一行 4 个 → 8（两整行）；移动端一行 2 个 → 4
+    // 单次声明，避免 uni-pages 解析 #ifdef/#ifndef 时重复声明
+    let mobileLayout = true
+    // #ifdef H5
+    mobileLayout = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    // #endif
+    const listPageSize = mobileLayout ? 4 : 8
 
     if (tagId) {
-      let result = await questionApi.list({ tag_id: tagId, page, page_size: 6 })
+      let result = await questionApi.list({ tag_id: tagId, page, page_size: listPageSize })
       if (!result.items.length && page > 1) {
         categoryPage.value = 1
-        result = await questionApi.list({ tag_id: tagId, page: 1, page_size: 6 })
+        result = await questionApi.list({ tag_id: tagId, page: 1, page_size: listPageSize })
       }
       featured.value = result.items
       return
     }
 
     if (page > 1) {
-      let result = await questionApi.list({ page, page_size: 6 })
+      let result = await questionApi.list({ page, page_size: listPageSize })
       if (!result.items.length) {
         categoryPage.value = 1
-        result = await questionApi.list({ page: 1, page_size: 6 })
+        result = await questionApi.list({ page: 1, page_size: listPageSize })
       }
       featured.value = result.items
       return
     }
 
     const [featuredResult, latestResult] = await Promise.all([
-      questionApi.list({ featured: 1, page_size: 6 }),
-      questionApi.list({ page_size: 3 }),
+      questionApi.list({ featured: 1, page_size: listPageSize }),
+      questionApi.list({ page_size: listPageSize }),
     ])
     featured.value = [...featuredResult.items, ...latestResult.items]
       .filter((question, index, questions) => questions.findIndex(item => item.id === question.id) === index)
-      .slice(0, 6)
+      .slice(0, listPageSize)
   }
   catch {
     loadError.value = true
@@ -148,7 +155,9 @@ onMounted(() => {
   <view class="home-page">
     <!-- Hero -->
     <section class="hero">
-      <image class="hero-bg" src="/static/hgt/bg/bg_deep_ocean.jpg" mode="aspectFill" />
+      <!-- 换回水下灯塔（宽幅，顶部水波） -->
+      <image class="hero-bg" src="/static/hgt/bg/bg_deep_ocean_hero.jpg" mode="aspectFill" />
+      <image class="hero-bubbles" src="/static/hgt/ui/bubbles.png" mode="aspectFit" />
       <view class="hero-veil" />
       <view class="hero-inner">
         <text class="hero-kicker">
@@ -227,16 +236,18 @@ onMounted(() => {
       </scroll-view>
 
       <view v-if="loading" class="content-state">
-        正在潜入题库…
+        <image class="empty-img" src="/static/hgt/empty/empty_loading.png" mode="aspectFit" />
+        <text>正在潜入题库…</text>
       </view>
       <view v-else-if="loadError" class="content-state error-state">
+        <image class="empty-img" :src="emptyNetworkUrl" mode="aspectFit" />
         <text>谜题暂时没有浮上来</text>
         <button class="btn-ghost" @click="loadHome">
           重新加载
         </button>
       </view>
       <view v-else-if="!featured.length" class="content-state">
-        <image class="empty-img" src="/static/hgt/empty/empty_none.png" mode="aspectFit" />
+        <image class="empty-img" :src="emptyNoneUrl" mode="aspectFit" />
         <text>暂无谜题</text>
       </view>
       <view v-else class="puzzle-grid">
@@ -347,23 +358,75 @@ onMounted(() => {
 .hero {
   position: relative;
   display: flex;
-  min-height: 520px;
-  padding: 72px 48px 56px;
+  box-sizing: border-box;
+  /* 尽量拉高 hero；下方为上图下文的四列卡片列表 */
+  width: 100%;
+  min-height: max(52vh, 420px);
+  height: calc(100vh - var(--hgt-header-h) - 420px);
+  max-height: min(72vh, 780px);
+  padding: 48px 48px 40px;
   align-items: center;
   overflow: hidden;
+}
+/* 底边与热门推荐衔接，避免生硬切边 */
+.hero::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  height: 72px;
+  background: linear-gradient(180deg, rgba(7, 20, 24, 0) 0%, var(--hgt-bg) 100%);
+  pointer-events: none;
 }
 .hero-bg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  filter: var(--hgt-atmo-filter);
 }
+/* 水下灯塔：顶部水波 + 右侧灯塔 */
+.hero-bg :deep(img) {
+  object-fit: cover !important;
+  object-position: 55% 12% !important;
+}
+.hero-bubbles {
+  position: absolute;
+  right: 4%;
+  bottom: 8%;
+  z-index: 0;
+  width: min(360px, 42vw);
+  height: auto;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+/* 与其它页共用的氛围压暗，保证跨页亮度一致 */
 .hero-veil {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(90deg, rgba(12, 32, 39, 0.94) 0%, rgba(12, 32, 39, 0.72) 48%, rgba(12, 32, 39, 0.35) 100%),
-    linear-gradient(180deg, rgba(7, 20, 24, 0.2) 0%, rgba(12, 32, 39, 0.85) 100%);
+  z-index: 0;
+  background: var(--hgt-atmo-veil);
+}
+.content-state {
+  display: flex;
+  min-height: 120px;
+  padding: 16px 8px;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  text-align: center;
+}
+.content-state .empty-img {
+  width: min(160px, 50vw);
+  height: 100px;
+  border-radius: var(--hgt-radius-lg);
+  filter: drop-shadow(0 8px 24px rgba(4, 12, 14, 0.45));
 }
 .hero-inner {
   position: relative;
@@ -373,7 +436,7 @@ onMounted(() => {
   flex-direction: column;
 }
 .hero-kicker {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   color: var(--hgt-brand);
   font-family: var(--hgt-font-mono);
   font-size: 11px;
@@ -382,7 +445,7 @@ onMounted(() => {
 .hero-title {
   color: var(--hgt-text);
   font-family: var(--hgt-font-display);
-  font-size: 40px;
+  font-size: 36px;
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0.04em;
@@ -392,14 +455,14 @@ onMounted(() => {
   color: var(--hgt-text-2);
 }
 .hero-copy {
-  margin: 20px 0 28px;
+  margin: 16px 0 22px;
   color: var(--hgt-text-2);
   font-size: 15px;
-  line-height: 1.8;
+  line-height: 1.75;
 }
 .hero-actions {
   display: flex;
-  margin-bottom: 36px;
+  margin-bottom: 28px;
   gap: 12px;
 }
 .btn-primary {
@@ -469,54 +532,54 @@ onMounted(() => {
 
 /* ===== Featured ===== */
 .featured {
-  padding: 40px 48px 24px;
+  padding: 16px 48px 20px;
 }
 .section-head {
   display: flex;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   align-items: center;
   justify-content: space-between;
 }
 .section-title {
   color: var(--hgt-text);
   font-family: var(--hgt-font-display);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.06em;
 }
 .btn-refresh {
-  height: 36px;
+  height: 32px;
   margin: 0;
-  padding: 0 14px;
+  padding: 0 12px;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-sm);
   background: transparent;
   color: var(--hgt-text-2);
-  font-size: 13px;
+  font-size: 12px;
 }
 .btn-refresh::after {
   border: 0;
 }
 .cat-scroll {
   width: 100%;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   white-space: nowrap;
 }
 .cat-row {
   display: inline-flex;
-  padding-bottom: 4px;
-  gap: 8px;
+  padding-bottom: 2px;
+  gap: 6px;
 }
 .cat-chip {
   display: inline-flex;
-  height: 34px;
-  padding: 0 14px;
+  height: 30px;
+  padding: 0 12px;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-full);
   align-items: center;
   background: transparent;
   color: var(--hgt-text-2);
-  font-size: 13px;
+  font-size: 12px;
   transition: all var(--hgt-dur-fast);
 }
 .cat-chip.active {
@@ -524,25 +587,17 @@ onMounted(() => {
   background: var(--hgt-brand-soft);
   color: var(--hgt-brand);
 }
-.content-state {
-  display: flex;
-  min-height: 180px;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  color: var(--hgt-text-2);
-  font-size: 14px;
-}
 .empty-img {
-  width: 120px;
-  height: 120px;
-  opacity: 0.85;
+  width: 96px;
+  height: 96px;
+  opacity: 0.9;
+  border-radius: var(--hgt-radius-lg);
+  filter: drop-shadow(0 6px 18px rgba(4, 12, 14, 0.35));
 }
 .puzzle-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
 }
 .puzzle-card {
   display: flex;
@@ -562,7 +617,7 @@ onMounted(() => {
 }
 .card-cover {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
   background: var(--hgt-card-2);
 }
@@ -579,15 +634,15 @@ onMounted(() => {
 }
 .card-tags {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 8px;
+  left: 8px;
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 .tag {
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: var(--hgt-radius-xs);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.4;
 }
 .tag-cat {
@@ -608,33 +663,39 @@ onMounted(() => {
 }
 .card-body {
   display: flex;
-  padding: 14px 16px 16px;
-  gap: 8px;
+  min-width: 0;
+  padding: 12px 12px 14px;
+  gap: 6px;
   flex-direction: column;
 }
 .card-title {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--hgt-text);
   font-family: var(--hgt-font-display);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .card-surface {
   display: -webkit-box;
   overflow: hidden;
   color: var(--hgt-text-2);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 .card-meta {
   display: flex;
-  margin-top: 4px;
+  margin-top: 2px;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--hgt-text-3);
-  font-size: 12px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 .stars.easy {
   color: var(--hgt-success-text);
@@ -711,15 +772,29 @@ onMounted(() => {
 /* ===== Responsive ===== */
 @media (max-width: 1199px) {
   .puzzle-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 767px) {
   .hero {
     min-height: auto;
+    height: auto;
+    max-height: none;
     padding: 36px 20px 32px;
     align-items: flex-start;
+  }
+  /* 小屏文案占满宽度：用同一套 atmo，仅略加强底部 */
+  .hero-veil {
+    background:
+      linear-gradient(90deg,
+        rgba(7, 20, 24, 0.64) 0%,
+        rgba(7, 20, 24, 0.42) 48%,
+        rgba(7, 20, 24, 0.24) 100%),
+      linear-gradient(180deg,
+        rgba(7, 20, 24, 0.08) 0%,
+        rgba(7, 20, 24, 0.22) 55%,
+        rgba(7, 20, 24, 0.40) 100%);
   }
   .hero-title {
     font-size: 28px;
@@ -751,9 +826,32 @@ onMounted(() => {
     padding-left: 16px;
   }
   .section-title {
-    font-size: 20px;
+    font-size: 18px;
   }
-  .puzzle-grid,
+  .puzzle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .card-cover {
+    aspect-ratio: 16 / 10;
+  }
+  .card-body {
+    padding: 10px;
+    gap: 4px;
+  }
+  .card-title {
+    font-size: 13px;
+  }
+  .card-surface {
+    font-size: 11px;
+    -webkit-line-clamp: 2;
+  }
+  .card-meta {
+    gap: 6px;
+    font-size: 10px;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
   .steps {
     grid-template-columns: 1fr;
   }

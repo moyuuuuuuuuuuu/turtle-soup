@@ -183,6 +183,17 @@ async function logout(all = false) {
             →
           </text>
         </view>
+        <view class="support-card" @click="router.push({ name: 'friends' })">
+          <view>
+            <text class="hgt-mono section-title">
+              ◇ 友链
+            </text><text class="support-copy">
+              看看有哪些朋友与我们同行，也欢迎申请友链。
+            </text>
+          </view><text class="support-arrow">
+            →
+          </text>
+        </view>
         <!-- #endif -->
         <view class="logout-row">
           <button @click="logout(false)">
@@ -233,6 +244,11 @@ async function logout(all = false) {
 }
 .profile-column,
 .detail-column {
+  display: flex;
+  gap: 16px;
+  flex-direction: column;
+}
+.settings {
   display: flex;
   gap: 16px;
   flex-direction: column;
@@ -306,11 +322,15 @@ async function logout(all = false) {
   font-size: 12px;
 }
 .outline {
+  display: flex;
   width: 100%;
   height: 38px;
-  margin-top: 12px;
+  margin: 12px 0 0;
+  padding: 0;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--hgt-text-2);
   font-size: 13px;

@@ -17,10 +17,20 @@ The product is a turtle soup puzzle game first. Language learning is optional as
 
 ## Branch boundaries
 
-- `ui` contains this user client and its TypeScript API/WebSocket clients.
-- `system-manage-ui` contains only the SaiAdmin management client.
-- `system-manage` contains the Webman backend, user API, management API, WebSocket server, and external-service integrations.
-- Do not copy backend business rules into this branch.
+Earlier multi-branch layout was a convenience for building the whole product from one remote. Semantic ownership:
+
+| Name | Role | Stack / notes |
+|---|---|---|
+| `system-manage` | Backend code | Webman, user API, management API, WebSocket server, external-service integrations |
+| `system-manage-ui` | Admin / manage frontend | SaiAdmin management client only |
+| `ui` (this worktree content) | End-user client | Turtle Soup player app (H5 / WeChat Mini Program / future uni-app targets) |
+
+Rules for work in this client branch:
+
+- Treat this tree as **user-facing client only**. Do not put backend business rules or admin-only screens here.
+- HTTP contracts for the player are owned by `system-manage` under `/api/v1/*`.
+- Do not implement or “mirror” auth, scoring, room authority, or AI workflow policy on the client beyond what the API already exposes.
+- If those dedicated remote branches are unavailable, still follow the ownership above—feature branches in this repo (for example `main`, `deep-sea-redesign`) carry client UI work, not backend source.
 
 ## Product and identity rules
 

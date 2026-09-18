@@ -17,6 +17,8 @@ const kickedRoomId = ref('')
 const memberLeftNotice = shallowRef<{ room_id: string, user_id: number, username: string, reason: 'manual' | 'switch_question', nonce: number } | null>(null)
 const roomNextStarted = shallowRef<{ room_id: string, question_id: string, game_id: string, nonce: number } | null>(null)
 const gameNextStarted = shallowRef<{ room_id: string, question_id: string, game_id: string, nonce: number } | null>(null)
+/** 多人房间线索板实时同步（仅 Socket，不落库） */
+const roomClueBoard = shallowRef<{ room_id: string, clues: string[], user_id: number, username: string, nonce: number } | null>(null)
 const pending = new Map<string, PendingRequest>()
 let socket: UniApp.SocketTask | null = null
 let connecting: Promise<void> | null = null
@@ -100,6 +102,18 @@ export function useGameSocket() {
             nonce: Date.now(),
           }
         }
+        // 与 v1.room.* 信封一致：{ event, request_id?, data }
+        // 服务端广播他人线索板；本端发送也用同一 event（fire-and-forget，不持久化）
+        if (message.event === 'v1.room.clue.sync') {
+          const data = message.data || {}
+          roomClueBoard.value = {
+            room_id: String(data.room_id || ''),
+            clues: Array.isArray(data.clues) ? data.clues.map(item => String(item)) : [],
+            user_id: Number(data.user_id || 0),
+            username: String(data.username || '队友'),
+            nonce: Date.now(),
+          }
+        }
         if (message.event === 'v1.room.snapshot')
           roomSnapshot.value = message.data as unknown as RoomSnapshot
         if (['v1.game.snapshot', 'v1.game.answer', 'v1.game.solved', 'v1.game.finished'].includes(String(message.event)))
@@ -160,6 +174,7 @@ export function useGameSocket() {
     memberLeftNotice.value = null
     roomNextStarted.value = null
     gameNextStarted.value = null
+    roomClueBoard.value = null
     currentSocket?.close({ code: 1000, reason: 'player.logout' })
     if (!currentSocket)
       intentionalDisconnect = false
@@ -186,6 +201,7 @@ export function useGameSocket() {
     memberLeftNotice,
     roomNextStarted,
     gameNextStarted,
+    roomClueBoard,
     connect,
     disconnectAndClear,
     join: (game_id: string) => send<GameSnapshot>('v1.game.join', { game_id }),
@@ -205,7 +221,9 @@ export function useGameSocket() {
     roomKick: (room_id: string, user_id: number) => send<void>('v1.room.member.kick', { room_id, user_id }),
     roomVisibility: (room_id: string, visibility: 'private' | 'public') => send<RoomSnapshot>('v1.room.visibility.update', { room_id, visibility }),
     typing: (room_id: string, active: boolean) => send<void>(active ? 'v1.room.typing.start' : 'v1.room.typing.stop', { room_id }, false),
+    /** 线索板广播：与 typing 同级 fire-and-forget，服务端只转发不落库 */
+    roomClueSync: (room_id: string, clues: string[]) => send<void>('v1.room.clue.sync', { room_id, clues }, false),
     adoptRoom: (room: RoomSnapshot) => { roomSnapshot.value = room },
-    clearRoom: () => { roomSnapshot.value = null; typingMembers.value = [] },
+    clearRoom: () => { roomSnapshot.value = null; typingMembers.value = []; roomClueBoard.value = null },
   }
 }

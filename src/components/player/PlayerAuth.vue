@@ -181,194 +181,212 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 
 <template>
   <view class="auth-page" :class="{ light }">
+    <image class="page-bg" src="/static/hgt/bg/bg_deep_ocean_hero.jpg" mode="aspectFill" />
+    <view class="page-bg-veil" />
+    <image class="page-deco page-deco-bubbles" src="/static/hgt/ui/bubbles.png" mode="aspectFit" />
+    <image class="page-deco page-deco-vignette" src="/static/hgt/ui/vignette.png" mode="aspectFill" />
     <HgtThemeTransition v-bind="overlay" />
     <AuthParticleBackground />
 
-    <view class="brand-panel">
-      <text class="eyebrow">
-        ◈ LATERAL THINKING
-      </text>
-      <view class="brand-copy">
-        <image class="brand-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
-        <text class="brand-title">
-          墨鱼海龟汤
+    <view class="auth-layout">
+      <view class="brand-panel">
+        <text class="eyebrow">
+          ◈ LATERAL THINKING
         </text>
-        <view class="brand-rule">
-          <text>推理 · 探索 · 解谜</text>
+        <view class="brand-copy">
+          <image class="brand-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
+          <text class="brand-title">
+            墨鱼海龟汤
+          </text>
+          <view class="brand-rule">
+            <text>推理 · 探索 · 解谜</text>
+          </view>
+          <text class="brand-description">
+            一个答案，无数问题。透过一问一答，拨开迷雾，抵达真相。
+          </text>
         </view>
-        <text class="brand-description">
-          一个答案，无数问题。透过一问一答，拨开迷雾，抵达真相。
-        </text>
+        <view class="brand-footer">
+          <view><text>— 推理解谜</text><text>— 联机对战</text><text>— 社区共创</text></view>
+          <text>v 0.1.0</text>
+        </view>
       </view>
-      <view class="brand-footer">
-        <view><text>— 推理解谜</text><text>— 联机对战</text><text>— 社区共创</text></view>
-        <text>v 0.1.0</text>
-      </view>
-    </view>
 
-    <view class="form-panel">
-      <view class="form-card">
-        <!-- #ifdef H5 -->
-        <view class="form-title">
-          {{ modeTitle }}
+      <view class="form-panel">
+        <view class="mobile-brand">
+          <text class="eyebrow">
+            ◈ LATERAL THINKING
+          </text>
+          <image class="mobile-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
+          <text class="mobile-title">
+            墨鱼海龟汤
+          </text>
+          <view class="mobile-rule">
+            <text>推理 · 探索 · 解谜</text>
+          </view>
         </view>
-        <view :key="mode" class="form-body">
-          <template v-if="mode === 'password'">
-            <label class="field"><text>用户名</text><input v-model="email" type="text" placeholder="请输入用户名"></label>
-            <label class="field"><text>密码</text><input v-model="password" type="text" password confirm-type="done" placeholder="请输入密码" @confirm="submit"></label>
-            <view class="action-stack">
-              <button class="primary" :disabled="busy" @click="submit">
-                {{ busy ? '登录中…' : '登 录' }}
-              </button>
-              <view class="divider">
-                <text>或</text>
+        <view class="form-card">
+          <!-- #ifdef H5 -->
+          <view class="form-title">
+            {{ modeTitle }}
+          </view>
+          <view :key="mode" class="form-body">
+            <template v-if="mode === 'password'">
+              <label class="field"><text>用户名</text><input v-model="email" type="text" placeholder="请输入用户名"></label>
+              <label class="field"><text>密码</text><input v-model="password" type="text" password confirm-type="done" placeholder="请输入密码" @confirm="submit"></label>
+              <view class="action-stack">
+                <button class="primary" :disabled="busy" @click="submit">
+                  {{ busy ? '登录中…' : '登 录' }}
+                </button>
+                <view class="divider">
+                  <text>或</text>
+                </view>
+                <button class="ghost" @click="mode = 'code'">
+                  邮箱验证码登录
+                </button>
               </view>
-              <button class="ghost" @click="mode = 'code'">
-                邮箱验证码登录
-              </button>
-            </view>
-            <view class="auth-links">
-              <text class="auth-link" @click="mode = 'register'">
-                注册账号
+              <view class="auth-links">
+                <text class="auth-link" @click="mode = 'register'">
+                  注册账号
+                </text>
+                <text class="auth-link-sep">
+                  ·
+                </text>
+                <text class="auth-link" @click="mode = 'reset'">
+                  忘记密码
+                </text>
+              </view>
+              <text class="agreement">
+                登录即表示同意 <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
+                  服务条款
+                </text> 与 <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
+                  隐私政策
+                </text>
               </text>
-              <text class="auth-link-sep">
-                ·
-              </text>
-              <text class="auth-link" @click="mode = 'reset'">
-                忘记密码
-              </text>
-            </view>
-            <text class="agreement">
-              登录即表示同意 <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
-                服务条款
-              </text> 与 <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
-                隐私政策
-              </text>
-            </text>
-          </template>
+            </template>
 
-          <template v-else-if="mode === 'code'">
-            <label class="field"><text>邮箱地址</text><input v-model="email" type="text" placeholder="your@email.com"></label>
-            <label class="field"><text>验证码</text></label>
-            <view class="code-row">
-              <input v-model="emailCode" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
-              <button :disabled="codeBusy.login || codeCountdown.login > 0" @click="sendCode('login')">
-                {{ codeButtonText('login') }}
-              </button>
-            </view>
-            <button class="primary" :disabled="busy" @click="submit">
-              {{ busy ? '验证中…' : '验证登录' }}
-            </button>
-            <text class="agreement">
-              登录即表示同意 <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
-                服务条款
-              </text> 与 <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
-                隐私政策
-              </text>
-            </text>
-            <button class="ghost" @click="mode = 'password'">
-              ← 返回账号登录
-            </button>
-          </template>
-
-          <template v-else-if="mode === 'register'">
-            <label class="field"><text>用户名</text><input v-model="username" type="text" placeholder="4–20 个字符"></label>
-            <label class="field"><text>邮箱地址</text><input v-model="email" type="text" placeholder="your@email.com"></label>
-            <view class="password-grid">
-              <label class="field"><text>密码</text><input v-model="password" type="text" password placeholder="至少 8 位"></label>
-              <label class="field"><text>确认密码</text><input v-model="passwordConfirmation" type="text" password placeholder="再次输入"></label>
-            </view>
-            <label class="field"><text>邮箱验证码</text></label>
-            <view class="code-row">
-              <input v-model="emailCode" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
-              <button :disabled="codeBusy.register || codeCountdown.register > 0" @click="sendCode('register')">
-                {{ codeButtonText('register') }}
-              </button>
-            </view>
-            <text class="agreement">
-              注册即表示同意 <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
-                服务条款
-              </text> 与 <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
-                隐私政策
-              </text>
-            </text>
-            <view class="register-actions">
+            <template v-else-if="mode === 'code'">
+              <label class="field"><text>邮箱地址</text><input v-model="email" type="text" placeholder="your@email.com"></label>
+              <label class="field"><text>验证码</text></label>
+              <view class="code-row">
+                <input v-model="emailCode" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
+                <button :disabled="codeBusy.login || codeCountdown.login > 0" @click="sendCode('login')">
+                  {{ codeButtonText('login') }}
+                </button>
+              </view>
               <button class="primary" :disabled="busy" @click="submit">
-                {{ busy ? '创建中…' : '创建账号' }}
+                {{ busy ? '验证中…' : '验证登录' }}
+              </button>
+              <text class="agreement">
+                登录即表示同意 <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
+                  服务条款
+                </text> 与 <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
+                  隐私政策
+                </text>
+              </text>
+              <button class="ghost" @click="mode = 'password'">
+                ← 返回账号登录
+              </button>
+            </template>
+
+            <template v-else-if="mode === 'register'">
+              <label class="field"><text>用户名</text><input v-model="username" type="text" placeholder="4–20 个字符"></label>
+              <label class="field"><text>邮箱地址</text><input v-model="email" type="text" placeholder="your@email.com"></label>
+              <view class="password-grid">
+                <label class="field"><text>密码</text><input v-model="password" type="text" password placeholder="至少 8 位"></label>
+                <label class="field"><text>确认密码</text><input v-model="passwordConfirmation" type="text" password placeholder="再次输入"></label>
+              </view>
+              <label class="field"><text>邮箱验证码</text></label>
+              <view class="code-row">
+                <input v-model="emailCode" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
+                <button :disabled="codeBusy.register || codeCountdown.register > 0" @click="sendCode('register')">
+                  {{ codeButtonText('register') }}
+                </button>
+              </view>
+              <text class="agreement">
+                注册即表示同意 <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
+                  服务条款
+                </text> 与 <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
+                  隐私政策
+                </text>
+              </text>
+              <view class="register-actions">
+                <button class="primary" :disabled="busy" @click="submit">
+                  {{ busy ? '创建中…' : '创建账号' }}
+                </button>
+                <button class="ghost" @click="mode = 'password'">
+                  已有账号？返回登录 →
+                </button>
+              </view>
+            </template>
+
+            <template v-else>
+              <view class="notice">
+                输入注册邮箱并验证身份，即可设置新密码。
+              </view>
+              <label class="field"><text>注册邮箱</text><input v-model="email" type="text" placeholder="your@email.com"></label>
+              <label class="field"><text>邮箱验证码</text></label>
+              <view class="code-row">
+                <input v-model="emailCode" type="number" :maxlength="6" placeholder="6 位验证码">
+                <button :disabled="codeBusy.reset_password || codeCountdown.reset_password > 0" @click="sendCode('reset_password')">
+                  {{ codeButtonText('reset_password') }}
+                </button>
+              </view>
+              <label class="field"><text>新密码</text><input v-model="password" type="text" password confirm-type="done" placeholder="至少 8 位" @confirm="submit"></label>
+              <button class="primary" :disabled="busy" @click="submit">
+                {{ busy ? '重置中…' : '重置并登录' }}
               </button>
               <button class="ghost" @click="mode = 'password'">
-                已有账号？返回登录 →
+                ← 返回账号登录
               </button>
-            </view>
-          </template>
-
-          <template v-else>
-            <view class="notice">
-              输入注册邮箱并验证身份，即可设置新密码。
-            </view>
-            <label class="field"><text>注册邮箱</text><input v-model="email" type="text" placeholder="your@email.com"></label>
-            <label class="field"><text>邮箱验证码</text></label>
-            <view class="code-row">
-              <input v-model="emailCode" type="number" :maxlength="6" placeholder="6 位验证码">
-              <button :disabled="codeBusy.reset_password || codeCountdown.reset_password > 0" @click="sendCode('reset_password')">
-                {{ codeButtonText('reset_password') }}
-              </button>
-            </view>
-            <label class="field"><text>新密码</text><input v-model="password" type="text" password confirm-type="done" placeholder="至少 8 位" @confirm="submit"></label>
-            <button class="primary" :disabled="busy" @click="submit">
-              {{ busy ? '重置中…' : '重置并登录' }}
-            </button>
-            <button class="ghost" @click="mode = 'password'">
-              ← 返回账号登录
-            </button>
-          </template>
-        </view>
-        <!-- #endif -->
-        <!-- #ifdef MP-WEIXIN -->
-        <view class="form-body mini-program-auth">
-          <text class="mini-program-title">
-            微信授权登录
-          </text>
-          <text class="mini-program-description">
-            授权后即可同步游戏记录并进入多人房间
-          </text>
-          <button class="primary platform-login wechat-login" :disabled="busy" @click="authorizeMiniProgram('wechat')">
-            <view class="platform-logo i-simple-icons-wechat" aria-hidden="true" />
-            <text>{{ busy ? '授权中…' : '微信一键登录' }}</text>
-          </button>
-          <view class="agreement">
-            <text>登录即表示同意 </text><text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
-              服务条款
-            </text><text> 与 </text><text class="agreement-link" @tap.stop="openMiniProgramPrivacy">
-              隐私保护指引
-            </text>
+            </template>
           </view>
-        </view>
-        <!-- #endif -->
-        <!-- #ifdef MP-TOUTIAO -->
-        <view class="form-body mini-program-auth">
-          <text class="mini-program-title">
-            抖音授权登录
-          </text>
-          <text class="mini-program-description">
-            授权后即可同步游戏记录并进入多人房间
-          </text>
-          <button class="primary platform-login douyin-login" :disabled="busy" @click="authorizeMiniProgram('douyin')">
-            <view class="platform-logo i-simple-icons-tiktok" aria-hidden="true" />
-            <text>{{ busy ? '授权中…' : '抖音一键登录' }}</text>
-          </button>
-          <view class="agreement">
-            <text>登录即表示同意 </text><text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
-              服务条款
-            </text><text> 与 </text><text class="agreement-link" @tap.stop="openMiniProgramPrivacy">
-              隐私政策
+          <!-- #endif -->
+          <!-- #ifdef MP-WEIXIN -->
+          <view class="form-body mini-program-auth">
+            <text class="mini-program-title">
+              微信授权登录
             </text>
+            <text class="mini-program-description">
+              授权后即可同步游戏记录并进入多人房间
+            </text>
+            <button class="primary platform-login wechat-login" :disabled="busy" @click="authorizeMiniProgram('wechat')">
+              <view class="platform-logo i-simple-icons-wechat" aria-hidden="true" />
+              <text>{{ busy ? '授权中…' : '微信一键登录' }}</text>
+            </button>
+            <view class="agreement">
+              <text>登录即表示同意 </text><text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
+                服务条款
+              </text><text> 与 </text><text class="agreement-link" @tap.stop="openMiniProgramPrivacy">
+                隐私保护指引
+              </text>
+            </view>
           </view>
+          <!-- #endif -->
+          <!-- #ifdef MP-TOUTIAO -->
+          <view class="form-body mini-program-auth">
+            <text class="mini-program-title">
+              抖音授权登录
+            </text>
+            <text class="mini-program-description">
+              授权后即可同步游戏记录并进入多人房间
+            </text>
+            <button class="primary platform-login douyin-login" :disabled="busy" @click="authorizeMiniProgram('douyin')">
+              <view class="platform-logo i-simple-icons-tiktok" aria-hidden="true" />
+              <text>{{ busy ? '授权中…' : '抖音一键登录' }}</text>
+            </button>
+            <view class="agreement">
+              <text>登录即表示同意 </text><text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
+                服务条款
+              </text><text> 与 </text><text class="agreement-link" @tap.stop="openMiniProgramPrivacy">
+                隐私政策
+              </text>
+            </view>
+          </view>
+          <!-- #endif -->
+          <text class="copyright">
+            © 2024 墨鱼海龟汤 · 公益项目
+          </text>
         </view>
-        <!-- #endif -->
-        <text class="copyright">
-          © 2024 墨鱼海龟汤 · 公益项目
-        </text>
       </view>
     </view>
     <LegalDocumentPopup v-model:visible="legalDocumentVisible" v-model:kind="legalDocumentKind" :documents="legalDocuments" :light="light" />
@@ -378,16 +396,66 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 <style scoped>
 .auth-page {
   position: relative;
-  display: flex;
   min-height: 100vh;
   overflow: hidden;
   background: var(--hgt-bg);
   color: var(--hgt-text);
   transition: background var(--hgt-dur-base), color var(--hgt-dur-base);
 }
+.auth-layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
 .auth-page.light {
   background: var(--hgt-bg);
   color: var(--hgt-text);
+}
+.page-bg {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  pointer-events: none;
+  filter: var(--hgt-atmo-filter);
+}
+.page-bg-veil {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  pointer-events: none;
+  /* 与首页 hero 共用同一套氛围压暗 */
+  background: var(--hgt-atmo-veil);
+}
+.page-deco {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+.page-deco-bubbles {
+  top: 8%;
+  right: 6%;
+  width: min(220px, 42vw);
+  height: min(280px, 50vh);
+  opacity: 0.22;
+}
+.page-deco-vignette {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  /* 降低 vignette，避免登录页比首页更暗 */
+  opacity: 0.28;
+  mix-blend-mode: multiply;
 }
 .theme-toggle {
   position: absolute;
@@ -415,19 +483,29 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 }
 
 .brand-panel {
-  position: relative;
-  z-index: 1;
   display: flex;
   box-sizing: border-box;
   width: 42%;
   min-height: 100vh;
   padding: 56px 48px 40px;
-  border-right: 1px solid var(--hgt-border);
   flex-direction: column;
   justify-content: space-between;
-  background:
-    linear-gradient(160deg, rgba(12, 32, 39, 0.88), rgba(7, 20, 24, 0.96)),
-    url('/static/hgt/bg/bg_deep_ocean.jpg') center / cover;
+  background: transparent;
+  color: #e5e8e3;
+}
+.brand-panel .eyebrow {
+  color: var(--hgt-brand);
+}
+.brand-panel .brand-title {
+  color: #e5e8e3;
+}
+.brand-panel .brand-description,
+.brand-panel .brand-rule,
+.brand-panel .brand-footer {
+  color: rgba(229, 232, 227, 0.72);
+}
+.brand-panel .brand-rule::before {
+  background: rgba(229, 232, 227, 0.28);
 }
 .eyebrow {
   color: var(--hgt-brand);
@@ -491,8 +569,6 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 }
 
 .form-panel {
-  position: relative;
-  z-index: 1;
   display: flex;
   box-sizing: border-box;
   width: 58%;
@@ -500,7 +576,37 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
   padding: 48px 40px;
   align-items: center;
   justify-content: center;
-  background: var(--hgt-bg);
+  flex-direction: column;
+  gap: 20px;
+  background: transparent;
+}
+.mobile-brand {
+  display: none;
+}
+.mobile-logo {
+  width: 72px;
+  height: 72px;
+}
+.mobile-title {
+  color: #e5e8e3;
+  font-family: var(--hgt-font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.mobile-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(229, 232, 227, 0.72);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+}
+.mobile-rule::before {
+  width: 28px;
+  height: 1px;
+  background: rgba(229, 232, 227, 0.28);
+  content: '';
 }
 .form-card {
   box-sizing: border-box;
@@ -706,12 +812,62 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 }
 
 @media (max-width: 900px) {
+  .auth-page,
+  .auth-layout,
+  .form-panel {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
   .brand-panel {
     display: none;
   }
+  .mobile-brand {
+    display: flex;
+    width: 100%;
+    max-width: 420px;
+    align-items: center;
+    gap: 8px;
+    flex-direction: column;
+    text-align: center;
+  }
   .form-panel {
     width: 100%;
-    padding: 32px 20px;
+    padding: max(28px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom));
+  }
+  .auth-layout {
+    width: 100%;
+  }
+  .page-bg,
+  .page-bg-veil,
+  .page-deco-vignette {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  /* 移动端与首页共用 atmo，仅略加强底部保证表单可读 */
+  .page-bg-veil {
+    background:
+      linear-gradient(180deg,
+        rgba(7, 20, 24, 0.22) 0%,
+        rgba(7, 20, 24, 0.40) 45%,
+        rgba(7, 20, 24, 0.58) 100%);
+  }
+  .page-deco-bubbles {
+    top: auto;
+    right: -4%;
+    bottom: 12%;
+    width: min(180px, 48vw);
+    height: min(220px, 36vh);
+    opacity: 0.4;
+  }
+  .form-card {
+    width: min(420px, 100%);
+    border-color: rgba(91, 200, 189, 0.18);
+    background: rgba(15, 42, 45, 0.82);
+    box-shadow:
+      0 12px 40px rgba(4, 12, 14, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   .password-grid {
     grid-template-columns: 1fr;

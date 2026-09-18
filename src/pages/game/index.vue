@@ -6,6 +6,7 @@ import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 import { supportsPublicRooms } from '@/utils/platform'
+import { paperTextureUrl } from '@/utils/questionCover'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'game', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
@@ -146,6 +147,8 @@ async function switchToGame(nextGameId: string) {
   errorMessage.value = ''
   question.value = ''
   inputMode.value = 'question'
+  customClues.value = []
+  newClue.value = ''
   try {
     store.setGame(await socket.join(nextGameId))
     gameId.value = nextGameId
@@ -270,6 +273,33 @@ function toggleMood(tag: string) {
     ? moodTags.value.filter(item => item !== tag)
     : [...moodTags.value, tag]
 }
+/** 多人房间：线索板仅 Socket 同步，不落库；应用远端数据时避免回声广播 */
+let applyingRemoteClues = false
+function isMultiplayerRoomSync() {
+  return game.value?.mode === 'multiplayer' && Boolean(room.value?.id)
+}
+function broadcastClueBoard(clues: string[]) {
+  if (!isMultiplayerRoomSync())
+    return
+  void socket.roomClueSync(room.value!.id, clues).catch(() => {})
+}
+watch(customClues, (clues) => {
+  if (applyingRemoteClues) {
+    applyingRemoteClues = false
+    return
+  }
+  broadcastClueBoard(clues)
+})
+watch(() => socket.roomClueBoard.value?.nonce, () => {
+  const payload = socket.roomClueBoard.value
+  if (!payload || !isMultiplayerRoomSync() || payload.room_id !== room.value?.id)
+    return
+  const selfId = room.value?.members.find(item => item.is_self)?.user_id
+  if (selfId !== undefined && payload.user_id === selfId)
+    return
+  applyingRemoteClues = true
+  customClues.value = [...payload.clues]
+})
 const moodOptions = ['紧张', '诡异', '悲伤', '荒诞', '温馨', '恐怖', '反转']
 const discoveredClues = computed(() => game.value?.discovered_points || [])
 const progressPercent = computed(() => {
@@ -1064,7 +1094,7 @@ onUnmounted(() => {
           <scroll-view scroll-y class="clue-body">
             <template v-if="clueTab === 'clues'">
               <view v-if="!discoveredClues.length && !customClues.length" class="clue-empty">
-                还没有确认的线索，继续提问吧
+                {{ game.mode === 'multiplayer' && room ? '还没有线索，添加后会同队友实时同步' : '还没有确认的线索，继续提问吧' }}
               </view>
               <view v-for="(point, index) in discoveredClues" :key="`d-${index}`" class="clue-item found">
                 <text class="clue-mark">
@@ -1075,9 +1105,7 @@ onUnmounted(() => {
                 </text>
               </view>
               <view v-for="(clue, index) in customClues" :key="`c-${index}`" class="clue-item custom">
-                <text class="clue-mark">
-                  ·
-                </text>
+                <image class="clue-tag-icon" src="/static/hgt/paper/paper_tag.png" mode="aspectFit" />
                 <text class="clue-text">
                   {{ clue }}
                 </text>
@@ -1177,6 +1205,7 @@ onUnmounted(() => {
                 </text>
               </view>
               <view v-for="(clue, index) in customClues" :key="`mc-${index}`" class="clue-item custom">
+                <image class="clue-tag-icon" src="/static/hgt/paper/paper_tag.png" mode="aspectFit" />
                 <text class="clue-text">
                   {{ clue }}
                 </text>
@@ -1254,6 +1283,7 @@ onUnmounted(() => {
     <wd-popup v-if="resultOpen" v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
       <view class="result-modal">
         <image class="result-bg" src="/static/hgt/bg/bg_lighthouse.jpg" mode="aspectFill" />
+        <image class="result-splash" src="/static/hgt/ui/water_splash.png" mode="aspectFit" />
         <view class="result-veil" />
         <view class="result-content">
           <text class="result-kicker">
@@ -1266,7 +1296,7 @@ onUnmounted(() => {
             所有的疑问，终于有了答案
           </text>
           <view class="result-paper">
-            <image class="result-paper-texture" src="/static/hgt/paper/paper_01.png" mode="aspectFill" />
+            <image class="result-paper-texture" :src="paperTextureUrl(game.id)" mode="aspectFill" />
             <view class="result-paper-veil" />
             <view class="result-paper-inner">
               <text class="result-paper-label">
@@ -1276,9 +1306,7 @@ onUnmounted(() => {
                 {{ game.bottom }}
               </text>
             </view>
-            <text class="result-stamp">
-              真相已揭晓
-            </text>
+            <image class="result-stamp-img" src="/static/hgt/ui/stamp_truth.png" mode="aspectFit" />
           </view>
           <view v-if="game.points?.length" class="result-points">
             <text class="result-points-label">
@@ -1312,6 +1340,7 @@ onUnmounted(() => {
     />
   </template>
   <view v-else-if="pageError" class="game-load-state">
+    <image class="game-load-img" src="/static/hgt/empty/empty_network.png" mode="aspectFit" />
     <text class="hgt-mono game-load-eyebrow">
       GAME UNAVAILABLE
     </text>
@@ -1326,6 +1355,7 @@ onUnmounted(() => {
     </button>
   </view>
   <view v-else class="game-load-state">
+    <image class="game-load-img" src="/static/hgt/empty/empty_loading.png" mode="aspectFit" />
     <text class="hgt-mono game-load-eyebrow">
       LOADING
     </text>
@@ -1377,6 +1407,13 @@ onUnmounted(() => {
   flex-direction: column;
   text-align: center;
   background: var(--hgt-bg);
+}
+.game-load-img {
+  width: min(240px, 70vw);
+  height: 180px;
+  margin-bottom: 8px;
+  border-radius: var(--hgt-radius-lg);
+  filter: drop-shadow(0 8px 24px rgba(4, 12, 14, 0.4));
 }
 .game-load-eyebrow {
   color: var(--hgt-brand);
@@ -1672,14 +1709,19 @@ onUnmounted(() => {
 }
 .tabs button {
   position: relative;
+  display: flex;
+  box-sizing: border-box;
   flex: 1;
   height: 52px;
   margin: 0;
   padding: 0 12px;
   border: 0;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--hgt-text-2);
   font-size: 13px;
+  line-height: 1;
 }
 .tabs button::after { border: 0; }
 .tabs button.active {
@@ -1802,14 +1844,19 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 .hints button {
+  display: flex;
+  box-sizing: border-box;
   height: 30px;
   margin: 0;
   padding: 0 12px;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-full);
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--hgt-text-2);
   font-size: 12px;
+  line-height: 1;
 }
 .hints button::after { border: 0; }
 .hints button.bottom-mode.active {
@@ -1975,6 +2022,13 @@ onUnmounted(() => {
   color: var(--hgt-brand);
   font-size: 11px;
 }
+.clue-item.custom .clue-tag-icon {
+  flex: none;
+  width: 16px;
+  height: 20px;
+  margin-right: 4px;
+  opacity: 0.75;
+}
 .clue-body {
   flex: 1;
   min-height: 0;
@@ -2115,16 +2169,21 @@ onUnmounted(() => {
   font-family: var(--hgt-font-mono);
 }
 .btn-submit-truth {
+  display: flex;
+  box-sizing: border-box;
   width: 100%;
   height: 44px;
   margin: 14px 0 0;
   padding: 0;
   border: 0;
   border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
   background: var(--hgt-brand);
   color: var(--hgt-on-brand);
   font-size: 15px;
   font-weight: 600;
+  line-height: 1;
 }
 .btn-submit-truth::after { border: 0; }
 .btn-submit-truth:disabled {
@@ -2151,27 +2210,37 @@ onUnmounted(() => {
 .invite-link-row {
   display: flex;
   gap: 8px;
+  align-items: center;
   flex-wrap: wrap;
 }
 .invite-code {
+  display: flex;
+  box-sizing: border-box;
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
+  height: 40px;
+  padding: 0 12px;
   border: 1px dashed var(--hgt-border-soft);
   border-radius: var(--hgt-radius-sm);
+  align-items: center;
   color: var(--hgt-brand);
   font-size: 13px;
 }
 .copy-button,
 .close-invite {
+  display: flex;
+  box-sizing: border-box;
   height: 40px;
   margin: 0;
   padding: 0 16px;
   border: 0;
   border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
   background: var(--hgt-brand);
   color: var(--hgt-on-brand);
   font-size: 13px;
+  line-height: 1;
 }
 .copy-button::after,
 .close-invite::after { border: 0; }
@@ -2218,6 +2287,15 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
 }
+.result-splash {
+  position: absolute;
+  z-index: 0;
+  top: -20px;
+  right: -10px;
+  width: min(280px, 45%);
+  opacity: 0.28;
+  pointer-events: none;
+}
 .result-veil {
   position: absolute;
   inset: 0;
@@ -2254,18 +2332,26 @@ onUnmounted(() => {
   margin-top: 8px;
   border-radius: var(--hgt-radius-md);
   overflow: hidden;
+  background: var(--hgt-paper);
   box-shadow: var(--hgt-shadow-md);
 }
 .result-paper-texture {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  opacity: 0.92;
 }
 .result-paper-veil {
   position: absolute;
   inset: 0;
-  background: rgba(208, 220, 182, 0.72);
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--hgt-paper) 22%, transparent),
+    color-mix(in srgb, var(--hgt-paper) 48%, transparent)
+  );
 }
 .result-paper-inner {
   position: relative;
@@ -2287,21 +2373,16 @@ onUnmounted(() => {
   line-height: 1.85;
   white-space: pre-wrap;
 }
-.result-stamp {
+.result-stamp-img {
   position: absolute;
   z-index: 2;
-  top: 16px;
-  right: 12px;
-  padding: 6px 12px;
-  border: 2px solid rgba(201, 74, 85, 0.85);
-  border-radius: 4px;
-  color: rgba(201, 74, 85, 0.95);
-  font-family: var(--hgt-font-display);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  top: 8px;
+  right: 4px;
+  width: 120px;
+  height: 120px;
   transform: rotate(-12deg);
-  background: rgba(208, 220, 182, 0.35);
+  opacity: 0.92;
+  pointer-events: none;
 }
 .result-points {
   display: flex;

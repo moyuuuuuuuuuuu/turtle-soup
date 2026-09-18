@@ -52,6 +52,18 @@
       }
     },
     {
+      "path": "pages/friends/index",
+      "type": "page",
+      "name": "friends",
+      "layout": "tabbar",
+      "style": {
+        "navigationStyle": "custom",
+        "mp-toutiao": {
+          "navigationStyle": "default"
+        }
+      }
+    },
+    {
       "path": "pages/game/index",
       "type": "page",
       "name": "game",

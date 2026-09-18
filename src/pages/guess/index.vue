@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
+import { paperTextureUrl } from '@/utils/questionCover'
 
 definePage({ name: 'guess', style: { navigationBarTitleText: '最终猜测' } })
 
@@ -37,6 +38,11 @@ async function doSubmit() {
 
 <template>
   <view class="guess-page">
+    <!-- #ifdef H5 -->
+    <image class="page-bg" src="/static/hgt/bg/bg_deep_ocean_hero.jpg" mode="aspectFill" />
+    <image class="page-bubbles" src="/static/hgt/ui/bubbles.png" mode="aspectFit" />
+    <view class="page-bg-veil" />
+    <!-- #endif -->
     <view class="guess-shell">
       <text class="guess-kicker">
         FINAL GUESS
@@ -49,22 +55,26 @@ async function doSubmit() {
       </text>
 
       <view class="paper">
-        <image class="paper-texture" src="/static/hgt/paper/paper_01.png" mode="aspectFill" />
-        <view class="paper-veil" />
-        <view class="paper-inner">
-          <text class="paper-label">
-            汤底
-          </text>
-          <textarea
-            v-model="guess"
-            class="paper-input"
-            :maxlength="2000"
-            placeholder="写下你认为完整的故事真相…"
-          />
-          <text class="paper-count">
-            {{ guess.length }}/2000
-          </text>
+        <view class="paper-sheet">
+          <image class="paper-texture" :src="paperTextureUrl(gameId)" mode="aspectFill" />
+          <view class="paper-veil" />
+          <view class="paper-inner">
+            <text class="paper-label">
+              汤底
+            </text>
+            <textarea
+              v-model="guess"
+              class="paper-input"
+              :maxlength="2000"
+              placeholder="写下你认为完整的故事真相…"
+            />
+            <text class="paper-count">
+              {{ guess.length }}/2000
+            </text>
+          </view>
+          <image class="paper-key" src="/static/hgt/prop/prop_key.png" mode="aspectFit" />
         </view>
+        <image class="paper-tape" src="/static/hgt/ui/tape.png" mode="aspectFit" />
       </view>
 
       <button class="btn-primary" :disabled="!guess.trim() || busy" :loading="busy" @click="submit">
@@ -87,23 +97,55 @@ async function doSubmit() {
 
 <style scoped>
 .guess-page {
+  position: relative;
   display: flex;
   box-sizing: border-box;
   min-height: 100%;
   padding: 48px 20px 64px;
   align-items: center;
   justify-content: center;
+  /* 非 H5（小程序等）与首页/登录页同一套灯塔底 */
   background:
-    linear-gradient(180deg, rgba(12, 32, 39, 0.88), rgba(7, 20, 24, 0.96)),
-    url('/static/hgt/bg/bg_deep_ocean.jpg') center / cover;
+    var(--hgt-atmo-veil),
+    url('/static/hgt/bg/bg_deep_ocean_hero.jpg') center / cover;
   color: var(--hgt-text);
 }
 .guess-shell {
+  position: relative;
+  z-index: 1;
   display: flex;
   width: min(560px, 100%);
   gap: 14px;
   flex-direction: column;
 }
+/* #ifdef H5 */
+/* H5 用绝对定位 image 铺满视口，避免 CSS 背景在容器高度异常时露底 */
+.guess-page {
+  min-height: 100vh;
+  background: var(--hgt-bg);
+}
+.page-bg {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: var(--hgt-atmo-filter);
+}
+.page-bg-veil {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* 统一亮度：不再用接近全黑的 veil */
+  background: var(--hgt-atmo-veil);
+}
+/* #endif */
 .guess-kicker {
   color: var(--hgt-brand);
   font-family: var(--hgt-font-mono);
@@ -125,26 +167,74 @@ async function doSubmit() {
 .paper {
   position: relative;
   min-height: 260px;
+  padding-top: 10px;
+}
+.paper-sheet {
+  position: relative;
+  min-height: 260px;
   border-radius: var(--hgt-radius-md);
   overflow: hidden;
+  background: var(--hgt-paper);
   box-shadow: var(--hgt-shadow-md);
 }
 .paper-texture {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  opacity: 0.92;
+}
+.paper-texture :deep(uni-image),
+.paper-texture :deep(.uni-image),
+.paper-texture :deep(.uni-image-wrapper) {
+  width: 100%;
+  height: 100%;
+}
+.paper-tape {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  width: 96px;
+  height: 30px;
+  transform: translateX(-50%) rotate(1.5deg);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.paper-key {
+  position: absolute;
+  z-index: 0;
+  right: 8px;
+  bottom: 8px;
+  width: 72px;
+  height: 72px;
+  opacity: 0.2;
+  pointer-events: none;
+}
+.page-bubbles {
+  position: absolute;
+  right: 6%;
+  bottom: 10%;
+  width: min(280px, 40vw);
+  opacity: 0.28;
+  pointer-events: none;
 }
 .paper-veil {
   position: absolute;
   inset: 0;
-  background: rgba(208, 220, 182, 0.72);
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--hgt-paper) 22%, transparent),
+    color-mix(in srgb, var(--hgt-paper) 48%, transparent)
+  );
 }
 .paper-inner {
   position: relative;
   z-index: 1;
   display: flex;
-  padding: 20px;
+  padding: 20px 24px;
   gap: 10px;
   flex-direction: column;
 }
