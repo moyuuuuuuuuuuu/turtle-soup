@@ -1,3 +1,5 @@
+export interface PublicTag { id: number, name: string }
+
 export interface PublicQuestion {
   id: string
   title: string

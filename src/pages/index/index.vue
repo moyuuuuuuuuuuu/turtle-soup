@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { HomeStats, PublicQuestion } from '@/types/game'
-import { ensureAnonymousSession, homeApi, questionApi } from '@/api/turtle'
+import type { HomeStats, PublicQuestion, PublicTag } from '@/types/game'
+import { ensureAnonymousSession, homeApi, questionApi, tagApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
 import { formatCount } from '@/utils'
 import { supportsPublicRooms } from '@/utils/platform'
@@ -17,19 +17,59 @@ const loading = ref(true)
 const loadError = ref(false)
 const randomLoading = ref(false)
 
-const categories = [
-  { label: '全部', tagId: undefined as number | undefined },
-  { label: '本格', tagId: 20 },
-  { label: '推理', tagId: 4 },
-  { label: '悬疑', tagId: 3 },
-  { label: '灵异', tagId: 13 },
-  { label: '犯罪', tagId: 5 },
-  { label: '校园', tagId: 8 },
-  { label: '家庭', tagId: 9 },
-  { label: '短篇', tagId: 16 },
+interface HomeCategory { label: string, tagId: number | undefined }
+
+const ALL_CATEGORY: HomeCategory = { label: '全部', tagId: undefined }
+/** 接口失败时的兜底，tagId 与后端 turtle_tags 一致 */
+const FALLBACK_TAGS: PublicTag[] = [
+  { id: 20, name: '本格' },
+  { id: 4, name: '逻辑推理' },
+  { id: 3, name: '悬疑' },
+  { id: 13, name: '超自然' },
+  { id: 5, name: '犯罪案件' },
+  { id: 8, name: '校园' },
+  { id: 9, name: '家庭' },
+  { id: 16, name: '短篇' },
 ]
-const activeCategory = ref(categories[0])
+const COLLAPSED_CATEGORY_COUNT = 5
+const categories = ref<HomeCategory[]>([ALL_CATEGORY, ...FALLBACK_TAGS.map(tag => ({ label: tag.name, tagId: tag.id }))])
+const activeTagId = ref<number | undefined>(undefined)
 const categoryPage = ref(1)
+const categoriesExpanded = ref(false)
+
+const activeCategory = computed<HomeCategory>(() => categories.value.find(cat => cat.tagId === activeTagId.value) || ALL_CATEGORY)
+const visibleCategories = computed(() => categoriesExpanded.value ? categories.value : categories.value.slice(0, COLLAPSED_CATEGORY_COUNT))
+const showCategoryToggle = computed(() => categories.value.length > COLLAPSED_CATEGORY_COUNT)
+
+/** 几乎每道题都带的基础标签，优先展示更有区分度的题材标签 */
+const GENERIC_TAG_NAMES = new Set(['悬疑', '逻辑推理'])
+
+function categoryTagLabel(item: PublicQuestion) {
+  const tags = item.tags || []
+  const activeId = activeCategory.value.tagId
+  if (activeId !== undefined) {
+    const matched = tags.find(tag => tag.id === activeId)
+    if (matched)
+      return matched.name
+    return activeCategory.value.label
+  }
+  return tags.find(tag => !GENERIC_TAG_NAMES.has(tag.name))?.name || tags[0]?.name || '悬疑'
+}
+
+function toCategories(tags: PublicTag[]): HomeCategory[] {
+  return [ALL_CATEGORY, ...tags.map(tag => ({ label: tag.name, tagId: tag.id }))]
+}
+
+async function loadCategories() {
+  try {
+    const result = await tagApi.list()
+    if (result.items?.length)
+      categories.value = toCategories(result.items)
+  }
+  catch {
+    // 保留兜底分类，避免首页筛选整块不可用
+  }
+}
 
 const difficulty = (level: number) => ['未知', '简单', '普通', '中等', '困难', '极难'][level] || '未知'
 function difficultyClass(level: number) {
@@ -68,7 +108,7 @@ async function loadHome() {
     // #endif
     const listPageSize = mobileLayout ? 4 : 8
 
-    if (tagId) {
+    if (tagId !== undefined) {
       let result = await questionApi.list({ tag_id: tagId, page, page_size: listPageSize })
       if (!result.items.length && page > 1) {
         categoryPage.value = 1
@@ -104,12 +144,16 @@ async function loadHome() {
   }
 }
 
-function selectCategory(cat: typeof categories[number]) {
-  if (activeCategory.value.label === cat.label)
+function selectCategory(cat: HomeCategory) {
+  if (activeTagId.value === cat.tagId)
     return
-  activeCategory.value = cat
+  activeTagId.value = cat.tagId
   categoryPage.value = 1
   void loadHome()
+}
+
+function toggleCategoriesExpanded() {
+  categoriesExpanded.value = !categoriesExpanded.value
 }
 
 function refreshFeatured() {
@@ -146,6 +190,7 @@ function openPublicRooms() {
 }
 
 onMounted(() => {
+  void loadCategories()
   void loadHome()
   void loadStats()
 })
@@ -221,19 +266,54 @@ onMounted(() => {
         </button>
       </view>
 
-      <scroll-view class="cat-scroll" scroll-x :show-scrollbar="false">
-        <view class="cat-row">
+      <view class="cat-block">
+        <view v-if="categoriesExpanded" class="cat-row cat-row-wrap">
           <view
             v-for="cat in categories"
-            :key="cat.label"
+            :key="String(cat.tagId)"
             class="cat-chip"
-            :class="{ active: activeCategory.label === cat.label }"
+            :class="{ active: activeCategory.tagId === cat.tagId }"
+            @click="selectCategory(cat)"
+          >
+            {{ cat.label }}
+          </view>
+          <view class="cat-chip cat-more" @click="toggleCategoriesExpanded">
+            收起
+          </view>
+        </view>
+        <scroll-view
+          v-else-if="showCategoryToggle"
+          class="cat-scroll-view"
+          scroll-x
+          :show-scrollbar="false"
+        >
+          <view class="cat-row">
+            <view
+              v-for="cat in visibleCategories"
+              :key="String(cat.tagId)"
+              class="cat-chip"
+              :class="{ active: activeCategory.tagId === cat.tagId }"
+              @click="selectCategory(cat)"
+            >
+              {{ cat.label }}
+            </view>
+            <view class="cat-chip cat-more" @click="toggleCategoriesExpanded">
+              展开
+            </view>
+          </view>
+        </scroll-view>
+        <view v-else class="cat-row">
+          <view
+            v-for="cat in categories"
+            :key="String(cat.tagId)"
+            class="cat-chip"
+            :class="{ active: activeCategory.tagId === cat.tagId }"
             @click="selectCategory(cat)"
           >
             {{ cat.label }}
           </view>
         </view>
-      </scroll-view>
+      </view>
 
       <view v-if="loading" class="content-state">
         <image class="empty-img" src="/static/hgt/empty/empty_loading.png" mode="aspectFit" />
@@ -262,7 +342,7 @@ onMounted(() => {
             <view class="cover-fallback" />
             <view class="card-tags">
               <text class="tag tag-cat">
-                {{ item.tags?.[0]?.name || '悬疑' }}
+                {{ categoryTagLabel(item) }}
               </text>
               <text class="tag tag-diff" :class="difficultyClass(item.difficulty)">
                 {{ difficulty(item.difficulty) }}
@@ -560,15 +640,27 @@ onMounted(() => {
 .btn-refresh::after {
   border: 0;
 }
-.cat-scroll {
+.cat-block {
   width: 100%;
   margin-bottom: 12px;
+}
+.cat-scroll {
+  width: 100%;
+}
+.cat-scroll-view {
+  width: 100%;
   white-space: nowrap;
 }
 .cat-row {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: nowrap;
   padding-bottom: 2px;
   gap: 6px;
+  align-items: center;
+}
+.cat-row-wrap {
+  flex-wrap: wrap;
+  row-gap: 8px;
 }
 .cat-chip {
   display: inline-flex;
@@ -580,12 +672,17 @@ onMounted(() => {
   background: transparent;
   color: var(--hgt-text-2);
   font-size: 12px;
+  white-space: nowrap;
   transition: all var(--hgt-dur-fast);
 }
 .cat-chip.active {
   border-color: var(--hgt-brand);
   background: var(--hgt-brand-soft);
   color: var(--hgt-brand);
+}
+.cat-more {
+  border-style: dashed;
+  cursor: pointer;
 }
 .empty-img {
   width: 96px;
