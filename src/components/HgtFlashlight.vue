@@ -45,7 +45,7 @@ onMounted(() => {
 
   const measureRadius = () => {
     const base = Math.min(window.innerWidth, window.innerHeight)
-    return Math.round(Math.min(260, Math.max(140, base * 0.18)) * props.scale)
+    return Math.round(Math.min(340, Math.max(200, base * 0.26)) * props.scale)
   }
 
   const applyVars = () => {
@@ -123,7 +123,7 @@ onUnmounted(() => stop?.())
   pointer-events: none;
   --hgt-flash-x: 50%;
   --hgt-flash-y: 45%;
-  --hgt-flash-r: 180px;
+  --hgt-flash-r: 240px;
   --hgt-flash-beam: 0;
   --hgt-flash-dim: 0.28;
 }
@@ -143,16 +143,16 @@ onUnmounted(() => stop?.())
   -webkit-mask-image: radial-gradient(
     circle var(--hgt-flash-r) at var(--hgt-flash-x) var(--hgt-flash-y),
     transparent 0%,
-    transparent 48%,
-    rgba(0, 0, 0, 0.22) 68%,
+    transparent 52%,
+    rgba(0, 0, 0, 0.2) 70%,
     rgba(0, 0, 0, 0.55) 86%,
     rgba(0, 0, 0, 0.75) 100%
   );
   mask-image: radial-gradient(
     circle var(--hgt-flash-r) at var(--hgt-flash-x) var(--hgt-flash-y),
     transparent 0%,
-    transparent 48%,
-    rgba(0, 0, 0, 0.22) 68%,
+    transparent 52%,
+    rgba(0, 0, 0, 0.2) 70%,
     rgba(0, 0, 0, 0.55) 86%,
     rgba(0, 0, 0, 0.75) 100%
   );
@@ -162,7 +162,7 @@ onUnmounted(() => stop?.())
 .hgt-flashlight-beam {
   opacity: calc(var(--hgt-flash-beam) * 0.85);
   background: radial-gradient(
-    circle calc(var(--hgt-flash-r) * 1.05) at var(--hgt-flash-x) var(--hgt-flash-y),
+    circle calc(var(--hgt-flash-r) * 1.15) at var(--hgt-flash-x) var(--hgt-flash-y),
     rgba(91, 200, 189, 0.22) 0%,
     rgba(91, 200, 189, 0.12) 28%,
     rgba(140, 220, 210, 0.05) 50%,
@@ -175,7 +175,7 @@ onUnmounted(() => stop?.())
 .hgt-flashlight-core {
   opacity: calc(var(--hgt-flash-beam) * 0.7);
   background: radial-gradient(
-    circle calc(var(--hgt-flash-r) * 0.38) at var(--hgt-flash-x) var(--hgt-flash-y),
+    circle calc(var(--hgt-flash-r) * 0.42) at var(--hgt-flash-x) var(--hgt-flash-y),
     rgba(236, 255, 250, 0.14) 0%,
     rgba(170, 240, 228, 0.06) 40%,
     transparent 70%
@@ -190,7 +190,7 @@ onUnmounted(() => stop?.())
 .hgt-flashlight.is-light .hgt-flashlight-beam {
   opacity: calc(var(--hgt-flash-beam) * 0.55);
   background: radial-gradient(
-    circle calc(var(--hgt-flash-r) * 1.0) at var(--hgt-flash-x) var(--hgt-flash-y),
+    circle calc(var(--hgt-flash-r) * 1.1) at var(--hgt-flash-x) var(--hgt-flash-y),
     rgba(46, 154, 144, 0.14) 0%,
     rgba(46, 154, 144, 0.06) 30%,
     transparent 68%
