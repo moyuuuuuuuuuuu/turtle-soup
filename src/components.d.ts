@@ -13,6 +13,7 @@ declare module 'vue' {
     GlobalToast: typeof import('./components/GlobalToast.vue')['default']
     HgtConfirmDialog: typeof import('./components/HgtConfirmDialog.vue')['default']
     HgtFlashlight: typeof import('./components/HgtFlashlight.vue')['default']
+    HgtLoading: typeof import('./components/HgtLoading.vue')['default']
     HgtParticleBackground: typeof import('./components/HgtParticleBackground.vue')['default']
     HgtShell: typeof import('./components/HgtShell.vue')['default']
     HgtThemeTransition: typeof import('./components/HgtThemeTransition.vue')['default']

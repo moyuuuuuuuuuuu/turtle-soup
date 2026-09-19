@@ -355,23 +355,23 @@ onMounted(async () => {
   line-height: 1.4;
 }
 .badge.easy {
-  background: rgba(94, 135, 135, 0.25);
+  background: rgba(120, 146, 98, 0.22);
   color: var(--hgt-success-text);
 }
 .badge.mid {
-  background: rgba(196, 154, 85, 0.22);
+  background: rgba(240, 194, 57, 0.2);
   color: var(--hgt-warning);
 }
 .badge.hard {
-  background: rgba(201, 74, 85, 0.22);
+  background: rgba(158, 83, 86, 0.2);
   color: var(--hgt-danger);
 }
 .badge.risk.caution {
-  background: rgba(196, 154, 85, 0.22);
+  background: rgba(240, 194, 57, 0.2);
   color: var(--hgt-warning);
 }
 .badge.risk.restricted {
-  background: rgba(201, 74, 85, 0.22);
+  background: rgba(158, 83, 86, 0.2);
   color: var(--hgt-danger);
 }
 .meta-row {
@@ -475,10 +475,10 @@ onMounted(async () => {
   overflow: hidden;
 }
 .risk-panel.caution {
-  border-color: rgba(196, 154, 85, 0.55);
+  border-color: rgba(240, 194, 57, 0.55);
 }
 .risk-panel.restricted {
-  border-color: rgba(201, 74, 85, 0.55);
+  border-color: rgba(158, 83, 86, 0.55);
 }
 .risk-trigger {
   display: flex;
@@ -506,9 +506,9 @@ onMounted(async () => {
   padding: 14px 16px;
   gap: 14px;
   flex-direction: column;
-  border: 1px solid rgba(196, 154, 85, 0.28);
+  border: 1px solid rgba(240, 194, 57, 0.28);
   border-radius: var(--hgt-radius-sm);
-  background: rgba(196, 154, 85, 0.08);
+  background: rgba(240, 194, 57, 0.08);
 }
 .risk-dialog-row {
   display: flex;
@@ -527,9 +527,9 @@ onMounted(async () => {
 }
 .risk-dialog-chip {
   padding: 4px 10px;
-  border: 1px solid rgba(196, 154, 85, 0.4);
+  border: 1px solid rgba(240, 194, 57, 0.4);
   border-radius: var(--hgt-radius-full);
-  background: rgba(196, 154, 85, 0.12);
+  background: rgba(240, 194, 57, 0.12);
   color: var(--hgt-text);
   font-size: 12px;
   line-height: 1.4;
@@ -620,7 +620,7 @@ onMounted(async () => {
   width: 180px;
   height: 180px;
   border-radius: var(--hgt-radius-lg);
-  filter: drop-shadow(0 6px 18px rgba(4, 12, 14, 0.35));
+  filter: drop-shadow(0 6px 18px rgba(42, 42, 40, 0.18));
 }
 
 /* 桌面：封面偏右，正文区保持可读 */

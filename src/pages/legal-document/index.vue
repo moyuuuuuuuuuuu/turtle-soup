@@ -19,7 +19,7 @@ onMounted(async () => {
   uni.setNavigationBarTitle({ title: title.value })
   uni.setNavigationBarColor({
     frontColor: light.value ? '#000000' : '#ffffff',
-    backgroundColor: light.value ? '#f4f6f3' : '#071418',
+    backgroundColor: light.value ? '#f8f8f7' : '#1a1a18',
   })
   try {
     const documents = await playerApi.legalDocuments()

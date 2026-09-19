@@ -14,6 +14,8 @@ FROM nginx:1.27-alpine
 
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/build/h5 /usr/share/nginx/html
+# 确保爬虫入口文件落在站点根目录（即使构建产物未包含 public 文件）
+COPY public/robots.txt /usr/share/nginx/html/robots.txt
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1

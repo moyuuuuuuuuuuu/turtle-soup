@@ -163,12 +163,12 @@ onUnmounted(() => stop?.())
   opacity: calc(var(--hgt-flash-beam) * 0.85);
   background: radial-gradient(
     circle calc(var(--hgt-flash-r) * 1.15) at var(--hgt-flash-x) var(--hgt-flash-y),
-    rgba(91, 200, 189, 0.22) 0%,
-    rgba(91, 200, 189, 0.12) 28%,
-    rgba(140, 220, 210, 0.05) 50%,
+    rgba(120, 146, 98, 0.18) 0%,
+    rgba(120, 146, 98, 0.1) 28%,
+    rgba(214, 236, 240, 0.06) 50%,
     transparent 72%
   );
-  mix-blend-mode: screen;
+  mix-blend-mode: multiply;
 }
 
 /* 光束核心高光 */
@@ -176,8 +176,8 @@ onUnmounted(() => stop?.())
   opacity: calc(var(--hgt-flash-beam) * 0.7);
   background: radial-gradient(
     circle calc(var(--hgt-flash-r) * 0.42) at var(--hgt-flash-x) var(--hgt-flash-y),
-    rgba(236, 255, 250, 0.14) 0%,
-    rgba(170, 240, 228, 0.06) 40%,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(214, 236, 240, 0.08) 40%,
     transparent 70%
   );
   mix-blend-mode: screen;

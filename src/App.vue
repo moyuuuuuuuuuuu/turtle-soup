@@ -7,39 +7,48 @@ onLaunch(() => applyStoredTheme())
 <style lang="scss">
 @use '@wot-ui/ui/styles/theme/index.scss' as *;
 
-/* ========== Design Tokens · 暗色默认 ========== */
+/* ========== Design Tokens · 图2色板 + 宣纸底 #f8f8f7 ========== */
 :root,
 page {
-  /* brand */
-  --hgt-brand: #5bc8bd;
-  --hgt-brand-deep: #3a9a92;
-  --hgt-brand-soft: rgba(91, 200, 189, 0.14);
-  --hgt-on-brand: #062a28;
+  /* brand · 竹青主色 */
+  --hgt-brand: #789262;
+  --hgt-brand-deep: #5f754c;
+  --hgt-brand-soft: rgba(120, 146, 98, 0.12);
+  --hgt-on-brand: #f8f8f7;
+  --hgt-ink: #2a2a28;
+
+  /* accents from 图2 */
+  --hgt-accent: #9e5356; /* 明茶褐 · 点缀 */
+  --hgt-accent-soft: rgba(158, 83, 86, 0.12);
+  --hgt-moon: #d6ecf0; /* 月白 · 浅色 */
+  --hgt-ink-gray: #758a99; /* 墨灰 · 深色辅助 */
+  --hgt-gold: #f0c239; /* 绀色样本 · 辅色 */
+  --hgt-gold-soft: rgba(240, 194, 57, 0.16);
 
   /* surfaces */
-  --hgt-bg: #0c2027;
-  --hgt-bg-deep: #071418;
-  --hgt-card: #0f2a2d;
-  --hgt-card-2: #16383c;
-  --hgt-paper: #d0dcb6;
-  --hgt-paper-ink: #2a2a24;
+  --hgt-bg: #f8f8f7;
+  --hgt-bg-deep: #f1f0ed;
+  --hgt-card: #ffffff;
+  --hgt-card-2: #f3f2ef;
+  --hgt-paper: #f4f2ec;
+  --hgt-paper-ink: #2a2420;
 
-  /* text */
-  --hgt-text: #e5e8e3;
-  --hgt-text-2: #999d9b;
-  --hgt-text-3: #6b7574;
+  /* text · 墨 */
+  --hgt-text: #2c2b28;
+  --hgt-text-2: #5c5a56;
+  --hgt-text-3: #8a8780;
 
   /* lines */
-  --hgt-border: #1e3a3a;
-  --hgt-border-soft: #2e5155;
+  --hgt-border: #e2e0da;
+  --hgt-border-soft: #eceae4;
 
-  /* status */
-  --hgt-success: #5e8787;
-  --hgt-success-text: #7dcccc;
-  --hgt-warning: #c49a55;
-  --hgt-danger: #c94a55;
-  --hgt-info: #3882f6;
-  --hgt-overlay: rgba(4, 12, 14, 0.72);
+  /* status（贴近图2，难度用） */
+  --hgt-success: #789262;
+  --hgt-success-text: #5f754c;
+  --hgt-warning: #c49a3d;
+  --hgt-danger: #9e5356;
+  --hgt-info: #758a99;
+  --hgt-overlay: rgba(42, 42, 40, 0.38);
 
   /* radius */
   --hgt-radius-xs: 4px;
@@ -49,10 +58,10 @@ page {
   --hgt-radius-full: 999px;
 
   /* shadow */
-  --hgt-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --hgt-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
-  --hgt-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
-  --hgt-shadow-float: 0 16px 48px rgba(0, 0, 0, 0.28);
+  --hgt-shadow-sm: 0 2px 8px rgba(42, 42, 40, 0.05);
+  --hgt-shadow-md: 0 4px 16px rgba(42, 42, 40, 0.07);
+  --hgt-shadow-lg: 0 8px 32px rgba(42, 42, 40, 0.09);
+  --hgt-shadow-float: 0 16px 48px rgba(42, 42, 40, 0.12);
 
   /* motion */
   --hgt-ease-out: ease-out;
@@ -66,7 +75,7 @@ page {
   /* type */
   --hgt-font-display: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
   --hgt-font-body: "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --hgt-font-en: "Inter", "Roboto", system-ui, sans-serif;
+  --hgt-font-en: "Cormorant Garamond", "Times New Roman", Georgia, serif;
   --hgt-font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
 
   /* shell */
@@ -74,21 +83,18 @@ page {
   --hgt-tabbar-h: 64px;
   --hgt-content-max: 1280px;
 
-  /* 统一深海/夜景页背景处理（首页 hero、登录、猜测等共用） */
-  --hgt-atmo-img: url('/static/hgt/bg/bg_deep_ocean_hero.jpg');
-  --hgt-atmo-filter: saturate(1.05) brightness(1.06) contrast(1.05);
+  /* 水墨氛围：满幅红日远山（图1） */
+  --hgt-atmo-img: url('/static/hgt/ink/hero_ink_landscape.png');
+  --hgt-atmo-filter: none;
   --hgt-atmo-veil:
     linear-gradient(90deg,
-      rgba(7, 20, 24, 0.58) 0%,
-      rgba(7, 20, 24, 0.36) 40%,
-      rgba(7, 20, 24, 0.18) 72%,
-      rgba(7, 20, 24, 0.10) 100%),
-    linear-gradient(180deg,
-      rgba(7, 20, 24, 0.06) 0%,
-      rgba(7, 20, 24, 0.18) 48%,
-      rgba(7, 20, 24, 0.36) 100%);
+      rgba(248, 248, 247, 0.92) 0%,
+      rgba(248, 248, 247, 0.72) 28%,
+      rgba(248, 248, 247, 0.28) 48%,
+      rgba(248, 248, 247, 0.06) 72%,
+      rgba(248, 248, 247, 0) 100%);
 
-  /* legacy aliases used by existing pages */
+  /* legacy aliases */
   --app-background: var(--hgt-bg);
   --app-foreground: var(--hgt-text);
   --app-card: var(--hgt-card);
@@ -101,38 +107,59 @@ page {
   --border: var(--hgt-border);
 }
 
-/* ========== 浅色主题 ========== */
-:root.hgt-light-theme {
-  --hgt-brand: #2e9a90;
-  --hgt-brand-deep: #1f7a72;
-  --hgt-brand-soft: rgba(46, 154, 144, 0.12);
-  --hgt-on-brand: #ffffff;
+/* ========== 夜墨主题 ========== */
+:root.hgt-dark-theme,
+page.hgt-dark-theme {
+  --hgt-brand: #8eaa74;
+  --hgt-brand-deep: #789262;
+  --hgt-brand-soft: rgba(142, 170, 116, 0.16);
+  --hgt-on-brand: #1a1a18;
+  --hgt-ink: #e8e6e0;
 
-  --hgt-bg: #f4f6f3;
-  --hgt-bg-deep: #ffffff;
-  --hgt-card: #ffffff;
-  --hgt-card-2: #eef2ef;
-  --hgt-paper: #e8e4d4;
-  --hgt-paper-ink: #2a2a24;
+  --hgt-accent: #c48a8d;
+  --hgt-accent-soft: rgba(196, 138, 141, 0.16);
+  --hgt-moon: #3a4a52;
+  --hgt-ink-gray: #8fa3b0;
+  --hgt-gold: #d4a84a;
+  --hgt-gold-soft: rgba(212, 168, 74, 0.14);
 
-  --hgt-text: #1a2b2c;
-  --hgt-text-2: #5c6b6a;
-  --hgt-text-3: #8a9897;
+  --hgt-bg: #1a1a18;
+  --hgt-bg-deep: #121211;
+  --hgt-card: #222220;
+  --hgt-card-2: #2a2a27;
+  --hgt-paper: #2c2a26;
+  --hgt-paper-ink: #e8e6e0;
 
-  --hgt-border: #d5dedc;
-  --hgt-border-soft: #e5e7eb;
+  --hgt-text: #e8e6e0;
+  --hgt-text-2: #a8a59e;
+  --hgt-text-3: #7a776f;
 
-  --hgt-success: #3d7a6a;
-  --hgt-success-text: #2f6b5c;
-  --hgt-warning: #a67c3d;
-  --hgt-danger: #b33d48;
-  --hgt-info: #2f6fd0;
-  --hgt-overlay: rgba(20, 32, 34, 0.45);
+  --hgt-border: #3a3935;
+  --hgt-border-soft: #4a4843;
 
-  --hgt-shadow-sm: 0 2px 8px rgba(12, 32, 39, 0.06);
-  --hgt-shadow-md: 0 4px 16px rgba(12, 32, 39, 0.08);
-  --hgt-shadow-lg: 0 8px 32px rgba(12, 32, 39, 0.1);
-  --hgt-shadow-float: 0 16px 48px rgba(12, 32, 39, 0.14);
+  --hgt-success: #8eaa74;
+  --hgt-success-text: #a8c48e;
+  --hgt-warning: #d4a84a;
+  --hgt-danger: #c48a8d;
+  --hgt-info: #8fa3b0;
+  --hgt-overlay: rgba(10, 10, 9, 0.6);
+
+  --hgt-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --hgt-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.34);
+  --hgt-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --hgt-shadow-float: 0 16px 48px rgba(0, 0, 0, 0.48);
+
+  --hgt-atmo-filter: saturate(0.8) brightness(0.7) contrast(1.05);
+  --hgt-atmo-veil:
+    linear-gradient(90deg,
+      rgba(18, 18, 17, 0.78) 0%,
+      rgba(18, 18, 17, 0.55) 40%,
+      rgba(18, 18, 17, 0.28) 72%,
+      rgba(18, 18, 17, 0.12) 100%),
+    linear-gradient(180deg,
+      rgba(18, 18, 17, 0.08) 0%,
+      rgba(18, 18, 17, 0.2) 48%,
+      rgba(18, 18, 17, 0.45) 100%);
 
   --app-background: var(--hgt-bg);
   --app-foreground: var(--hgt-text);
@@ -144,6 +171,11 @@ page {
   --muted-foreground: var(--hgt-text-2);
   --accent: var(--hgt-brand);
   --border: var(--hgt-border);
+}
+
+:root.hgt-light-theme,
+page.hgt-light-theme {
+  color-scheme: light;
 }
 
 html,
@@ -192,6 +224,7 @@ page {
 }
 .hgt-en {
   font-family: var(--hgt-font-en);
+  letter-spacing: 0.04em;
 }
 .hgt-mono {
   font-family: var(--hgt-font-mono);
@@ -218,7 +251,6 @@ page {
   background: var(--hgt-bg);
 }
 
-/* shared button reset used across pages */
 button::after {
   border: 0;
 }

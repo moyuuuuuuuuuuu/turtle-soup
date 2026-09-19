@@ -16,6 +16,8 @@ import { WotResolver } from './src/resolver'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: process.env.UNI_PLATFORM === 'h5' ? '/' : './',
+  // uni-app 默认 publicDir 为 __static__；显式使用 public，便于放置 robots.txt 等站点根文件
+  publicDir: 'public',
   server: {
     port: 5239,
     proxy: {

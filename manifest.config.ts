@@ -14,9 +14,9 @@ import { loadEnv } from 'vite'
 const manifestEnv = loadEnv(process.env.NODE_ENV === 'production' ? 'production' : 'development', process.cwd(), '')
 
 export default defineManifestConfig({
-  'name': '墨鱼海龟汤',
+  'name': 'MOYUU 海龟汤',
   'appid': '__UNI__1208592',
-  'description': '墨鱼海龟汤推理解谜游戏',
+  'description': 'MOYUU 海龟汤 · 推理解谜',
   'versionName': '1.0.0',
   'versionCode': '100',
   'transformPx': false,

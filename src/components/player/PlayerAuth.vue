@@ -181,9 +181,8 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 
 <template>
   <view class="auth-page" :class="{ light }">
-    <image class="page-bg" src="/static/hgt/bg/bg_deep_ocean_hero.jpg" mode="aspectFill" />
+    <image class="page-bg" src="/static/hgt/ink/hero_ink_landscape.png" mode="aspectFill" />
     <view class="page-bg-veil" />
-    <image class="page-deco page-deco-bubbles" src="/static/hgt/ui/bubbles.png" mode="aspectFit" />
     <image class="page-deco page-deco-vignette" src="/static/hgt/ui/vignette.png" mode="aspectFill" />
     <HgtThemeTransition v-bind="overlay" />
     <AuthParticleBackground />
@@ -196,7 +195,12 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
         <view class="brand-copy">
           <image class="brand-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
           <text class="brand-title">
-            墨鱼海龟汤
+            <text class="hgt-en">
+              MOYUU
+            </text>
+            <text>
+              海龟汤
+            </text>
           </text>
           <view class="brand-rule">
             <text>推理 · 探索 · 解谜</text>
@@ -218,7 +222,7 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
           </text>
           <image class="mobile-logo" :src="light ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'" mode="aspectFit" />
           <text class="mobile-title">
-            墨鱼海龟汤
+            MOYUU 海龟汤
           </text>
           <view class="mobile-rule">
             <text>推理 · 探索 · 解谜</text>
@@ -384,7 +388,7 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
           </view>
           <!-- #endif -->
           <text class="copyright">
-            © 2024 墨鱼海龟汤 · 公益项目
+            © 2024 MOYUU 海龟汤 · 公益项目
           </text>
         </view>
       </view>
@@ -849,25 +853,20 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
   .page-bg-veil {
     background:
       linear-gradient(180deg,
-        rgba(7, 20, 24, 0.22) 0%,
-        rgba(7, 20, 24, 0.40) 45%,
-        rgba(7, 20, 24, 0.58) 100%);
+        rgba(248, 248, 247, 0.55) 0%,
+        rgba(248, 248, 247, 0.72) 45%,
+        rgba(248, 248, 247, 0.85) 100%);
   }
   .page-deco-bubbles {
-    top: auto;
-    right: -4%;
-    bottom: 12%;
-    width: min(180px, 48vw);
-    height: min(220px, 36vh);
-    opacity: 0.4;
+    display: none;
   }
   .form-card {
     width: min(420px, 100%);
-    border-color: rgba(91, 200, 189, 0.18);
-    background: rgba(15, 42, 45, 0.82);
+    border-color: var(--hgt-border);
+    background: color-mix(in srgb, var(--hgt-card) 92%, transparent);
     box-shadow:
-      0 12px 40px rgba(4, 12, 14, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      0 12px 40px rgba(42, 36, 32, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
   .password-grid {
     grid-template-columns: 1fr;

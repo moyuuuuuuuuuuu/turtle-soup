@@ -1,279 +1,202 @@
-# 墨鱼海龟汤 · 深海主题 UI 设计规范
+# MOYUU 海龟汤 · 水墨风 UI 设计规范
 
-> 来源：用户提供效果图（素材包 v1.0 + 设计总览）。无 Figma 源文件，色值/字号从压缩图提取，落地以本文 token 为准；与源文件冲突时以你方书面确认为准。
-> 双品牌：**App/小程序 = 深青神秘风「墨鱼海龟汤」**；**分享海报/营销 = Moyuu 金色奇幻风**（不进主 UI）。
-
----
-
-## 1. 色板 Design Tokens
-
-### 暗色（默认 / 主题）
-
-| Token | Hex | 用途 |
-|---|---|---|
-| `--hgt-brand` | `#5BC8BD` | 品牌主色、主按钮、链接、高亮 |
-| `--hgt-brand-deep` | `#3A9A92` | 主按钮 hover/按下、品牌描边 |
-| `--hgt-bg` | `#0C2027` | 页面主背景 |
-| `--hgt-bg-deep` | `#071418` | 顶栏/底栏/更深层背景 |
-| `--hgt-card` | `#0F2A2D` | 卡片、面板背景 |
-| `--hgt-card-2` | `#16383C` | 次级卡片、输入框、hover 面 |
-| `--hgt-paper` | `#D0DCB6` | 羊皮纸/汤面底（偏绿米） |
-| `--hgt-paper-ink` | `#2A2A24` | 纸上正文 |
-| `--hgt-text` | `#E5E8E3` | 主文字 |
-| `--hgt-text-2` | `#999D9B` | 次要文字、标签 |
-| `--hgt-text-3` | `#6B7574` | 弱化、占位 |
-| `--hgt-border` | `#1E3A3A` | 暗色描边 |
-| `--hgt-border-soft` | `#2E5155` | 柔和描边、分割 |
-| `--hgt-success` | `#5E8787` | 成功/是（低饱和青绿） |
-| `--hgt-success-text` | `#7DCCCC` | 成功文字 |
-| `--hgt-warning` | `#C49A55` | 警告/中等难度 |
-| `--hgt-danger` | `#C94A55` | 危险/困难/删除 |
-| `--hgt-info` | `#3882F6` | 信息提示 |
-| `--hgt-overlay` | `rgba(4, 12, 14, 0.72)` | 遮罩 |
-
-### 浅色
-
-| Token | Hex | 用途 |
-|---|---|---|
-| `--hgt-bg` | `#F4F6F3` | 页面底 |
-| `--hgt-card` | `#FFFFFF` | 卡片 |
-| `--hgt-card-2` | `#EEF2EF` | 次级面 |
-| `--hgt-paper` | `#E8E4D4` | 纸质（更浅） |
-| `--hgt-text` | `#1A2B2C` | 主文字 |
-| `--hgt-text-2` | `#5C6B6A` | 次要 |
-| `--hgt-border` | `#D5DEDC` | 描边 |
-| `--hgt-border-soft` | `#E5E7EB` | 浅色柔边 |
-| `--hgt-brand` | `#2E9A90` | 略加深保证对比 |
-
-### 色板使用约束
-
-- 主 CTA 仅用 `--hgt-brand` 实底 + 深色字或白字（对比不足时改 `#062A28` 字）
-- 纸质区只用于汤面 / 汤底 / 最终猜测输入
-- 难度色：简单 `success` · 中等 `warning` · 困难 `danger`
-- 风险：safe 中性 · caution `warning` · restricted `danger`
+> 来源：用户效果图（水墨首页稿）。落地 token 以本文为准。
+> 产品身份：**App/小程序/站点主 UI = 水墨文学风「MOYUU 海龟汤」**。品牌口号：「每一个故事，都是一个小小的世界。」
 
 ---
 
-## 2. 字体 Typography
+## 1. 风格锚点
 
-| 角色 | 字体栈 | 字号/字重/行高 |
-|---|---|---|
-| 中文标题 | `"Source Han Serif SC", "Noto Serif SC", "Songti SC", serif` | 32 / 28 / 24 · 600 · 1.25 |
-| 中文正文 | `"Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif` | 16 / 14 / 12 · 400 · 1.6 |
-| 英文标题 | `"Fraunces", "Playfair Display", Georgia, serif` | 24 / 20 · 600 · 1.2 |
-| 英文正文 | `"Inter", "Roboto", system-ui, sans-serif` | 16 / 14 / 12 · 400 · 1.5 |
-| 数据/等宽 | `"JetBrains Mono", "SF Mono", Consolas, monospace` | 12 / 11 · 400 |
+- **锚点**：宣纸上的当代文学站——类似纸刊插画 + 书法标题，而非深海游戏 HUD。
+- **气质**：雾、留白、衬线中文、朱砂印章。
+- **默认主题**：浅色宣纸（light-first）。深色为「夜墨」可选，不抢主视觉。
+- **产品优先**：海龟汤推理解谜第一；语言学习能力不打断主循环。
+
+---
+
+## 2. 色板 Design Tokens（图2 · 比例示意 65/25/10/5）
+
+> 底色固定：**`#F8F8F7`**（用户指定）
+
+| Token | Hex | 名称 | 用途 / 比例 |
+|---|---|---|---|
+| `--hgt-brand` | `#789262` | 竹青 | 主色 65%：CTA、选中、链接、「真相」强调 |
+| `--hgt-brand-deep` | `#5F754C` | 竹青加深 | hover / 按下 |
+| `--hgt-brand-soft` | `rgba(120,146,98,.12)` | 竹青淡底 | chip 选中、浅强调 |
+| `--hgt-on-brand` | `#F8F8F7` | 底色 | 主按钮文字 |
+| `--hgt-accent` | `#9E5356` | 明茶褐 | 点缀 25%：印章、困难、装饰线 |
+| `--hgt-accent-soft` | `rgba(158,83,86,.12)` | 褐淡底 | |
+| `--hgt-moon` | `#D6ECF0` | 月白 | 浅色 10%：封面占位、次级浅面 |
+| `--hgt-ink-gray` | `#758A99` | 墨灰 | 深色辅助 5%：信息、弱强调 |
+| `--hgt-gold` | `#F0C239` | 图2辅色样本 | 辅色：中等难度、点缀 |
+| `--hgt-bg` | `#F8F8F7` | 页面底 | 全局底色 |
+| `--hgt-bg-deep` | `#F1F0ED` | 顶栏/底栏 | |
+| `--hgt-card` | `#FFFFFF` | 卡片 | |
+| `--hgt-card-2` | `#F3F2EF` | 次级面 | |
+| `--hgt-text` | `#2C2B28` | 主文字 | |
+| `--hgt-text-2` | `#5C5A56` | 次要 | |
+| `--hgt-text-3` | `#8A8780` | 弱化 | |
+| `--hgt-border` | `#E2E0DA` | 描边 | |
+
+### 夜墨（可选）
+
+底 `#1A1A18`；主色 `#8EAA74`；点缀 `#C48A8D`；墨灰 `#8FA3B0`。
+
+### 使用约束
+
+- 主 CTA：`--hgt-brand` 竹青底 + 宣纸字
+- 难度：简单竹青 · 中等 gold · 困难明茶褐
+- 首页**不保留**右侧 AI/最近推理/语录侧栏（用户确认可去掉）
+- 空态/loading 素材：空态用 `src/static/hgt/empty/*` 水墨插画；**loading 默认用品牌 logo（墨鱼问号汤碗）`HgtLoading` 组件**，轻浮动 + 光晕，文案由 UI 提供
+- 分类 chip 仍用后端 tags，不得发明无效标签
+
+> 注：图2「明茶褐」hex 源图残缺为 `#9E536`，落地补全为 **`#9E5356`**。
+
+---
+
+## 3. 字体 Typography
+
+| 角色 | 字体栈 |
+|---|---|
+| 中文标题 | `"Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif` |
+| 中文正文 | `"Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif` |
+| 英文/品牌 | `"Cormorant Garamond", "Times New Roman", Georgia, serif` |
+| 数据等宽 | `"JetBrains Mono", "SF Mono", Consolas, monospace` |
 
 阶梯：
 
 ```
-display  32–40px  600
+display  36–44px  600  宣纸 hero 大标题
 h1       28px     600
-h2       24px     600
-h3       20px     600
-body     16px     400
-body-sm  14px     400
+h2       22–24px  600
+h3       18–20px  600
+body     15–16px  400
+body-sm  13–14px  400
 caption  12px     400
-label    10–12px  400  letter-spacing 0.06–0.12em
+label    10–12px  400  letter-spacing 0.08–0.20em
 ```
-
-落地：优先本地/系统栈；H5 可异步加载 Noto Serif/Sans SC 子集。小程序默认系统字体，避免大包。
 
 ---
 
-## 3. 圆角 · 阴影 · 边框
+## 4. 圆角 · 阴影 · 边框
 
 | 用途 | 值 |
 |---|---|
-| 小（chip/输入） | `4px` |
-| 基础（按钮） | `8px` |
-| 卡片 | `12px` |
-| 大卡/弹层 | `16px` |
-| 胶囊/头像圈 | `24px` / `999px` |
+| chip / 输入 | `4–6px` |
+| 按钮 | `6–8px`（笔触按钮可更方） |
+| 卡片 | `10–12px` |
+| 大卡 | `16px` |
 
-| Shadow | Value |
+阴影：浅色用暖灰轻影 `0 4px 20px rgba(42, 36, 32, 0.06)`；深色用更深墨影。
+
+---
+
+## 5. 壳层 Shell
+
+### PC 顶栏
+
+```
+[Logo MOYUU 海龟汤 · 每一个故事，都是一个小小的世界。]
+首页 | 题库 | AI推理 | 我的推理 | 友链/捐赠     [搜索] [主题] [头像]
+```
+
+- 高 `64px`，背景 `--hgt-bg-deep` 半透明 + blur。
+- 品牌：EN `MOYUU` + 中文「海龟汤」；副标小字口号。
+- **只展示真实路由**，不为效果图伪造「创作 / 排行」页。
+
+### 手机
+
+- 顶栏：Logo 短标 + 搜索/主题
+- 底栏：首页 · 题库 · 推理 · 多人（若开放）· 我的
+
+---
+
+## 6. 首页信息架构（对齐效果图，H5 优先）
+
+```
+Hero（水墨山水 + 左侧文案）
+  kicker: MOYUU · TURTLE SOUP
+  标题: 雾里有故事，你来找真相。（「真相」朱砂）
+  副文案
+  CTA: 开始探索 | 随机一题
+  stats（精选题目 / 推理玩家 / 评分）
+
+分类 chips（后端 /tags，前 5 + 展开）
+
+主区 PC 两栏 / 移动单栏
+  左: 精选题库 + 换一批 + 卡片网格
+  右: 和 AI 一起推理 | 最近推理 | 语录卡
+
+三步还原真相
+多人入口（支持时）
+页脚品牌条
+```
+
+文案映射：
+
+| 效果图文案 | 落地 |
 |---|---|
-| sm | `0 2px 8px rgba(0,0,0,0.08)` |
-| md | `0 4px 16px rgba(0,0,0,0.12)` |
-| lg | `0 8px 32px rgba(0,0,0,0.18)` |
-| 浮层 | `0 16px 48px rgba(0,0,0,0.28)` |
+| 开始探索 | `startPlay` → 题库 |
+| 随机一题 | `playRandom` |
+| 和 AI 一起推理 | 进入题库/推理 |
+| 最近推理 | 登录后 `gameApi.history`；未登录展示题库精选摘要 |
+| 语录卡 | 「有些答案，藏在看不见的地方。」 |
 
-边框：暗色 `1px solid #1E3A3A`；浅色 `1px solid #E5E7EB`。
-
----
-
-## 4. 动效
-
-| 档位 | 时长 | 曲线 | 用途 |
-|---|---|---|---|
-| 快 | 150ms | `ease-out` | hover、chip、按下 |
-| 标准 | 250ms | `ease-out` | 展开、显隐、页面元素 |
-| 稍慢 | 350ms | `ease-in-out` | 侧栏、底部栏、路由 |
-| 揭晓 | 500ms | `cubic-bezier(0.22, 1, 0.36, 1)` | 盖章、主题切换 |
-
-`prefers-reduced-motion: reduce` 时全部降为 `opacity` 或直接无动画。
+分类 chip **必须使用后端 `tags.name`**，不得发明「温情/欢乐/科幻」等无效 id。
 
 ---
 
-## 5. 断点与栅格
+## 7. 关键组件
 
-| 档 | 宽度 | 特征 |
-|---|---|---|
-| 手机 | `< 768` | 单栏；顶栏 56px；底 tab 64px + safe-area |
-| 平板 | `768–1199` | 双栏/可收起侧栏；题库 2 列 |
-| PC | `≥ 1200`（设计宽 1440） | 顶栏导航；题库 3–4 列；推理三栏 |
+### 主按钮 `btn-primary`（笔触）
+- 高 46–48px，底 `--hgt-ink`，字宣纸色，衬线/中等字重，文案「开始探索 →」
 
-内容最大宽：PC `1280–1440`，内边距 `24–48px`。
+### 次按钮 `btn-ghost`
+- 宣纸透明 + 墨色描边，「随机一题」
+
+### 谜题卡
+- 封面 16:10 水墨图；标签：题材 + 难度
+- 标题衬线；摘要 2 行；互动：点赞/评论/收藏或星级/时长/人数
+- 卡底 `--hgt-card`，描边 `--hgt-border`
+
+### Chip
+- 高 32–36px；默认纸色描边；选中朱砂
+
+### 纸卡 / 印章
+- 汤面纸 `--hgt-paper`；右上角可叠「真相」朱砂印（`stamp_truth` 或 CSS 印）
 
 ---
 
-## 6. 壳层 Shell
-
-### PC 顶栏（≥768）
+## 8. 素材
 
 ```
-[Logo 墨鱼海龟汤]  首页 | 题库 | 推理 | 多人 | 排行榜     [搜索] [头像]
+src/static/hgt/ink/
+  hero_ink_landscape.png   首页 hero 水墨山水
+  aside_ai_ink.png         侧栏 AI 竖图
+  cover_bus.png            末班车
+  cover_empty_room.png     无人的房间
+  cover_island.png         无人岛
+  cover_sunflower.png      向日葵的约定
 ```
 
-高度约 `64px`，背景 `--hgt-bg-deep`，底边 `--hgt-border`。
-
-### 手机顶栏
-
-```
-[菜单]  [Logo 短标]  [搜索]
-```
-
-高度 `56px` + 状态栏；小程序避让胶囊。
-
-### 手机底栏 Tab
-
-首页 · 题库 · 推理 · 多人 · 我的（5 项）
-
-选中：`--hgt-brand` + 顶部 2px 指示条。
+旧深海 illust/底图可保留为题库封面池的补充，但 hero 与首页主视觉优先 ink。
 
 ---
 
-## 7. 页面清单与对应
+## 9. 实施顺序
 
-| # | 页面 | 路由 | 第一期 |
-|---|---|---|---|
-| 01 | 首页/谜题广场 | `pages/index` | 暗+浅 |
-| 02 | 题库列表 | `pages/questions` | 暗+浅 |
-| 03 | 谜题详情 | `pages/question-detail` | 暗+浅 |
-| 04 | AI 推理（单人） | `pages/game` | 暗+浅 |
-| 05 | 多人对局 | `pages/game` 多人态 / rooms | 暗+浅 |
-| 06 | 最终猜测 | `pages/guess` | 暗+浅 |
-| 07 | 揭晓汤底/结果 | game result | 暗+浅 |
-| 08 | 我的推理/历史 | `pages/history` + account | 暗+浅 |
-| — | 登录/注册/找回 | login/register/reset | 暗+浅 |
-| — | 账号设置 | `pages/account` | 暗+浅 |
-| — | 创建/加入房间 | `pages/rooms` `public-rooms` | 暗+浅 |
-| — | 排行榜 | 待路由 | 暗+浅 |
-| — | 法务/隐私/捐赠 | 已有 | 暗色对齐 |
-| — | 空态/加载/错误/断线 | 组件 | 暗+浅 |
-| — | 小程序分享卡/订阅 | 分享配置 | Moyuu 可选 |
+1. Token → `App.vue` + `theme.ts`（light-first）
+2. 素材入库 + `questionCover` 接入 ink
+3. `HgtShell` 品牌/nav
+4. 首页 hero + 精选题库 + 侧栏
+5. 其余页面随 token 自动贴合；游戏页纸质区保持
+6. lint / type-check / H5 build / 微信 build
 
 ---
 
-## 8. 关键组件形态
+## 10. 边界
 
-### 主按钮 `btn-primary`
-- 高 `44–48px`，圆角 `8px`，底 `--hgt-brand`，字 `#062A28` 或白（按对比）
-- 文案如「开始推理 →」
-
-### 次按钮 / 危险 / 进行中
-- 次：透明底 + `--hgt-border` 描边
-- 危险：`--hgt-danger` 文/描边或实底
-- 进行中：`--hgt-card-2` + `--hgt-brand` 字
-
-### 谜题卡片
-- 封面 16:9，上标签（分类/难度）下标题 + 星级/时长/人数
-- 无图：`cover_placeholder` 色块 + 章鱼空图
-
-### 汤面纸卡
-- 背景 `--hgt-paper` + `paper_0x` 纹理叠加
-- 标签「汤面」，正文 `--hgt-paper-ink`，衬线标题
-
-### AI 对话气泡
-- AI：左对齐，`--hgt-card-2`，角色名「AI 主持人」
-- 玩家：右对齐，`--hgt-brand` 淡底或描边
-- 底部快捷：是 / 不是 / 不重要（`success` / 中性 / `warning` 描边）
-
-### 线索板（PC 右栏 / 手机抽屉）
-- Tab：线索 · 情绪 · 笔记
-- 条目可勾选；「+ 添加线索」
-- 推理进度 `n/limit` +「提交真相」
-
-### 揭晓
-- 纸质汤底 + 右上「真相已揭晓」斜章 `stamp_truth.png`
-- 左侧推理表现：提问次数 / 命中关键点 / 用时 / 星级评价
-
----
-
-## 9. 素材包文件名（按目录落地 `src/static/hgt/`）
-
-```
-brand/     logo-dark.png  logo-light.png  logo-mark.png
-bg/        bg_deep_ocean.jpg  bg_underwater_cave.jpg  bg_lighthouse.jpg
-           bg_texture_01.jpg  bg_texture_02.jpg  bg_texture_03.jpg
-           bg_starry.jpg  bg_light.jpg
-illust/    illust_rainy_night.jpg  illust_train.jpg  illust_ferris_wheel.jpg
-           illust_classroom.jpg  illust_desk.jpg  illust_forest_house.jpg
-           illust_shipwreck.jpg
-paper/     paper_01.png  paper_02.png  paper_03.png  paper_04.png  paper_tag.png
-prop/      prop_compass.png  prop_lantern.png  prop_key.png
-           prop_letter.png  prop_photo.png  prop_bottle.png
-empty/     empty_none.png  empty_loading.png  empty_network.png  empty_search.png
-cover/     cover_placeholder.png  cover_example_0x.jpg
-ui/        tape.png  water_splash.png  bubbles.png  vignette.png
-           film_grain.png  stamp_truth.png
-avatars/   avatar_default.png  …
-```
-
-无源文件时：用 `image_gen` 按同名/同气质生成，目标可商用、无水印、可压到 ≤200KB（封面 ≤2MB 规范按端调整）。
-
----
-
-## 10. 交互细节（静态图补全）
-
-1. AI 回答流式逐字/逐句出现；未完成禁用重复提交
-2. 快捷「是/不是/不重要」与自由输入并存；快捷键直接发送
-3. 最终猜测：textarea + 提交前 `HgtConfirmDialog` 二次确认
-4. 线索板手机端底部抽屉，可拖高（沿用现有 chat-resize）
-5. 下拉刷新：首页/题库/历史；上拉加载题库分页
-6. 风险题开始前确认弹窗（已有逻辑，换皮）
-7. 主题切换 500ms 圆形 reveal（保留现有 `HgtThemeTransition`）
-8. 空态文案见素材包 09；错误可「重试」；断线「重新连接」
-
----
-
-## 11. 保真度说明
-
-| 项 | 水平 |
-|---|---|
-| 布局、信息架构、组件形态 | 严格对齐效果图 |
-| 色板、字号、圆角、间距 | 按本文 token 严格实现 |
-| 图片素材 | 按目录气质生成/替换，非源文件像素拷贝 |
-| 字体 | 开源/系统栈近似思源，非商业字体二进制 |
-| 动效时长曲线 | 按第 4 节 |
-
-**不是** Figma 导出级像素 1:1；验收时以「与效果图并排对照无结构性偏差」为准。
-
----
-
-## 12. 实施顺序
-
-1. token → `App.vue` / `HgtShell` / 全局
-2. 素材生成与压缩
-3. 01 首页 → 02 题库 → 03 详情 → 04 单人推理 → 06 最终猜测 → 07 揭晓 → 05 多人 → 08 历史/我的
-4. 登录注册、空态、浅色统一刷
-5. 小程序：胶囊、安全区、分包、分享
-6. lint / type-check / H5 构建 / 微信构建
-
----
-
-## 13. 字体与许可备忘
-
-- 思源宋体 / 思源黑体：SIL OFL，可嵌入产品
-- Fraunces / Playfair / Inter：OFL，可选用
-- 禁止：未授权商业中文字体二进制打包进仓库
+- 匿名可浏览公开展示题与单人玩法；多人需登录。
+- 客户端不缓存完整答案；后端权威。
+- 文案与错误码走 locale/稳定 code，不硬编码后端策略。
+- 不把效果图中不存在的后端标签写死进筛选。

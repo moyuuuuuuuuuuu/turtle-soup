@@ -59,8 +59,9 @@ onMounted(() => {
     particles = createParticles(canvas.width, canvas.height, 80)
   }
   const draw = () => {
-    const lightTheme = document.documentElement.classList.contains('hgt-light-theme')
-    const particleRgb = lightTheme ? '46,154,144' : '91,200,189'
+    const darkTheme = document.documentElement.classList.contains('hgt-dark-theme')
+    // 图2色板：浅色用竹青微粒，深色用更亮的竹青
+    const particleRgb = darkTheme ? '142,170,116' : '120,146,98'
     context.clearRect(0, 0, canvas.width, canvas.height)
     particles.forEach((particle, index) => {
       moveParticle(particle, canvas.width, canvas.height)

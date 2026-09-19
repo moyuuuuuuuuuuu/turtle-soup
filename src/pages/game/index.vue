@@ -86,7 +86,7 @@ function roomSharePath() {
     query.push(`question_id=${encodeURIComponent(questionId)}`)
   return `/pages/rooms/index?${query.join('&')}`
 }
-const roomShareTitle = computed(() => room.value ? `加入「${room.value.name}」一起玩海龟汤` : '墨鱼海龟汤')
+const roomShareTitle = computed(() => room.value ? `加入「${room.value.name}」一起玩海龟汤` : 'MOYUU 海龟汤')
 // #ifdef MP-WEIXIN || MP-TOUTIAO
 onShareAppMessage(() => {
   inviteOpen.value = false
@@ -1282,15 +1282,14 @@ onUnmounted(() => {
     </wd-popup>
     <wd-popup v-if="resultOpen" v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
       <view class="result-modal">
-        <image class="result-bg" src="/static/hgt/bg/bg_lighthouse.jpg" mode="aspectFill" />
-        <image class="result-splash" src="/static/hgt/ui/water_splash.png" mode="aspectFit" />
+        <image class="result-bg" src="/static/hgt/ink/hero_ink_landscape.png" mode="aspectFill" />
         <view class="result-veil" />
         <view class="result-content">
           <text class="result-kicker">
             TRUTH REVEALED
           </text>
           <text class="result-heading">
-            真相，已浮出水面
+            真相，已经揭晓
           </text>
           <text class="result-sub">
             所有的疑问，终于有了答案
@@ -1355,10 +1354,7 @@ onUnmounted(() => {
     </button>
   </view>
   <view v-else class="game-load-state">
-    <image class="game-load-img" src="/static/hgt/empty/empty_loading.png" mode="aspectFit" />
-    <text class="hgt-mono game-load-eyebrow">
-      LOADING
-    </text>
+    <HgtLoading size="lg" text="" eyebrow />
     <text class="hgt-display game-load-title">
       正在进入题目
     </text>
@@ -1415,14 +1411,8 @@ onUnmounted(() => {
   border-radius: var(--hgt-radius-lg);
   filter: drop-shadow(0 8px 24px rgba(4, 12, 14, 0.4));
 }
-.game-load-eyebrow {
-  color: var(--hgt-brand);
-  font-family: var(--hgt-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.28em;
-}
 .game-load-title {
-  margin-top: 16px;
+  margin-top: 20px;
   color: var(--hgt-text);
   font-family: var(--hgt-font-display);
   font-size: 28px;
@@ -1514,7 +1504,7 @@ onUnmounted(() => {
   font-size: 11px;
 }
 .risk-chip {
-  border-color: rgba(196, 154, 85, 0.5);
+  border-color: rgba(240, 194, 57, 0.5);
   color: var(--hgt-warning);
 }
 .room-privacy-row {
@@ -1661,7 +1651,7 @@ onUnmounted(() => {
 .outline::after,
 .danger::after { border: 0; }
 .danger {
-  border-color: rgba(201, 74, 85, 0.4);
+  border-color: rgba(158, 83, 86, 0.4);
   color: var(--hgt-danger);
 }
 
@@ -1798,7 +1788,7 @@ onUnmounted(() => {
 }
 .message.player {
   align-self: flex-end;
-  border-color: rgba(91, 200, 189, 0.35);
+  border-color: color-mix(in srgb, var(--hgt-brand) 40%, transparent);
   background: var(--hgt-brand-soft);
 }
 .message.team {
@@ -1833,7 +1823,7 @@ onUnmounted(() => {
   margin-bottom: 8px;
   padding: 8px 10px;
   border-radius: var(--hgt-radius-xs);
-  background: rgba(201, 74, 85, 0.12);
+  background: rgba(158, 83, 86, 0.12);
   color: var(--hgt-danger);
   font-size: 12px;
 }
@@ -1862,7 +1852,7 @@ onUnmounted(() => {
 .hints button.bottom-mode.active {
   border-color: var(--hgt-warning);
   color: var(--hgt-warning);
-  background: rgba(196, 154, 85, 0.12);
+  background: rgba(240, 194, 57, 0.12);
 }
 .input-row {
   display: flex;
@@ -2055,7 +2045,7 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 .clue-item.found {
-  border-color: rgba(91, 200, 189, 0.35);
+  border-color: color-mix(in srgb, var(--hgt-brand) 40%, transparent);
 }
 .clue-mark {
   flex: none;
@@ -2287,19 +2277,14 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
 }
-.result-splash {
-  position: absolute;
-  z-index: 0;
-  top: -20px;
-  right: -10px;
-  width: min(280px, 45%);
-  opacity: 0.28;
-  pointer-events: none;
-}
 .result-veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(7, 20, 24, 0.55), rgba(12, 32, 39, 0.92));
+  background:
+    linear-gradient(180deg,
+      rgba(248, 248, 247, 0.72) 0%,
+      rgba(248, 248, 247, 0.88) 45%,
+      rgba(248, 248, 247, 0.94) 100%);
 }
 .result-content {
   position: relative;

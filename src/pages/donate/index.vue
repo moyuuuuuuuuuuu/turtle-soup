@@ -24,11 +24,14 @@ function relative(value: string) {
 
 <template>
   <view class="donate-page">
-    <image class="donate-bg" src="/static/hgt/bg/bg_underwater_cave.jpg" mode="aspectFill" />
+    <!-- #ifdef H5 -->
+    <image class="donate-bg" src="/static/hgt/ink/hero_ink_landscape.png" mode="aspectFill" />
+    <view class="donate-bg-veil" />
+    <!-- #endif -->
     <view class="donate-props" aria-hidden="true">
-      <image src="/static/hgt/prop/prop_bottle.png" mode="aspectFit" />
       <image src="/static/hgt/prop/prop_letter.png" mode="aspectFit" />
-      <image src="/static/hgt/prop/prop_photo.png" mode="aspectFit" />
+      <image src="/static/hgt/ink/cover_cat_lantern.png" mode="aspectFit" />
+      <image src="/static/hgt/prop/prop_lantern.png" mode="aspectFit" />
     </view>
     <view class="page-head">
       <text class="eyebrow hgt-mono">
@@ -40,7 +43,7 @@ function relative(value: string) {
     <view class="donate-grid">
       <view class="donate-main">
         <view class="message">
-          墨鱼海龟汤是一个由爱好者维护的公益项目。你的每一份捐赠都将直接用于服务器维护、内容创作和功能开发。感谢你让更多人能够享受推理的乐趣。
+          MOYUU 海龟汤是一个由爱好者维护的公益项目。你的每一份捐赠都将直接用于服务器维护、内容创作和功能开发。感谢你让更多人能够享受推理的乐趣。
         </view>
         <template v-if="!done">
           <view>
@@ -99,18 +102,38 @@ function relative(value: string) {
   position: relative;
   min-height: 100%;
   padding-bottom: 48px;
-  background: var(--hgt-bg);
+  /* 非 H5 与首页/登录页同一套水墨底 */
+  background:
+    var(--hgt-atmo-veil),
+    url('/static/hgt/ink/hero_ink_landscape.png') center / cover;
   color: var(--hgt-text);
   overflow: hidden;
+}
+/* #ifdef H5 */
+.donate-page {
+  background: var(--hgt-bg);
 }
 .donate-bg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.18;
   pointer-events: none;
+  filter: var(--hgt-atmo-filter);
+  /* 内容页压得比 hero 更浅，保证卡片可读 */
+  opacity: 0.28;
 }
+.donate-bg-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    var(--hgt-atmo-veil),
+    linear-gradient(180deg,
+      transparent 0%,
+      var(--hgt-bg) 100%);
+}
+/* #endif */
 .donate-props {
   position: absolute;
   right: 24px;
@@ -120,7 +143,7 @@ function relative(value: string) {
   width: 140px;
   gap: 8px;
   flex-direction: column;
-  opacity: 0.35;
+  opacity: 0.32;
   pointer-events: none;
 }
 .donate-props image {
@@ -252,7 +275,7 @@ function relative(value: string) {
   bottom: 16px;
   padding: 5px 8px;
   border-radius: var(--hgt-radius-xs);
-  background: rgba(7, 20, 24, 0.8);
+  background: rgba(42, 42, 40, 0.78);
   color: var(--hgt-text-2);
   font-size: 11px;
 }

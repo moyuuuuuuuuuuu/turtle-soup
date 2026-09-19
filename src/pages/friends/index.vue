@@ -13,7 +13,7 @@ const loading = ref(true)
 const loadError = ref(false)
 const applyVisible = ref(false)
 
-const applyTemplate = `【墨鱼海龟汤 · 友链申请】
+const applyTemplate = `【MOYUU 海龟汤 · 友链申请】
 站点名称：
 站点地址：
 Logo：
@@ -104,7 +104,7 @@ onMounted(() => {
 <template>
   <view class="friends-page">
     <view class="hero">
-      <image class="hero-bg" src="/static/hgt/bg/bg_lighthouse_night.jpg" mode="aspectFill" />
+      <image class="hero-bg" src="/static/hgt/ink/hero_ink_landscape.png" mode="aspectFill" />
       <image class="hero-props" src="/static/hgt/prop/prop_lantern.png" mode="aspectFit" />
       <view class="hero-veil" />
       <view class="hero-inner">
@@ -147,8 +147,7 @@ onMounted(() => {
 
     <view class="content">
       <view v-if="loading" class="content-state">
-        <image class="empty-img" src="/static/hgt/empty/empty_loading.png" mode="aspectFit" />
-        <text>正在打捞友链…</text>
+        <HgtLoading text="正在打捞友链…" size="md" />
       </view>
       <view v-else-if="loadError" class="content-state">
         <image class="empty-img" src="/static/hgt/empty/empty_network.png" mode="aspectFit" />
@@ -234,7 +233,7 @@ onMounted(() => {
           申请友链
         </text>
         <text class="apply-lead">
-          欢迎真诚、有趣、长期更新的站点加入墨鱼海龟汤友链。
+          欢迎真诚、有趣、长期更新的站点加入 MOYUU 海龟汤友链。
         </text>
         <view class="apply-rules">
           <text>· 站点可正常访问，内容健康、无恶意软件</text>
@@ -280,6 +279,13 @@ onMounted(() => {
   height: 100%;
   filter: var(--hgt-atmo-filter);
 }
+/* 右侧保留亭/猫/枫叶，左侧留给文案（与首页 hero 一致） */
+.hero-bg :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover !important;
+  object-position: 62% center !important;
+}
 .hero-props {
   position: absolute;
   right: 8%;
@@ -296,13 +302,15 @@ onMounted(() => {
   z-index: 0;
   background:
     linear-gradient(90deg,
-      rgba(7, 20, 24, 0.72) 0%,
-      rgba(7, 20, 24, 0.42) 48%,
-      rgba(7, 20, 24, 0.22) 100%),
+      rgba(248, 248, 247, 0.9) 0%,
+      rgba(248, 248, 247, 0.68) 30%,
+      rgba(248, 248, 247, 0.28) 52%,
+      rgba(248, 248, 247, 0.08) 74%,
+      rgba(248, 248, 247, 0) 100%),
     linear-gradient(180deg,
-      rgba(7, 20, 24, 0.08) 0%,
-      rgba(7, 20, 24, 0.28) 55%,
-      var(--hgt-bg) 100%);
+      rgba(248, 248, 247, 0.1) 0%,
+      rgba(248, 248, 247, 0) 40%,
+      rgba(248, 248, 247, 0.35) 100%);
 }
 .hero-inner {
   position: relative;
@@ -364,10 +372,12 @@ onMounted(() => {
   width: min(280px, 100%);
   min-height: 140px;
   padding: 22px 20px;
-  border: 1px solid rgba(208, 220, 182, 0.22);
+  border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-md);
   overflow: hidden;
-  background: rgba(208, 220, 182, 0.08);
+  background:
+    linear-gradient(160deg, rgba(120, 146, 98, 0.08), transparent 48%),
+    var(--hgt-card);
   box-shadow: var(--hgt-shadow-lg);
 }
 .quote-paper {
@@ -386,7 +396,7 @@ onMounted(() => {
   flex-direction: column;
 }
 .quote-text {
-  color: var(--hgt-paper);
+  color: var(--hgt-text);
   font-family: var(--hgt-font-display);
   font-size: 15px;
   line-height: 1.7;
@@ -420,7 +430,7 @@ onMounted(() => {
   width: min(220px, 60vw);
   height: 160px;
   border-radius: var(--hgt-radius-lg);
-  filter: drop-shadow(0 8px 24px rgba(4, 12, 14, 0.45));
+  filter: drop-shadow(0 8px 24px rgba(42, 36, 32, 0.12));
 }
 
 .friends-grid {
@@ -437,7 +447,7 @@ onMounted(() => {
   border-radius: var(--hgt-radius-md);
   gap: 14px;
   background:
-    linear-gradient(160deg, rgba(91, 200, 189, 0.05), transparent 42%),
+    linear-gradient(160deg, rgba(120, 146, 98, 0.06), transparent 42%),
     var(--hgt-card);
   cursor: pointer;
   transition:
@@ -449,7 +459,7 @@ onMounted(() => {
   border-color: var(--hgt-border-soft);
   transform: translateY(-2px);
   background:
-    linear-gradient(160deg, rgba(91, 200, 189, 0.1), transparent 48%),
+    linear-gradient(160deg, rgba(120, 146, 98, 0.1), transparent 48%),
     var(--hgt-card-2);
 }
 .friend-logo {
@@ -540,7 +550,7 @@ onMounted(() => {
   border-radius: var(--hgt-radius-md);
   align-items: center;
   gap: 12px;
-  background: rgba(15, 42, 45, 0.72);
+  background: var(--hgt-card);
   color: var(--hgt-text);
   line-height: 1;
 }
@@ -690,6 +700,16 @@ onMounted(() => {
   .hero {
     min-height: auto;
     padding: 28px 16px 24px;
+  }
+  .hero-bg :deep(img) {
+    object-position: 70% center !important;
+  }
+  .hero-veil {
+    background:
+      linear-gradient(180deg,
+        rgba(248, 248, 247, 0.78) 0%,
+        rgba(248, 248, 247, 0.55) 48%,
+        rgba(248, 248, 247, 0.72) 100%);
   }
   .hero-inner {
     flex-direction: column;

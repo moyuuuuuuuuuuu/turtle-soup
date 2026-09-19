@@ -135,11 +135,16 @@ onMounted(async () => {
         <view class="hgt-topbar-brand" @click="go({ name: 'home', path: '/pages/index/index' })">
           <image class="hgt-topbar-logo" :src="logoSrc" mode="aspectFit" />
           <view class="hgt-topbar-brand-copy">
-            <text class="hgt-display hgt-topbar-title">
-              墨鱼海龟汤
-            </text>
-            <text class="hgt-mono hgt-topbar-sub">
-              TURTLE SOUP
+            <view class="hgt-topbar-title-row">
+              <text class="hgt-en hgt-topbar-en">
+                MOYUU
+              </text>
+              <text class="hgt-display hgt-topbar-title">
+                海龟汤
+              </text>
+            </view>
+            <text class="hgt-topbar-sub">
+              每一个故事，都是一个小小的世界。
             </text>
           </view>
         </view>
@@ -195,8 +200,13 @@ onMounted(async () => {
     <header class="hgt-mobile-header" :style="mobileHeaderStyle">
       <view class="hgt-mobile-brand" @click="go({ name: 'home', path: '/pages/index/index' })">
         <image class="hgt-mobile-logo" :src="logoSrc" mode="aspectFit" />
-        <text class="hgt-display hgt-mobile-title">
-          墨鱼海龟汤
+        <text class="hgt-mobile-title">
+          <text class="hgt-en">
+            MOYUU
+          </text>
+          <text class="hgt-display">
+            海龟汤
+          </text>
         </text>
       </view>
       <view class="hgt-mobile-actions">
@@ -298,16 +308,31 @@ onMounted(async () => {
   flex-direction: column;
   gap: 2px;
 }
+.hgt-topbar-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.hgt-topbar-en {
+  color: var(--hgt-brand);
+  font-size: 15px;
+  letter-spacing: 0.18em;
+}
 .hgt-topbar-title {
   font-size: 16px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   white-space: nowrap;
   color: var(--hgt-text);
 }
 .hgt-topbar-sub {
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  overflow: hidden;
+  max-width: 220px;
+  font-family: var(--hgt-font-display);
+  font-size: 10px;
+  letter-spacing: 0.04em;
   color: var(--hgt-text-3);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .hgt-topbar-nav {
@@ -319,20 +344,29 @@ onMounted(async () => {
   gap: 6px;
 }
 .hgt-topbar-link {
+  position: relative;
   padding: 8px 14px;
-  border-radius: var(--hgt-radius-sm);
   color: var(--hgt-text-2);
+  font-family: var(--hgt-font-display);
   font-size: 14px;
-  letter-spacing: 0.06em;
-  transition: color var(--hgt-dur-fast) var(--hgt-ease-out), background var(--hgt-dur-fast) var(--hgt-ease-out);
+  letter-spacing: 0.12em;
+  transition: color var(--hgt-dur-fast) var(--hgt-ease-out);
 }
 .hgt-topbar-link:hover {
   color: var(--hgt-text);
-  background: var(--hgt-brand-soft);
 }
 .hgt-topbar-link.active {
   color: var(--hgt-brand);
-  background: var(--hgt-brand-soft);
+}
+.hgt-topbar-link.active::after {
+  position: absolute;
+  right: 14px;
+  bottom: 2px;
+  left: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--hgt-brand);
+  content: '';
 }
 .hgt-topbar-actions {
   display: flex;
@@ -421,9 +455,14 @@ onMounted(async () => {
   overflow: hidden;
   color: var(--hgt-text);
   font-size: 15px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.hgt-mobile-title .hgt-en {
+  color: var(--hgt-brand);
+  font-size: 13px;
+  letter-spacing: 0.14em;
 }
 .hgt-mobile-actions {
   display: flex;
@@ -456,7 +495,7 @@ onMounted(async () => {
   margin: 0;
   padding: 0 16px;
   border: 0;
-  border-radius: var(--hgt-radius-md);
+  border-radius: var(--hgt-radius-sm);
   align-items: center;
   gap: 12px;
   background: var(--hgt-brand);

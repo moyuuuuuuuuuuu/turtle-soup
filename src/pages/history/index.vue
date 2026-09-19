@@ -76,7 +76,7 @@ onMounted(async () => {
       </scroll-view>
       <view v-if="!filtered.length" class="empty">
         <image class="empty-img" :src="emptyHistoryUrl" mode="aspectFit" />
-        <text>航海日志还空着，去题库开一碗吧</text>
+        <text>日志还空着，去题库开一碗吧</text>
       </view>
       <view v-else class="records">
         <view class="table-head">
@@ -217,17 +217,17 @@ onMounted(async () => {
 .filters .playing.active {
   border-color: var(--hgt-warning);
   color: var(--hgt-warning);
-  background: rgba(196, 154, 85, 0.12);
+  background: rgba(240, 194, 57, 0.14);
 }
 .filters .completed.active {
   border-color: var(--hgt-success);
   color: var(--hgt-success-text);
-  background: rgba(94, 135, 135, 0.15);
+  background: rgba(120, 146, 98, 0.16);
 }
 .filters .abandoned.active {
   border-color: var(--hgt-danger);
   color: var(--hgt-danger);
-  background: rgba(201, 74, 85, 0.12);
+  background: rgba(158, 83, 86, 0.12);
 }
 .empty {
   display: flex;
@@ -243,7 +243,7 @@ onMounted(async () => {
   height: 176px;
   opacity: 1;
   border-radius: 0;
-  filter: drop-shadow(0 12px 32px rgba(4, 12, 14, 0.2));
+  filter: drop-shadow(0 12px 32px rgba(42, 42, 40, 0.12));
 }
 .records {
   margin: 24px 48px;
@@ -284,15 +284,15 @@ onMounted(async () => {
   border: 1px solid;
 }
 .status.playing {
-  border-color: rgba(196, 154, 85, 0.5);
+  border-color: rgba(240, 194, 57, 0.5);
   color: var(--hgt-warning);
 }
 .status.completed {
-  border-color: rgba(94, 135, 135, 0.5);
+  border-color: rgba(120, 146, 98, 0.5);
   color: var(--hgt-success-text);
 }
 .status.abandoned {
-  border-color: rgba(201, 74, 85, 0.5);
+  border-color: rgba(158, 83, 86, 0.5);
   color: var(--hgt-danger);
 }
 .stars {

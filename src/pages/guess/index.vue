@@ -39,8 +39,7 @@ async function doSubmit() {
 <template>
   <view class="guess-page">
     <!-- #ifdef H5 -->
-    <image class="page-bg" src="/static/hgt/bg/bg_deep_ocean_hero.jpg" mode="aspectFill" />
-    <image class="page-bubbles" src="/static/hgt/ui/bubbles.png" mode="aspectFit" />
+    <image class="page-bg" src="/static/hgt/ink/hero_ink_landscape.png" mode="aspectFill" />
     <view class="page-bg-veil" />
     <!-- #endif -->
     <view class="guess-shell">
@@ -107,7 +106,7 @@ async function doSubmit() {
   /* 非 H5（小程序等）与首页/登录页同一套灯塔底 */
   background:
     var(--hgt-atmo-veil),
-    url('/static/hgt/bg/bg_deep_ocean_hero.jpg') center / cover;
+    url('/static/hgt/ink/hero_ink_landscape.png') center / cover;
   color: var(--hgt-text);
 }
 .guess-shell {
@@ -210,14 +209,6 @@ async function doSubmit() {
   width: 72px;
   height: 72px;
   opacity: 0.2;
-  pointer-events: none;
-}
-.page-bubbles {
-  position: absolute;
-  right: 6%;
-  bottom: 10%;
-  width: min(280px, 40vw);
-  opacity: 0.28;
   pointer-events: none;
 }
 .paper-veil {

@@ -1,37 +1,51 @@
+/** 水墨封面池：仅使用 ink 目录，保证与主题一致 */
+const INK = '/static/hgt/ink'
+
 const COVERS = {
-  rainy: '/static/hgt/illust/illust_rainy_night.jpg',
-  fog: '/static/hgt/illust/illust_fog_forest.jpg',
-  study: '/static/hgt/illust/illust_old_study.jpg',
-  school: '/static/hgt/illust/illust_school_hall.jpg',
-  crime: '/static/hgt/illust/illust_crime_alley.jpg',
-  hospital: '/static/hgt/illust/illust_hospital_night.jpg',
-  family: '/static/hgt/illust/illust_family_table.jpg',
-  train: '/static/hgt/illust/illust_train.jpg',
-  ferris: '/static/hgt/illust/illust_ferris_wheel.jpg',
-  classroom: '/static/hgt/illust/illust_classroom.jpg',
-  desk: '/static/hgt/illust/illust_desk.jpg',
-  forestHouse: '/static/hgt/illust/illust_forest_house.jpg',
-  shipwreck: '/static/hgt/illust/illust_shipwreck.jpg',
-  ocean: '/static/hgt/bg/bg_deep_ocean.jpg',
-  lighthouse: '/static/hgt/bg/bg_lighthouse.jpg',
-  cave: '/static/hgt/bg/bg_underwater_cave.jpg',
-  starry: '/static/hgt/bg/bg_starry.jpg',
-  light: '/static/hgt/bg/bg_light.jpg',
+  catLantern: `${INK}/cover_cat_lantern.png`,
+  landscape: `${INK}/hero_ink_landscape.png`,
+  bus: `${INK}/cover_bus.png`,
+  room: `${INK}/cover_empty_room.png`,
+  island: `${INK}/cover_island.png`,
+  sunflower: `${INK}/cover_sunflower.png`,
+  study: `${INK}/cover_study.png`,
+  fog: `${INK}/cover_fog.png`,
+  rainy: `${INK}/cover_rainy.png`,
+  classroom: `${INK}/cover_classroom.png`,
+  family: `${INK}/cover_family.png`,
+  hospital: `${INK}/cover_hospital.png`,
+  train: `${INK}/cover_train.png`,
+  crime: `${INK}/cover_crime.png`,
 } as const
 
-const ALL_COVERS = Object.values(COVERS)
+const ALL_COVERS = [
+  COVERS.bus,
+  COVERS.room,
+  COVERS.island,
+  COVERS.sunflower,
+  COVERS.study,
+  COVERS.fog,
+  COVERS.rainy,
+  COVERS.classroom,
+  COVERS.family,
+  COVERS.hospital,
+  COVERS.train,
+  COVERS.crime,
+  COVERS.landscape,
+  COVERS.catLantern,
+]
 
 // Soft thematic preference: first match seeds a rotated pool, then id-hash picks
 // inside that pool so one screen of similar tags still gets distinct covers.
 const TAG_COVER_GROUPS: Array<{ names: string[], covers: string[] }> = [
-  { names: ['本格', '新本格', '文字诡计'], covers: [COVERS.study, COVERS.desk, COVERS.lighthouse, COVERS.rainy, COVERS.ocean, COVERS.crime, COVERS.fog, COVERS.school, COVERS.hospital, COVERS.family, COVERS.train, COVERS.classroom] },
-  { names: ['变格', '超自然', '黑汤'], covers: [COVERS.fog, COVERS.cave, COVERS.ocean, COVERS.crime, COVERS.rainy, COVERS.study, COVERS.lighthouse, COVERS.shipwreck, COVERS.starry, COVERS.forestHouse, COVERS.school, COVERS.hospital] },
-  { names: ['犯罪案件', '身份误导', '红汤'], covers: [COVERS.crime, COVERS.rainy, COVERS.hospital, COVERS.fog, COVERS.study, COVERS.train, COVERS.ocean, COVERS.lighthouse, COVERS.desk, COVERS.school, COVERS.forestHouse] },
-  { names: ['校园'], covers: [COVERS.classroom, COVERS.school, COVERS.rainy, COVERS.study, COVERS.lighthouse, COVERS.family, COVERS.ocean, COVERS.crime, COVERS.fog, COVERS.desk] },
-  { names: ['家庭'], covers: [COVERS.family, COVERS.lighthouse, COVERS.rainy, COVERS.hospital, COVERS.ocean, COVERS.study, COVERS.school, COVERS.forestHouse, COVERS.desk, COVERS.crime] },
-  { names: ['医疗'], covers: [COVERS.hospital, COVERS.family, COVERS.fog, COVERS.school, COVERS.rainy, COVERS.study, COVERS.ocean, COVERS.lighthouse, COVERS.crime, COVERS.desk] },
-  { names: ['清汤', '短篇', '一句话汤'], covers: [COVERS.lighthouse, COVERS.light, COVERS.ocean, COVERS.family, COVERS.rainy, COVERS.study, COVERS.school, COVERS.crime, COVERS.fog, COVERS.starry] },
-  { names: ['旅行', '列车', '交通'], covers: [COVERS.train, COVERS.ferris, COVERS.lighthouse, COVERS.rainy, COVERS.ocean, COVERS.starry, COVERS.study] },
+  { names: ['本格', '新本格', '文字诡计'], covers: [COVERS.study, COVERS.crime, COVERS.rainy, COVERS.room, COVERS.train, COVERS.classroom, COVERS.catLantern, COVERS.family] },
+  { names: ['变格', '超自然', '黑汤'], covers: [COVERS.fog, COVERS.island, COVERS.catLantern, COVERS.rainy, COVERS.study, COVERS.room, COVERS.hospital] },
+  { names: ['犯罪案件', '身份误导', '红汤'], covers: [COVERS.crime, COVERS.rainy, COVERS.hospital, COVERS.bus, COVERS.fog, COVERS.study, COVERS.train] },
+  { names: ['校园'], covers: [COVERS.classroom, COVERS.room, COVERS.study, COVERS.rainy, COVERS.family, COVERS.catLantern] },
+  { names: ['家庭'], covers: [COVERS.family, COVERS.sunflower, COVERS.room, COVERS.hospital, COVERS.study, COVERS.catLantern] },
+  { names: ['医疗'], covers: [COVERS.hospital, COVERS.family, COVERS.fog, COVERS.room, COVERS.study] },
+  { names: ['清汤', '短篇', '一句话汤'], covers: [COVERS.sunflower, COVERS.room, COVERS.family, COVERS.catLantern, COVERS.study, COVERS.bus] },
+  { names: ['旅行', '列车', '交通'], covers: [COVERS.train, COVERS.island, COVERS.bus, COVERS.rainy, COVERS.catLantern] },
   { names: ['逻辑推理', '悬疑'], covers: ALL_COVERS },
 ]
 
@@ -71,9 +85,10 @@ export function paperTextureUrl(seed?: string | null) {
   return papers[hashId(String(seed || 'default')) % papers.length]
 }
 
-export const coverPlaceholderUrl = '/static/hgt/cover/cover_placeholder.png'
+export const coverPlaceholderUrl = '/static/hgt/ink/cover_cat_lantern.png'
 export const emptyNetworkUrl = '/static/hgt/empty/empty_network.png'
-export const emptyLoadingUrl = '/static/hgt/empty/empty_loading.png'
+/** 首选 HgtLoading 组件；此 URL 仅作兼容占位（品牌 logo） */
+export const emptyLoadingUrl = '/static/brand/logo-mark-light.png'
 export const emptySearchUrl = '/static/hgt/empty/empty_search.png'
 export const emptyNoneUrl = '/static/hgt/empty/empty_none.png'
 export const emptyHistoryUrl = '/static/hgt/empty/empty_history.png'

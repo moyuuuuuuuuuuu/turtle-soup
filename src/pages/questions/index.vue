@@ -2,7 +2,7 @@
 import type { PublicQuestion } from '@/types/game'
 import { questionApi } from '@/api/turtle'
 import { formatCount } from '@/utils'
-import { emptyLoadingUrl, emptyNetworkUrl, emptyNoneUrl, emptySearchUrl, questionCoverUrl } from '@/utils/questionCover'
+import { emptyNetworkUrl, emptyNoneUrl, emptySearchUrl, questionCoverUrl } from '@/utils/questionCover'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'questions', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
@@ -231,8 +231,7 @@ function toggleRisk(id: string) {
     </view>
 
     <view v-if="loading && !items.length" class="empty">
-      <image class="empty-img" :src="emptyLoadingUrl" mode="aspectFit" />
-      <text>正在潜入题库…</text>
+      <HgtLoading text="正在潜入题库…" size="md" />
     </view>
     <view v-else-if="loadError && !items.length" class="empty">
       <image class="empty-img" :src="emptyNetworkUrl" mode="aspectFit" />
@@ -475,7 +474,7 @@ function toggleRisk(id: string) {
 }
 .risk-options button.excluded {
   border-color: var(--hgt-danger);
-  background: rgba(201, 74, 85, 0.12);
+  background: rgba(158, 83, 86, 0.12);
   color: var(--hgt-danger);
 }
 .option-mark {
@@ -572,21 +571,22 @@ function toggleRisk(id: string) {
   font-size: 11px;
 }
 .tag-cat {
-  background: rgba(7, 20, 24, 0.75);
-  color: var(--hgt-text);
+  background: rgba(248, 248, 247, 0.92);
+  color: var(--hgt-text-2);
+  border: 1px solid var(--hgt-border-soft);
 }
 .tag-diff.easy {
-  background: rgba(94, 135, 135, 0.9);
+  background: rgba(120, 146, 98, 0.92);
   color: #fff;
 }
 .tag-diff.normal,
 .tag-diff.medium {
-  background: rgba(196, 154, 85, 0.92);
-  color: #1a1208;
+  background: rgba(240, 194, 57, 0.95);
+  color: #4a3a08;
 }
 .tag-diff.hard,
 .tag-diff.extreme {
-  background: rgba(201, 74, 85, 0.92);
+  background: rgba(158, 83, 86, 0.92);
   color: #fff;
 }
 .risk-wrap {
@@ -598,7 +598,9 @@ function toggleRisk(id: string) {
   padding: 2px 7px;
   border-radius: var(--hgt-radius-xs);
   font-size: 11px;
-  background: rgba(7, 20, 24, 0.8);
+  background: rgba(248, 248, 247, 0.92);
+  border: 1px solid var(--hgt-border-soft);
+  color: var(--hgt-text-2);
 }
 .risk.caution {
   color: var(--hgt-warning);

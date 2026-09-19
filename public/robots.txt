@@ -1,0 +1,24 @@
+# 墨鱼海龟汤 · robots.txt
+# https://turtle-soup.moyuu.ink
+# 允许搜索引擎抓取公开页面，便于收录
+
+User-agent: *
+Allow: /
+
+# 认证与个人页面，无需索引
+Disallow: /pages/login
+Disallow: /pages/register
+Disallow: /pages/reset-password
+Disallow: /pages/account
+Disallow: /pages/history
+
+# 对局会话页内容因用户而异，不适合直接索引
+Disallow: /pages/game
+Disallow: /pages/guess
+Disallow: /pages/rooms
+
+# 后端接口与实时通道
+Disallow: /api/
+Disallow: /ws/
+
+Sitemap: https://turtle-soup.moyuu.ink/sitemap.xml

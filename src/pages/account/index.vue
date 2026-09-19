@@ -297,7 +297,7 @@ async function logout(all = false) {
   height: 26px;
   align-items: center;
   justify-content: center;
-  background: rgba(7, 20, 24, 0.78);
+  background: rgba(42, 42, 40, 0.78);
   color: #fff;
   font-size: 10px;
 }
@@ -435,7 +435,7 @@ async function logout(all = false) {
   flex: none;
   height: 30px;
   padding: 0 10px;
-  border: 1px solid rgba(201, 74, 85, 0.45);
+  border: 1px solid rgba(158, 83, 86, 0.45);
   background: transparent;
   color: var(--hgt-danger);
   font-size: 12px;
@@ -465,7 +465,7 @@ async function logout(all = false) {
   font-size: 12px;
 }
 .achievement-grid view.unlocked {
-  border-color: rgba(91, 200, 189, 0.4);
+  border-color: color-mix(in srgb, var(--hgt-brand) 40%, transparent);
   background: var(--hgt-brand-soft);
   color: var(--hgt-text);
 }
@@ -564,7 +564,7 @@ async function logout(all = false) {
   line-height: 1;
 }
 .logout-row button.danger {
-  border-color: rgba(201, 74, 85, 0.45);
+  border-color: rgba(158, 83, 86, 0.45);
   color: var(--hgt-danger);
 }
 .logout-row button::after {

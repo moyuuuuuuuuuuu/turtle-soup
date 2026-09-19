@@ -104,10 +104,10 @@ function close(confirmed: boolean) {
   animation:hgt-confirm-in .22s cubic-bezier(.2,.8,.2,1);
 }
 .hgt-confirm-panel.tone-warning{
-  border-color:rgba(196,154,85,.45);
+  border-color:rgba(240,194,57,.45);
 }
 .hgt-confirm-panel.tone-danger{
-  border-color:rgba(201,74,85,.5);
+  border-color:rgba(158,83,86,.5);
 }
 .confirm-eyebrow{
   display:block;
@@ -176,14 +176,14 @@ function close(confirmed: boolean) {
 }
 .tone-warning .confirm-eyebrow{color:var(--hgt-warning, #c49a55)}
 .tone-warning .confirm-description{
-  border-left-color:rgba(196,154,85,.7);
-  background:rgba(196,154,85,.12);
+  border-left-color:rgba(240,194,57,.7);
+  background:rgba(240,194,57,.12);
   color:var(--foreground);
 }
 .tone-danger .confirm-eyebrow{color:var(--hgt-danger, #c94a55)}
 .tone-danger .confirm-description{
-  border-left-color:rgba(201,74,85,.7);
-  background:rgba(201,74,85,.12);
+  border-left-color:rgba(158,83,86,.7);
+  background:rgba(158,83,86,.12);
   color:var(--foreground);
 }
 .tone-danger .confirm-button.submit{

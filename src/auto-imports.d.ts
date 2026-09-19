@@ -169,6 +169,7 @@ declare global {
   const supportsPublicRooms: typeof import('./utils/platform')['supportsPublicRooms']
   const syncRef: typeof import('@vueuse/core')['syncRef']
   const syncRefs: typeof import('@vueuse/core')['syncRefs']
+  const tagApi: typeof import('./api/turtle')['tagApi']
   const templateRef: typeof import('@vueuse/core')['templateRef']
   const themeColorOptions: typeof import('./composables/useManualTheme')['themeColorOptions']
   const throttledRef: typeof import('@vueuse/core')['throttledRef']
@@ -559,6 +560,7 @@ declare module 'vue' {
     readonly supportsPublicRooms: UnwrapRef<typeof import('./utils/platform')['supportsPublicRooms']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
+    readonly tagApi: UnwrapRef<typeof import('./api/turtle')['tagApi']>
     readonly templateRef: UnwrapRef<typeof import('@vueuse/core')['templateRef']>
     readonly themeColorOptions: UnwrapRef<typeof import('./composables/useManualTheme')['themeColorOptions']>
     readonly throttledRef: UnwrapRef<typeof import('@vueuse/core')['throttledRef']>
