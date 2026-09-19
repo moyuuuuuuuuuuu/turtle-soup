@@ -1,17 +1,18 @@
 <script setup lang="ts">
-/* eslint-disable style/max-statements-per-line */
 import type { DonationPage } from '@/types/game'
 import { donationApi } from '@/api/turtle'
 
 definePage({ name: 'donate', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
 const data = ref<DonationPage>({ channels: [], recent_donations: [], supporter_count: 0 })
 const selectedMethod = ref<'wechat' | 'alipay'>('wechat')
 const done = ref(false)
-const selected = computed(() => data.value.channels.find(item => item.method === selectedMethod.value) || data.value.channels[0])
-onMounted(async () => {
-  data.value = await donationApi.page(); if (data.value.channels[0])
-    selectedMethod.value = data.value.channels[0].method
-})
+const loading = ref(true)
+
+const selected = computed(() =>
+  data.value.channels.find(item => item.method === selectedMethod.value) || data.value.channels[0],
+)
+
 function relative(value: string) {
   const seconds = Math.max(0, (Date.now() - new Date(value).getTime()) / 1000)
   if (seconds < 3600)
@@ -20,76 +21,110 @@ function relative(value: string) {
     return `${Math.floor(seconds / 3600)}小时前`
   return `${Math.floor(seconds / 86400)}天前`
 }
+
+onMounted(async () => {
+  try {
+    data.value = await donationApi.page()
+    if (data.value.channels[0])
+      selectedMethod.value = data.value.channels[0].method
+  }
+  catch {
+    data.value = { channels: [], recent_donations: [], supporter_count: 0 }
+  }
+  finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
   <view class="donate-page">
-    <!-- #ifdef H5 -->
-    <image class="donate-bg" src="/static/hgt/ink/hero_ink_landscape.png" mode="aspectFill" />
-    <view class="donate-bg-veil" />
-    <!-- #endif -->
-    <view class="donate-props" aria-hidden="true">
-      <image src="/static/hgt/prop/prop_letter.png" mode="aspectFit" />
-      <image src="/static/hgt/ink/cover_cat_lantern.png" mode="aspectFit" />
-      <image src="/static/hgt/prop/prop_lantern.png" mode="aspectFit" />
-    </view>
     <view class="page-head">
-      <text class="eyebrow hgt-mono">
-        ◆ 支持我们
-      </text><text class="title hgt-display">
-        捐赠
+      <text class="page-title">
+        支持项目
+      </text>
+      <text class="page-sub">
+        捐赠将用于服务器维护、内容创作与功能开发。感谢支持。
       </text>
     </view>
-    <view class="donate-grid">
+
+    <view v-if="loading" class="content loading-state">
+      <HgtLoading text="正在载入支持信息…" size="md" />
+    </view>
+
+    <view v-else class="content">
       <view class="donate-main">
-        <view class="message">
-          MOYUU 海龟汤是一个由爱好者维护的公益项目。你的每一份捐赠都将直接用于服务器维护、内容创作和功能开发。感谢你让更多人能够享受推理的乐趣。
-        </view>
         <template v-if="!done">
-          <view>
-            <text class="label hgt-mono">
+          <view class="method-block">
+            <text class="label">
               支付方式
-            </text><view class="methods">
-              <button v-for="channel in data.channels" :key="channel.method" class="method hgt-mono" :class="{ active: selected?.method === channel.method }" @click="selectedMethod = channel.method">
+            </text>
+            <view class="methods">
+              <button
+                v-for="channel in data.channels"
+                :key="channel.method"
+                class="method"
+                :class="{ active: selected?.method === channel.method }"
+                @click="selectedMethod = channel.method"
+              >
                 {{ channel.name }}
               </button>
             </view>
           </view>
+
           <view class="qr-panel">
-            <image v-if="selected?.qr_code_url" :src="selected.qr_code_url" class="qr" mode="aspectFit" /><view v-else class="qr-placeholder">
-              <text>◇</text><text class="hgt-mono">
-                后台暂未配置收款码
-              </text>
-            </view><text class="hgt-mono scan-text">
+            <image v-if="selected?.qr_code_url" :src="selected.qr_code_url" class="qr" mode="aspectFit" />
+            <view v-else class="qr-placeholder">
+              <text>◇</text>
+              <text>后台暂未配置收款码</text>
+            </view>
+            <text class="scan-text">
               {{ selected?.name || '扫码支付' }}
             </text>
           </view>
-          <button class="done-button hgt-mono" :disabled="!selected" @click="done = true">
+
+          <button class="btn-primary full" :disabled="!selected" @click="done = true">
             我已完成支付
           </button>
+          <text class="note">
+            支付在收款方客户端完成，本站仅记录你的确认。
+          </text>
         </template>
+
         <view v-else class="thanks">
-          <text class="thanks-icon">
-            ◈
-          </text><text class="hgt-display thanks-title">
+          <text class="thanks-title">
             感谢你的支持！
-          </text><text>你的捐赠已收到。每一份支持都是我们前进的动力。</text><button class="method hgt-mono" @click="done = false">
+          </text>
+          <text class="thanks-copy">
+            每一份支持都是我们前进的动力。
+          </text>
+          <button class="btn-ghost" @click="done = false">
             再次捐赠
           </button>
         </view>
       </view>
+
       <view class="donor-card">
-        <text class="label donor-title hgt-mono">
+        <text class="label donor-title">
           最近捐赠
-        </text><view v-for="item in data.recent_donations" :key="item.id" class="donor">
-          <view>
-            <text>{{ item.donor_name }}</text><text class="donor-time hgt-mono">
-              {{ relative(item.donated_at) }}
+        </text>
+        <view v-if="data.recent_donations.length">
+          <view v-for="item in data.recent_donations" :key="item.id" class="donor">
+            <view class="donor-copy">
+              <text>{{ item.donor_name }}</text>
+              <text class="donor-time">
+                {{ relative(item.donated_at) }}
+              </text>
+            </view>
+            <text class="amount">
+              ¥{{ item.amount }}
             </text>
-          </view><text class="amount hgt-display">
-            ¥{{ item.amount }}
-          </text>
-        </view><text class="support-count hgt-mono">
+          </view>
+        </view>
+        <text v-else class="empty-line">
+          暂无捐赠记录
+        </text>
+        <text class="support-count">
           共 {{ data.supporter_count }} 位支持者
         </text>
       </view>
@@ -99,151 +134,114 @@ function relative(value: string) {
 
 <style scoped>
 .donate-page {
-  position: relative;
   min-height: 100%;
   padding-bottom: 48px;
-  /* 非 H5 与首页/登录页同一套水墨底 */
-  background:
-    var(--hgt-atmo-veil),
-    url('/static/hgt/ink/hero_ink_landscape.png') center / cover;
-  color: var(--hgt-text);
-  overflow: hidden;
-}
-/* #ifdef H5 */
-.donate-page {
   background: var(--hgt-bg);
-}
-.donate-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  filter: var(--hgt-atmo-filter);
-  /* 内容页压得比 hero 更浅，保证卡片可读 */
-  opacity: 0.28;
-}
-.donate-bg-veil {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    var(--hgt-atmo-veil),
-    linear-gradient(180deg,
-      transparent 0%,
-      var(--hgt-bg) 100%);
-}
-/* #endif */
-.donate-props {
-  position: absolute;
-  right: 24px;
-  top: 96px;
-  z-index: 0;
-  display: flex;
-  width: 140px;
-  gap: 8px;
-  flex-direction: column;
-  opacity: 0.32;
-  pointer-events: none;
-}
-.donate-props image {
-  width: 100%;
-  height: 88px;
-}
-.donate-page > .page-head,
-.donate-page > .donate-grid {
-  position: relative;
-  z-index: 1;
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-body);
 }
 .page-head {
-  display: flex;
-  padding: 32px 48px 24px;
-  border-bottom: 1px solid var(--hgt-border);
-  gap: 8px;
-  flex-direction: column;
+  box-sizing: border-box;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 36px 24px 16px;
 }
-.eyebrow,
-.label {
-  color: var(--hgt-brand);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-}
-.title {
-  color: var(--hgt-text);
+.page-title {
+  display: block;
+  color: var(--hgt-text-bright);
   font-family: var(--hgt-font-display);
   font-size: 28px;
   font-weight: 600;
+  letter-spacing: 0.08em;
 }
-.donate-grid {
-  display: grid;
+.page-sub {
+  display: block;
+  margin-top: 10px;
+  max-width: 560px;
+  color: var(--hgt-text-2);
+  font-family: var(--hgt-font-display);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.content {
   box-sizing: border-box;
-  width: min(var(--hgt-content-max), 100%);
+  width: min(1100px, 100%);
   margin: 0 auto;
-  padding: 28px 48px;
+  padding: 12px 24px 20px;
+  display: grid;
   gap: 28px;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: minmax(280px, 1.25fr) minmax(240px, 0.85fr);
+  align-items: start;
+}
+.loading-state {
+  display: flex;
+  min-height: 200px;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  color: var(--hgt-text-2);
+  font-size: 13px;
 }
 .donate-main {
   display: flex;
-  gap: 20px;
+  max-width: 520px;
+  gap: 16px;
   flex-direction: column;
 }
-.message {
-  padding: 20px 22px;
-  border: 1px solid var(--hgt-border);
-  border-left: 2px solid var(--hgt-brand);
-  border-radius: var(--hgt-radius-md);
-  background: var(--hgt-card);
-  color: var(--hgt-text-2);
-  font-size: 14px;
-  line-height: 1.8;
+.method-block {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+.label {
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
 }
 .methods {
   display: flex;
-  margin-top: 10px;
-  padding: 4px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-sm);
-  gap: 6px;
-  background: var(--hgt-card);
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .method {
   display: flex;
-  height: 40px;
+  height: 34px;
   margin: 0;
-  padding: 0 12px;
-  border: 0;
-  border-radius: var(--hgt-radius-xs);
-  flex: 1;
+  padding: 0 14px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-full);
   align-items: center;
   justify-content: center;
   background: transparent;
   color: var(--hgt-text-2);
-  font-size: 13px;
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
   line-height: 1;
 }
 .method.active {
+  border-color: var(--hgt-brand);
   background: var(--hgt-brand-soft);
   color: var(--hgt-brand);
 }
 .method::after,
-.done-button::after {
+.btn-primary::after,
+.btn-ghost::after {
   border: 0;
 }
 .qr-panel {
   position: relative;
   display: flex;
   box-sizing: border-box;
-  width: min(100%, 400px);
+  width: min(100%, 420px);
   aspect-ratio: 1;
-  padding: 0;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-md);
-  align-self: center;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--hgt-card);
+  background: rgba(244, 252, 250, 0.96);
 }
 .qr {
   position: absolute;
@@ -255,47 +253,67 @@ function relative(value: string) {
   position: absolute;
   inset: 16px;
   display: flex;
-  width: calc(100% - 32px);
-  height: calc(100% - 32px);
   border: 1px dashed var(--hgt-border-soft);
   border-radius: var(--hgt-radius-sm);
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   flex-direction: column;
   color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
 }
 .qr-placeholder > text:first-child {
-  font-size: 40px;
+  font-size: 36px;
 }
 .scan-text {
   position: absolute;
-  z-index: 3;
-  right: 16px;
-  bottom: 16px;
-  padding: 5px 8px;
+  z-index: 2;
+  right: 12px;
+  bottom: 12px;
+  padding: 4px 8px;
   border-radius: var(--hgt-radius-xs);
-  background: rgba(42, 42, 40, 0.78);
+  background: rgba(4, 20, 24, 0.78);
   color: var(--hgt-text-2);
+  font-family: var(--hgt-font-mono);
   font-size: 11px;
 }
-.done-button {
+.btn-primary,
+.btn-ghost {
   display: flex;
-  height: 46px;
+  height: 44px;
   margin: 0;
-  padding: 0;
-  border: 0;
+  padding: 0 16px;
   border-radius: var(--hgt-radius-sm);
   align-items: center;
   justify-content: center;
-  background: var(--hgt-brand);
-  color: var(--hgt-on-brand);
   font-size: 14px;
-  font-weight: 600;
   line-height: 1;
 }
+.btn-primary {
+  border: 0;
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
+  font-weight: 600;
+}
+.btn-primary:disabled {
+  opacity: 0.55;
+}
+.btn-ghost {
+  border: 1px solid var(--hgt-border);
+  background: transparent;
+  color: var(--hgt-text-2);
+}
+.btn-primary.full {
+  width: 100%;
+}
+.note {
+  color: var(--hgt-text-3);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
 .donor-card {
-  height: max-content;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-md);
   background: var(--hgt-card);
@@ -303,69 +321,86 @@ function relative(value: string) {
 }
 .donor-title {
   display: block;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--hgt-border);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hgt-border-soft);
   color: var(--hgt-text);
 }
 .donor {
   display: flex;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--hgt-border);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hgt-border-soft);
   align-items: center;
   justify-content: space-between;
-  font-size: 14px;
+  gap: 10px;
+  font-size: 13px;
+}
+.donor-copy {
+  display: flex;
+  min-width: 0;
+  gap: 2px;
+  flex-direction: column;
 }
 .donor-time {
-  display: block;
-  margin-top: 4px;
   color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
   font-size: 11px;
 }
 .amount {
   color: var(--hgt-brand);
   font-family: var(--hgt-font-display);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
+  flex: none;
+}
+.empty-line {
+  display: block;
+  padding: 24px 16px;
+  color: var(--hgt-text-3);
+  font-size: 13px;
+  text-align: center;
 }
 .support-count {
   display: block;
   padding: 12px;
   color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
   font-size: 11px;
   text-align: center;
 }
 .thanks {
   display: flex;
-  padding: 32px 20px;
+  padding: 28px 20px;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-md);
+  gap: 10px;
   align-items: center;
-  gap: 12px;
   flex-direction: column;
   background: var(--hgt-card);
   text-align: center;
 }
-.thanks-icon {
-  color: var(--hgt-brand);
-  font-size: 36px;
-}
 .thanks-title {
   color: var(--hgt-text);
   font-family: var(--hgt-font-display);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
 }
+.thanks-copy {
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
 @media (max-width: 767px) {
-  .page-head,
-  .donate-grid {
-    padding-right: 16px;
-    padding-left: 16px;
-  }
-  .donate-grid {
+  .content {
     grid-template-columns: 1fr;
   }
   .qr-panel {
     width: min(100%, 320px);
+    align-self: flex-start;
+  }
+  .page-head,
+  .content {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 </style>

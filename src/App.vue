@@ -7,61 +7,68 @@ onLaunch(() => applyStoredTheme())
 <style lang="scss">
 @use '@wot-ui/ui/styles/theme/index.scss' as *;
 
-/* ========== Design Tokens · 图2色板 + 宣纸底 #f8f8f7 ========== */
+/* ========== 深海 Design Tokens · 70% 极简 + 20% 深海 + 10% 推理 ========== */
 :root,
 page {
-  /* brand · 竹青主色 */
-  --hgt-brand: #789262;
-  --hgt-brand-deep: #5f754c;
-  --hgt-brand-soft: rgba(120, 146, 98, 0.12);
-  --hgt-on-brand: #f8f8f7;
-  --hgt-ink: #2a2a28;
+  /* brand · 青绿主色 */
+  --hgt-brand: #5ec4b8;
+  --hgt-brand-deep: #3a9e94;
+  --hgt-brand-soft: rgba(94, 196, 184, 0.14);
+  --hgt-on-brand: #041418;
+  --hgt-ink: #e8f4f2;
 
-  /* accents from 图2 */
-  --hgt-accent: #9e5356; /* 明茶褐 · 点缀 */
-  --hgt-accent-soft: rgba(158, 83, 86, 0.12);
-  --hgt-moon: #d6ecf0; /* 月白 · 浅色 */
-  --hgt-ink-gray: #758a99; /* 墨灰 · 深色辅助 */
-  --hgt-gold: #f0c239; /* 绀色样本 · 辅色 */
-  --hgt-gold-soft: rgba(240, 194, 57, 0.16);
+  /* accents */
+  --hgt-accent: #d05a52; /* 朱红 · 针尖强调 */
+  --hgt-accent-soft: rgba(208, 90, 82, 0.14);
+  --hgt-moon: #7a9eb0; /* 灰蓝 · 无关 */
+  --hgt-ink-gray: #6b8a96;
+  --hgt-gold: #c9a46a; /* 暖金 · 中等深度 / 进行中 */
+  --hgt-gold-soft: rgba(201, 164, 106, 0.16);
 
-  /* surfaces */
-  --hgt-bg: #f8f8f7;
-  --hgt-bg-deep: #f1f0ed;
-  --hgt-card: #ffffff;
-  --hgt-card-2: #f3f2ef;
-  --hgt-paper: #f4f2ec;
-  --hgt-paper-ink: #2a2420;
+  /* surfaces · 深度层级 */
+  --hgt-bg: #061a20;
+  --hgt-bg-deep: #041418;
+  --hgt-card: rgba(15, 53, 57, 0.38);
+  --hgt-card-2: rgba(22, 62, 66, 0.28);
+  --hgt-paper: rgba(15, 53, 57, 0.22); /* 极弱容器，非纸张 */
+  --hgt-paper-ink: #e8f4f2;
 
-  /* text · 墨 */
-  --hgt-text: #2c2b28;
-  --hgt-text-2: #5c5a56;
-  --hgt-text-3: #8a8780;
+  /* text 亮度分级 */
+  --hgt-text: rgba(232, 244, 242, 0.92);
+  --hgt-text-2: rgba(232, 244, 242, 0.62);
+  --hgt-text-3: rgba(232, 244, 242, 0.42);
+  --hgt-text-bright: rgba(244, 252, 250, 0.96); /* 汤面 */
 
   /* lines */
-  --hgt-border: #e2e0da;
-  --hgt-border-soft: #eceae4;
+  --hgt-border: rgba(117, 220, 211, 0.12);
+  --hgt-border-soft: rgba(117, 220, 211, 0.08);
+  --hgt-border-hover: rgba(117, 220, 211, 0.24);
 
-  /* status（贴近图2，难度用） */
-  --hgt-success: #789262;
-  --hgt-success-text: #5f754c;
-  --hgt-warning: #c49a3d;
-  --hgt-danger: #9e5356;
-  --hgt-info: #758a99;
-  --hgt-overlay: rgba(42, 42, 40, 0.38);
+  /* status */
+  --hgt-success: #5ec4b8;
+  --hgt-success-text: #7fd4ca;
+  --hgt-warning: #c9a46a;
+  --hgt-danger: #d05a52;
+  --hgt-info: #7a9eb0;
+  --hgt-overlay: rgba(3, 14, 18, 0.55);
 
-  /* radius */
-  --hgt-radius-xs: 4px;
-  --hgt-radius-sm: 8px;
-  --hgt-radius-md: 12px;
-  --hgt-radius-lg: 16px;
+  /* depth tones */
+  --hgt-depth-bg-1: rgba(18, 55, 60, 0.3);
+  --hgt-depth-bg-2: rgba(12, 46, 52, 0.22);
+  --hgt-depth-bg-3: rgba(24, 65, 67, 0.18);
+
+  /* radius · 收敛大圆角 */
+  --hgt-radius-xs: 3px;
+  --hgt-radius-sm: 6px;
+  --hgt-radius-md: 8px;
+  --hgt-radius-lg: 10px;
   --hgt-radius-full: 999px;
 
-  /* shadow */
-  --hgt-shadow-sm: 0 2px 8px rgba(42, 42, 40, 0.05);
-  --hgt-shadow-md: 0 4px 16px rgba(42, 42, 40, 0.07);
-  --hgt-shadow-lg: 0 8px 32px rgba(42, 42, 40, 0.09);
-  --hgt-shadow-float: 0 16px 48px rgba(42, 42, 40, 0.12);
+  /* shadow · 几乎不用 */
+  --hgt-shadow-sm: none;
+  --hgt-shadow-md: none;
+  --hgt-shadow-lg: none;
+  --hgt-shadow-float: none;
 
   /* motion */
   --hgt-ease-out: ease-out;
@@ -72,27 +79,33 @@ page {
   --hgt-dur-slow: 350ms;
   --hgt-dur-reveal: 500ms;
 
-  /* type */
-  --hgt-font-display: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", Georgia, serif;
-  --hgt-font-body: "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* type · 故事用衬线，系统信息用无衬线 */
+  --hgt-font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", Georgia, serif;
+  --hgt-font-body: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   --hgt-font-en: "Cormorant Garamond", "Times New Roman", Georgia, serif;
   --hgt-font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
 
   /* shell */
-  --hgt-header-h: 64px;
+  --hgt-header-h: 56px;
   --hgt-tabbar-h: 64px;
-  --hgt-content-max: 1280px;
+  --hgt-content-max: 1360px;
+  --hgt-reading-max: 680px;
 
-  /* 水墨氛围：满幅红日远山（图1） */
-  --hgt-atmo-img: url('/static/hgt/ink/hero_ink_landscape.png');
+  /* 深海氛围：首页灯塔，其他页不用大图 */
+  --hgt-atmo-img: url('/static/hgt/bg/bg_deep_ocean_hero.jpg');
   --hgt-atmo-filter: none;
   --hgt-atmo-veil:
     linear-gradient(90deg,
-      rgba(248, 248, 247, 0.92) 0%,
-      rgba(248, 248, 247, 0.72) 28%,
-      rgba(248, 248, 247, 0.28) 48%,
-      rgba(248, 248, 247, 0.06) 72%,
-      rgba(248, 248, 247, 0) 100%);
+      rgba(4, 20, 24, 0.88) 0%,
+      rgba(4, 20, 24, 0.62) 30%,
+      rgba(4, 20, 24, 0.22) 55%,
+      rgba(4, 20, 24, 0.06) 78%,
+      transparent 100%),
+    linear-gradient(180deg,
+      rgba(4, 20, 24, 0.08) 0%,
+      transparent 40%,
+      rgba(6, 26, 32, 0.55) 78%,
+      #061a20 100%);
 
   /* legacy aliases */
   --app-background: var(--hgt-bg);
@@ -107,75 +120,97 @@ page {
   --border: var(--hgt-border);
 }
 
-/* ========== 夜墨主题 ========== */
+/* ========== 更深一层：真相浮现 / 可选浅色对照 ========== */
 :root.hgt-dark-theme,
 page.hgt-dark-theme {
-  --hgt-brand: #8eaa74;
-  --hgt-brand-deep: #789262;
-  --hgt-brand-soft: rgba(142, 170, 116, 0.16);
-  --hgt-on-brand: #1a1a18;
-  --hgt-ink: #e8e6e0;
-
-  --hgt-accent: #c48a8d;
-  --hgt-accent-soft: rgba(196, 138, 141, 0.16);
-  --hgt-moon: #3a4a52;
-  --hgt-ink-gray: #8fa3b0;
-  --hgt-gold: #d4a84a;
-  --hgt-gold-soft: rgba(212, 168, 74, 0.14);
-
-  --hgt-bg: #1a1a18;
-  --hgt-bg-deep: #121211;
-  --hgt-card: #222220;
-  --hgt-card-2: #2a2a27;
-  --hgt-paper: #2c2a26;
-  --hgt-paper-ink: #e8e6e0;
-
-  --hgt-text: #e8e6e0;
-  --hgt-text-2: #a8a59e;
-  --hgt-text-3: #7a776f;
-
-  --hgt-border: #3a3935;
-  --hgt-border-soft: #4a4843;
-
-  --hgt-success: #8eaa74;
-  --hgt-success-text: #a8c48e;
-  --hgt-warning: #d4a84a;
-  --hgt-danger: #c48a8d;
-  --hgt-info: #8fa3b0;
-  --hgt-overlay: rgba(10, 10, 9, 0.6);
-
-  --hgt-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
-  --hgt-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.34);
-  --hgt-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --hgt-shadow-float: 0 16px 48px rgba(0, 0, 0, 0.48);
-
-  --hgt-atmo-filter: saturate(0.8) brightness(0.7) contrast(1.05);
-  --hgt-atmo-veil:
-    linear-gradient(90deg,
-      rgba(18, 18, 17, 0.78) 0%,
-      rgba(18, 18, 17, 0.55) 40%,
-      rgba(18, 18, 17, 0.28) 72%,
-      rgba(18, 18, 17, 0.12) 100%),
-    linear-gradient(180deg,
-      rgba(18, 18, 17, 0.08) 0%,
-      rgba(18, 18, 17, 0.2) 48%,
-      rgba(18, 18, 17, 0.45) 100%);
-
-  --app-background: var(--hgt-bg);
-  --app-foreground: var(--hgt-text);
-  --app-card: var(--hgt-card);
-  --background: var(--hgt-bg);
-  --foreground: var(--hgt-text);
-  --card: var(--hgt-card);
-  --secondary: var(--hgt-card-2);
-  --muted-foreground: var(--hgt-text-2);
-  --accent: var(--hgt-brand);
-  --border: var(--hgt-border);
+  --hgt-bg: #041418;
+  --hgt-bg-deep: #030f13;
+  --hgt-card: rgba(10, 40, 45, 0.42);
+  --hgt-card-2: rgba(16, 48, 54, 0.32);
+  --hgt-border: rgba(117, 220, 211, 0.1);
+  --hgt-text: rgba(220, 240, 236, 0.9);
+  --hgt-brand: #6fd0c4;
+  color-scheme: dark;
 }
 
 :root.hgt-light-theme,
 page.hgt-light-theme {
-  color-scheme: light;
+  color-scheme: dark;
+}
+
+/* 真相揭晓：全站唯一一次明显水光重逢 */
+:root.hgt-truth-theme,
+page.hgt-truth-theme {
+  --hgt-bg: #0a2a30;
+  --hgt-brand: #7fd9cd;
+  --hgt-atmo-veil:
+    linear-gradient(180deg,
+      rgba(127, 217, 205, 0.12) 0%,
+      rgba(10, 42, 48, 0.2) 40%,
+      rgba(6, 26, 32, 0.55) 100%);
+}
+
+/* uni 默认 button 白底/禁用白底矫正 */
+page button,
+.hgt-app button,
+.game-page button {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+page button::after,
+.hgt-app button::after,
+.game-page button::after {
+  border: 0;
+}
+
+button[disabled],
+button[loading],
+.game-page button[disabled],
+.game-page button[loading] {
+  background: transparent !important;
+  color: var(--hgt-text-3) !important;
+}
+
+.send-btn,
+.btn-primary,
+.btn-brand,
+.primary,
+.game-page .send-btn {
+  background: var(--hgt-brand) !important;
+  color: var(--hgt-on-brand) !important;
+}
+
+.send-btn[disabled],
+.btn-primary[disabled],
+.btn-brand[disabled],
+.primary[disabled],
+.send-btn[loading],
+.btn-primary[loading] {
+  background: var(--hgt-brand) !important;
+  color: var(--hgt-on-brand) !important;
+  opacity: 0.45;
+}
+
+.secondary-btn[disabled],
+.hint-float[disabled],
+.abandon-weak[disabled],
+.ghost[disabled],
+.btn-ghost[disabled] {
+  background: transparent !important;
+  color: var(--hgt-text-3) !important;
+}
+
+/* 推理页输入区次级操作 */
+.game-page .secondary-btn {
+  background: transparent !important;
+  color: var(--hgt-text-2) !important;
 }
 
 html,
@@ -188,6 +223,52 @@ page {
   font-family: var(--hgt-font-body);
 }
 
+/* 深海主题下的 loading / button loading，避免白底 */
+wd-loading,
+.hgt-loading,
+.uni-btn-loading,
+button[loading] {
+  color: var(--hgt-text-2) !important;
+}
+
+wd-loading .wd-loading__ring,
+.wd-loading .wd-loading__ring,
+.hgt-loading {
+  background: transparent !important;
+}
+
+button[loading] {
+  background: var(--hgt-brand) !important;
+  color: var(--hgt-on-brand) !important;
+}
+
+button[loading] .uni-btn-loading,
+button[loading] .uni-btn-loading-icon,
+.uni-button-loading,
+.uni-button-loading-icon {
+  color: var(--hgt-on-brand) !important;
+}
+
+button[loading]::after,
+.btn-primary[loading]::after,
+.send-btn[loading]::after {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.text-btn[loading],
+.ghost[loading],
+.btn-ghost[loading] {
+  background: transparent !important;
+  color: var(--hgt-text-2) !important;
+}
+
+.text-btn[loading] .uni-btn-loading,
+.ghost[loading] .uni-btn-loading,
+.btn-ghost[loading] .uni-btn-loading {
+  color: var(--hgt-text-2) !important;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
@@ -198,60 +279,5 @@ page {
 }
 ::view-transition-new(root) {
   z-index: 9999;
-  animation: hgt-theme-reveal var(--hgt-dur-reveal) var(--hgt-ease-emphasized) both;
-}
-@keyframes hgt-theme-reveal {
-  from {
-    clip-path: circle(0 at var(--hgt-theme-x) var(--hgt-theme-y));
-  }
-  to {
-    clip-path: circle(var(--hgt-theme-radius) at var(--hgt-theme-x) var(--hgt-theme-y));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
-  }
-}
-
-.hgt-display {
-  font-family: var(--hgt-font-display);
-  font-weight: 600;
-}
-.hgt-body {
-  font-family: var(--hgt-font-body);
-}
-.hgt-en {
-  font-family: var(--hgt-font-en);
-  letter-spacing: 0.04em;
-}
-.hgt-mono {
-  font-family: var(--hgt-font-mono);
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  border-radius: 3px;
-  background: var(--hgt-border-soft);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--hgt-text-3);
-}
-
-.page-wraper {
-  min-height: calc(100vh - var(--window-top));
-  box-sizing: border-box;
-  background: var(--hgt-bg);
-}
-
-button::after {
-  border: 0;
 }
 </style>

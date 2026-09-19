@@ -19,6 +19,13 @@ const activeRoom = computed(() => {
 })
 const showRoomReturn = computed(() => Boolean(player.user && activeRoom.value) && route.name !== 'game')
 
+/** 推理页保留站点 Logo 导航；仅隐藏房间返回浮标与背景粒子，避免抢焦点 */
+const immersiveGame = computed(() => {
+  const name = String(route.name || '')
+  const path = String(route.path || route.fullPath || '')
+  return name === 'game' || path.includes('/pages/game/')
+})
+
 const navItems = [
   { name: 'home', path: '/pages/index/index', label: '首页', icon: 'H' },
   { name: 'questions', path: '/pages/questions/index', label: '题库', icon: 'Q' },
@@ -46,6 +53,7 @@ const desktopNav = computed(() =>
   }),
 )
 
+/** 手机底部：首页 / 题库 / 推理 / [多人] / 我的 */
 const mobileNav = computed(() =>
   [
     { name: 'home', path: '/pages/index/index', label: '首页', icon: '⌂' },
@@ -65,7 +73,7 @@ const logoSrc = computed(() =>
 async function go(item: { name: string, path: string }) {
   if (!player.ready)
     await player.restore()
-  if (!player.user && ['public-rooms', 'history', 'player-account'].includes(item.name)) {
+  if (!player.user && ['public-rooms', 'history'].includes(item.name)) {
     router.push({ name: 'player-login', query: { redirect: item.path } })
     return
   }
@@ -81,7 +89,7 @@ async function go(item: { name: string, path: string }) {
 }
 
 async function recoverActiveRoom() {
-  if (!player.user || activeRoom.value)
+  if (!player.user || !supportsPublicRooms || activeRoom.value)
     return
   try {
     const rooms = await roomApi.mine()
@@ -124,12 +132,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <view class="hgt-app" :class="{ 'hgt-light': light }" :style="{ '--hgt-mobile-header-offset': mobileHeaderOffset }">
+  <view
+    class="hgt-app"
+    :class="{ 'hgt-light': light, 'is-immersive-game': immersiveGame }"
+    :style="{ '--hgt-mobile-header-offset': mobileHeaderOffset }"
+  >
     <HgtThemeTransition v-bind="overlay" />
     <HgtParticleBackground />
     <HgtFlashlight :light="light" />
 
-    <!-- PC / 平板 顶栏 -->
+    <!-- PC / 平板 顶栏：推理页保留 Logo 导航 -->
     <header class="hgt-topbar">
       <view class="hgt-topbar-inner">
         <view class="hgt-topbar-brand" @click="go({ name: 'home', path: '/pages/index/index' })">
@@ -144,7 +156,7 @@ onMounted(async () => {
               </text>
             </view>
             <text class="hgt-topbar-sub">
-              每一个故事，都是一个小小的世界。
+              谜题沉在水下，真相等待浮现。
             </text>
           </view>
         </view>
@@ -196,7 +208,7 @@ onMounted(async () => {
       </view>
     </header>
 
-    <!-- 手机顶栏 -->
+    <!-- 手机顶栏：推理页保留 Logo 导航 -->
     <header class="hgt-mobile-header" :style="mobileHeaderStyle">
       <view class="hgt-mobile-brand" @click="go({ name: 'home', path: '/pages/index/index' })">
         <image class="hgt-mobile-logo" :src="logoSrc" mode="aspectFit" />
@@ -223,7 +235,7 @@ onMounted(async () => {
       </view>
     </header>
 
-    <!-- 手机底栏 -->
+    <!-- 手机底栏：推理页保留 -->
     <nav class="hgt-tabbar">
       <view
         v-for="item in mobileNav"
@@ -267,6 +279,22 @@ onMounted(async () => {
   background: var(--hgt-bg);
   color: var(--hgt-text);
   font-family: var(--hgt-font-body);
+}
+
+.hgt-app.is-immersive-game {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 推理页：保留站点导航，仅弱化粒子/浮标 */
+.hgt-app.is-immersive-game .hgt-room-return,
+.hgt-app.is-immersive-game .hgt-particle,
+.hgt-app.is-immersive-game .hgt-flashlight {
+  display: none !important;
+}
+
+.hgt-app.is-immersive-game .hgt-main {
+  min-height: 0;
 }
 
 /* ===== Top bar (PC) ===== */
@@ -563,12 +591,35 @@ onMounted(async () => {
     display: flex;
     box-sizing: border-box;
     height: var(--hgt-mobile-header-offset, 56px);
-    padding: 0 16px;
+    padding: 0 12px;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     border-bottom: 1px solid var(--hgt-border);
     background: color-mix(in srgb, var(--hgt-bg-deep) 94%, transparent);
     backdrop-filter: blur(12px);
+  }
+  .hgt-mobile-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .hgt-mobile-title {
+    overflow: visible;
+    color: var(--hgt-text);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+  .hgt-mobile-title .hgt-en {
+    font-size: 12px;
+  }
+  .hgt-mobile-logo {
+    width: 28px;
+    height: 28px;
+  }
+  .hgt-mobile-actions {
+    flex: none;
   }
   .hgt-main {
     min-height: 100vh;

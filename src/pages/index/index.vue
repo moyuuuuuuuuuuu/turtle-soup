@@ -4,15 +4,20 @@ import { ensureAnonymousSession, homeApi, questionApi, tagApi } from '@/api/turt
 import { usePlayerStore } from '@/store/playerStore'
 import { formatCount } from '@/utils'
 import { supportsPublicRooms } from '@/utils/platform'
-import { emptyNetworkUrl, emptyNoneUrl, questionCoverUrl } from '@/utils/questionCover'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'home', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 
 const router = useRouter()
 const player = usePlayerStore()
+
 const featured = ref<PublicQuestion[]>([])
-const stats = ref<HomeStats>({ question_count: 0, today_online: 0, success_rate: 0, average_duration_seconds: null })
+const stats = ref<HomeStats>({
+  question_count: 0,
+  today_online: 0,
+  success_rate: 0,
+  average_duration_seconds: null,
+})
 const loading = ref(true)
 const loadError = ref(false)
 const randomLoading = ref(false)
@@ -20,7 +25,7 @@ const randomLoading = ref(false)
 interface HomeCategory { label: string, tagId: number | undefined }
 
 const ALL_CATEGORY: HomeCategory = { label: '全部', tagId: undefined }
-/** 接口失败时的兜底，tagId 与后端 turtle_tags 一致 */
+
 const FALLBACK_TAGS: PublicTag[] = [
   { id: 20, name: '本格' },
   { id: 17, name: '清汤' },
@@ -31,34 +36,73 @@ const FALLBACK_TAGS: PublicTag[] = [
   { id: 13, name: '超自然' },
   { id: 5, name: '犯罪案件' },
 ]
+
+const PREFERRED_TAG_NAMES = ['悬疑', '逻辑推理', '本格', '清汤']
 const COLLAPSED_CATEGORY_COUNT = 5
-const categories = ref<HomeCategory[]>([ALL_CATEGORY, ...FALLBACK_TAGS.map(tag => ({ label: tag.name, tagId: tag.id }))])
+const preferredRank = new Map(PREFERRED_TAG_NAMES.map((name, index) => [name, index]))
+
+function orderTags(tags: PublicTag[]): PublicTag[] {
+  return [...tags].sort((a, b) => {
+    const ra = preferredRank.get(a.name) ?? PREFERRED_TAG_NAMES.length
+    const rb = preferredRank.get(b.name) ?? PREFERRED_TAG_NAMES.length
+    return ra - rb
+  })
+}
+
+function toCategories(tags: PublicTag[]): HomeCategory[] {
+  return [ALL_CATEGORY, ...orderTags(tags).map(tag => ({ label: tag.name, tagId: tag.id }))]
+}
+
+const categories = ref<HomeCategory[]>(toCategories(FALLBACK_TAGS))
 const activeTagId = ref<number | undefined>(undefined)
 const categoryPage = ref(1)
 const categoriesExpanded = ref(false)
 
-const activeCategory = computed<HomeCategory>(() => categories.value.find(cat => cat.tagId === activeTagId.value) || ALL_CATEGORY)
-const visibleCategories = computed(() => categoriesExpanded.value ? categories.value : categories.value.slice(0, COLLAPSED_CATEGORY_COUNT))
+const activeCategory = computed<HomeCategory>(
+  () => categories.value.find(cat => cat.tagId === activeTagId.value) || ALL_CATEGORY,
+)
+const visibleCategories = computed(() =>
+  categoriesExpanded.value ? categories.value : categories.value.slice(0, COLLAPSED_CATEGORY_COUNT),
+)
 const showCategoryToggle = computed(() => categories.value.length > COLLAPSED_CATEGORY_COUNT)
 
-/** 几乎每道题都带的基础标签，优先展示更有区分度的题材标签 */
-const GENERIC_TAG_NAMES = new Set(['悬疑', '逻辑推理'])
+const exploreCountDisplay = computed(() => {
+  const count = stats.value.question_count
+  return count > 0 ? formatCount(count) : '…'
+})
 
-function categoryTagLabel(item: PublicQuestion) {
-  const tags = item.tags || []
-  const activeId = activeCategory.value.tagId
-  if (activeId !== undefined) {
-    const matched = tags.find(tag => tag.id === activeId)
-    if (matched)
-      return matched.name
-    return activeCategory.value.label
+const featuredCountLabel = computed(() => {
+  const count = stats.value.question_count
+  return count > 0 ? formatCount(count) : ''
+})
+
+const STEPS = [
+  { no: '01', title: '阅读汤面', copy: '从一段反常的故事开始。' },
+  { no: '02', title: '不断提问', copy: '只能得到「是」「不是」「无关」。' },
+  { no: '03', title: '接近真相', copy: '当所有线索逐渐拼合，给出你的答案。' },
+] as const
+
+interface FooterLink { label: string, name: string, path: string, requiresAuth?: boolean }
+
+const footerLinks = computed<FooterLink[]>(() => {
+  const links: FooterLink[] = [
+    { label: '题库', name: 'questions', path: '/pages/questions/index' },
+    { label: '我的推理', name: 'history', path: '/pages/history/index', requiresAuth: true },
+  ]
+  if (supportsPublicRooms) {
+    links.push({
+      label: '多人',
+      name: 'public-rooms',
+      path: '/pages/public-rooms/index',
+      requiresAuth: true,
+    })
   }
-  return tags.find(tag => !GENERIC_TAG_NAMES.has(tag.name))?.name || tags[0]?.name || '悬疑'
-}
-
-function toCategories(tags: PublicTag[]): HomeCategory[] {
-  return [ALL_CATEGORY, ...tags.map(tag => ({ label: tag.name, tagId: tag.id }))]
-}
+  // #ifdef H5
+  links.push({ label: '捐赠', name: 'donate', path: '/pages/donate/index' })
+  links.push({ label: '友链', name: 'friends', path: '/pages/friends/index' })
+  // #endif
+  return links
+})
 
 async function loadCategories() {
   try {
@@ -67,31 +111,31 @@ async function loadCategories() {
       categories.value = toCategories(result.items)
   }
   catch {
-    // 保留兜底分类，避免首页筛选整块不可用
+    // 保留兜底分类
   }
 }
 
-function difficulty(level: number) {
-  return ['未知', '简单', '普通', '中等', '困难', '极难'][level] || '未知'
+function resolveListPageSize() {
+  // #ifdef H5
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  // 移动端 3 张；桌面取 3 的倍数，避免 3+1 残缺行
+  return isMobile ? 3 : 6
+  // #endif
+  // #ifndef H5
+  return 6
+  // #endif
 }
 
-function difficultyClass(level: number) {
-  if (level <= 2)
-    return 'easy'
-  if (level === 3)
-    return 'mid'
-  return 'hard'
-}
-
-function openQuestion(id: string) {
-  void openQuestionDetail({ id })
-}
-
-async function loadStats() {
-  try {
-    stats.value = await homeApi.stats()
-  }
-  catch {}
+/** PC 网格按 3 列对齐，不足 3 的余数卡片截掉 */
+function alignFeaturedToThree(items: PublicQuestion[]) {
+  let isMobile = false
+  // #ifdef H5
+  isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  // #endif
+  if (isMobile)
+    return items
+  const keep = Math.floor(items.length / 3) * 3
+  return keep > 0 ? items.slice(0, keep) : items.slice(0, 3)
 }
 
 async function loadHome() {
@@ -102,39 +146,35 @@ async function loadHome() {
     await ensureAnonymousSession()
     const tagId = activeCategory.value.tagId
     const page = categoryPage.value
-    let mobileLayout = true
-    // #ifdef H5
-    mobileLayout = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
-    // #endif
-    const listPageSize = mobileLayout ? 4 : 8
+    const pageSize = resolveListPageSize()
 
     if (tagId !== undefined) {
-      let result = await questionApi.list({ tag_id: tagId, page, page_size: listPageSize })
+      let result = await questionApi.list({ tag_id: tagId, page, page_size: pageSize })
       if (!result.items.length && page > 1) {
         categoryPage.value = 1
-        result = await questionApi.list({ tag_id: tagId, page: 1, page_size: listPageSize })
+        result = await questionApi.list({ tag_id: tagId, page: 1, page_size: pageSize })
       }
-      featured.value = result.items
+      featured.value = alignFeaturedToThree(result.items)
       return
     }
 
     if (page > 1) {
-      let result = await questionApi.list({ page, page_size: listPageSize })
+      let result = await questionApi.list({ page, page_size: pageSize })
       if (!result.items.length) {
         categoryPage.value = 1
-        result = await questionApi.list({ page: 1, page_size: listPageSize })
+        result = await questionApi.list({ page: 1, page_size: pageSize })
       }
-      featured.value = result.items
+      featured.value = alignFeaturedToThree(result.items)
       return
     }
 
     const [featuredResult, latestResult] = await Promise.all([
-      questionApi.list({ featured: 1, page_size: listPageSize }),
-      questionApi.list({ page_size: listPageSize }),
+      questionApi.list({ featured: 1, page_size: pageSize }),
+      questionApi.list({ page_size: pageSize }),
     ])
-    featured.value = [...featuredResult.items, ...latestResult.items]
+    featured.value = alignFeaturedToThree([...featuredResult.items, ...latestResult.items]
       .filter((question, index, questions) => questions.findIndex(item => item.id === question.id) === index)
-      .slice(0, listPageSize)
+      .slice(0, pageSize))
   }
   catch {
     loadError.value = true
@@ -142,6 +182,17 @@ async function loadHome() {
   finally {
     loading.value = false
   }
+}
+
+async function loadStats() {
+  try {
+    stats.value = await homeApi.stats()
+  }
+  catch {}
+}
+
+function openQuestion(id: string) {
+  void openQuestionDetail({ id })
 }
 
 function selectCategory(cat: HomeCategory) {
@@ -161,6 +212,10 @@ function refreshFeatured() {
   void loadHome()
 }
 
+function goToQuestions() {
+  router.push({ name: 'questions' })
+}
+
 async function playRandom() {
   if (randomLoading.value)
     return
@@ -177,16 +232,24 @@ async function playRandom() {
   }
 }
 
-function startPlay() {
-  router.push({ name: 'questions' })
-}
-
-function openPublicRooms() {
-  if (!supportsPublicRooms)
+async function openFooterLink(link: FooterLink) {
+  if (link.requiresAuth) {
+    if (!player.ready)
+      await player.restore()
+    if (!player.user) {
+      router.push({ name: 'player-login', query: { redirect: link.path } })
+      return
+    }
+  }
+  if (link.name === 'history') {
+    router.push({ name: 'history' })
     return
-  if (player.user)
-    router.push({ name: 'public-rooms' })
-  else router.push({ name: 'player-login', query: { redirect: '/pages/public-rooms/index' } })
+  }
+  if (link.name === 'questions') {
+    router.push({ name: 'questions' })
+    return
+  }
+  router.push(link.path)
 }
 
 onMounted(() => {
@@ -198,203 +261,152 @@ onMounted(() => {
 
 <template>
   <view class="home-page">
-    <!-- Hero · 水墨 -->
-    <section class="hero">
-      <image
-        class="hero-bg"
-        src="/static/hgt/ink/hero_ink_landscape.png"
-        mode="aspectFill"
+    <view class="stage">
+      <view
+        class="stage-bg"
+        aria-hidden="true"
+        :style="{ backgroundImage: 'url(/static/hgt/bg/bg_deep_ocean_hero.jpg)' }"
       />
-      <view class="hero-veil" />
-      <view class="hero-inner">
-        <view class="hero-kicker-row">
-          <text class="hero-kicker-en">
-            MOYUU
-          </text>
-          <text class="hero-kicker-line" />
-          <text class="hero-kicker-sub">
-            TURTLE SOUP
-          </text>
-        </view>
-        <text class="hero-title">
-          雾里有故事，
-        </text>
-        <view class="hero-title-row">
-          <text>
-            你来找
-          </text>
-          <text class="hero-accent">
-            真相
-          </text>
-          <text>
-            。
-          </text>
-        </view>
-        <text class="hero-copy">
-          每一个看似寻常的片段，<br>
-          都可能通向另一个世界。
-        </text>
-        <view class="hero-actions">
-          <button class="btn-primary" @click="startPlay">
-            开始探索 →
-          </button>
-          <button class="btn-ghost" :loading="randomLoading" @click="playRandom">
-            <text class="btn-play-dot" />
-            随机一题
-          </button>
-        </view>
-        <view class="hero-stats">
-          <view class="hero-stat">
-            <text class="hero-stat-value">
-              {{ stats.question_count ? formatCount(stats.question_count) : '1000+' }}
-            </text>
-            <text class="hero-stat-label">
-              精选题目
-            </text>
-          </view>
-          <view class="hero-stat">
-            <text class="hero-stat-value">
-              {{ stats.today_online ? formatCount(stats.today_online) : '在线' }}
-            </text>
-            <text class="hero-stat-label">
-              推理玩家
-            </text>
-          </view>
-          <view class="hero-stat">
-            <text class="hero-stat-value">
-              4.8★
-            </text>
-            <text class="hero-stat-label">
-              玩家评分
-            </text>
-          </view>
-        </view>
-      </view>
-      <text class="hero-seal" aria-hidden="true">
-        海龟汤
-      </text>
-    </section>
+      <view class="stage-veil" />
 
-    <!-- Categories -->
-    <section class="cat-band">
-      <view v-if="categoriesExpanded" class="cat-row cat-row-wrap">
-        <view
-          v-for="cat in categories"
-          :key="String(cat.tagId)"
-          class="cat-chip"
-          :class="{ active: activeCategory.tagId === cat.tagId }"
-          @click="selectCategory(cat)"
+      <section class="hero">
+        <view class="hero-inner">
+          <text class="hero-kicker">
+            MOYUU TURTLE SOUP
+          </text>
+          <text class="hero-title">
+            谜题沉在水下，
+          </text>
+          <text class="hero-title">
+            而你，正慢慢接近<text class="hero-accent">
+              真相
+            </text>。
+          </text>
+          <text class="hero-copy">
+            一碗看似寻常的汤，可能藏着意想不到的故事。向下追问，直到接近真相。
+          </text>
+          <view class="hero-actions">
+            <button class="btn-primary" @click="goToQuestions">
+              开始推理 →
+            </button>
+            <button class="btn-ghost" @click="playRandom">
+              随机一题 ↝
+            </button>
+          </view>
+        </view>
+      </section>
+
+      <section class="featured">
+        <view class="section-head">
+          <view class="section-title-wrap">
+            <text class="section-title">
+              精选谜题
+            </text>
+            <text class="section-en">
+              CURATED MYSTERIES
+            </text>
+          </view>
+          <view class="section-actions">
+            <button class="btn-link" @click="refreshFeatured">
+              换一批
+            </button>
+            <button class="btn-link btn-link-strong" @click="goToQuestions">
+              查看全部{{ featuredCountLabel ? ` ${featuredCountLabel}` : '' }} 题 →
+            </button>
+          </view>
+        </view>
+
+        <scroll-view
+          v-if="showCategoryToggle && !categoriesExpanded"
+          class="cat-scroll"
+          scroll-x
+          :show-scrollbar="false"
         >
-          {{ cat.label }}
-        </view>
-        <view class="cat-chip cat-more" @click="toggleCategoriesExpanded">
-          收起
-        </view>
-      </view>
-      <scroll-view
-        v-else-if="showCategoryToggle"
-        class="cat-scroll-view"
-        scroll-x
-        :show-scrollbar="false"
-      >
-        <view class="cat-row">
+          <view class="cat-tabs">
+            <view
+              v-for="cat in visibleCategories"
+              :key="String(cat.tagId)"
+              class="cat-tab"
+              :class="{ active: activeCategory.tagId === cat.tagId }"
+              @click="selectCategory(cat)"
+            >
+              {{ cat.label }}
+            </view>
+            <view class="cat-tab cat-more" @click="toggleCategoriesExpanded">
+              更多 <text class="cat-more-icon">
+                +
+              </text>
+            </view>
+          </view>
+        </scroll-view>
+        <view v-else class="cat-tabs cat-tabs-wrap">
           <view
-            v-for="cat in visibleCategories"
+            v-for="cat in categories"
             :key="String(cat.tagId)"
-            class="cat-chip"
+            class="cat-tab"
             :class="{ active: activeCategory.tagId === cat.tagId }"
             @click="selectCategory(cat)"
           >
             {{ cat.label }}
           </view>
-          <view class="cat-chip cat-more" @click="toggleCategoriesExpanded">
-            展开
+          <view v-if="showCategoryToggle" class="cat-tab cat-more" @click="toggleCategoriesExpanded">
+            收起 <text class="cat-more-icon">
+              −
+            </text>
           </view>
         </view>
-      </scroll-view>
-      <view v-else class="cat-row">
-        <view
-          v-for="cat in categories"
-          :key="String(cat.tagId)"
-          class="cat-chip"
-          :class="{ active: activeCategory.tagId === cat.tagId }"
-          @click="selectCategory(cat)"
-        >
-          {{ cat.label }}
+
+        <view v-if="loading" class="content-state">
+          <HgtLoading text="正在铺开题卷…" size="md" />
+        </view>
+        <view v-else-if="loadError" class="content-state">
+          <text>谜题暂时没有浮上来</text>
+          <button class="btn-ghost-sm" @click="loadHome">
+            重新加载
+          </button>
+        </view>
+        <view v-else-if="!featured.length" class="content-state">
+          <text>暂无谜题</text>
+        </view>
+        <view v-else class="featured-grid">
+          <QuestionTextCard
+            v-for="(item, index) in featured"
+            :key="item.id"
+            :question="item"
+            :index="index"
+            @click="openQuestion"
+          />
+        </view>
+      </section>
+    </view>
+
+    <section class="explore">
+      <view class="explore-glow" aria-hidden="true" />
+      <view class="explore-inner">
+        <view class="explore-left">
+          <text class="explore-number">
+            {{ exploreCountDisplay }}
+          </text>
+          <text class="explore-unit">
+            个故事沉在水下。
+          </text>
+        </view>
+        <view class="explore-right">
+          <text class="explore-copy">
+            有些荒诞，有些温柔，<br>
+            有些真相直到最后才会浮现。
+          </text>
+          <view class="explore-rule" aria-hidden="true" />
+          <text class="explore-note">
+            从标题、汤面与标签中找到下一道想玩的谜题。
+          </text>
+          <button class="explore-link" @click="goToQuestions">
+            探索全部谜题 →
+          </button>
         </view>
       </view>
     </section>
 
-    <!-- Featured -->
-    <section class="featured">
-      <view class="section-head">
-        <view class="section-title-wrap">
-          <text class="section-title">
-            精选题库
-          </text>
-          <text class="section-en">
-            CURATED
-          </text>
-        </view>
-        <button class="btn-link" @click="refreshFeatured">
-          换一批 ›
-        </button>
-      </view>
-
-      <view v-if="loading" class="content-state">
-        <HgtLoading text="正在铺开题卷…" size="md" />
-      </view>
-      <view v-else-if="loadError" class="content-state error-state">
-        <image class="empty-img" :src="emptyNetworkUrl" mode="aspectFit" />
-        <text>谜题暂时没有浮上来</text>
-        <button class="btn-ghost btn-ghost-sm" @click="loadHome">
-          重新加载
-        </button>
-      </view>
-      <view v-else-if="!featured.length" class="content-state">
-        <image class="empty-img" :src="emptyNoneUrl" mode="aspectFit" />
-        <text>暂无谜题</text>
-      </view>
-      <view v-else class="puzzle-grid">
-        <view
-          v-for="item in featured"
-          :key="item.id"
-          class="puzzle-card"
-          @click="openQuestion(item.id)"
-        >
-          <view class="card-cover">
-            <image class="cover-img" :src="questionCoverUrl(item)" mode="aspectFill" />
-            <view class="cover-wash" />
-          </view>
-          <view class="card-body">
-            <text class="card-title">
-              {{ item.title }}
-            </text>
-            <view class="card-tags">
-              <text class="tag tag-cat">
-                {{ categoryTagLabel(item) }}
-              </text>
-              <text class="tag tag-diff" :class="difficultyClass(item.difficulty)">
-                {{ difficulty(item.difficulty) }}
-              </text>
-            </view>
-            <text class="card-surface">
-              {{ item.surface }}
-            </text>
-            <view class="card-meta">
-              <text class="meta-item">
-                ♥ {{ formatCount(item.play_count) }}
-              </text>
-              <text class="meta-item">
-                约 {{ 8 + item.difficulty * 3 }} 分钟
-              </text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </section>
-
-    <!-- How to -->
     <section class="how">
       <view class="section-title-wrap">
         <text class="section-title">
@@ -405,69 +417,41 @@ onMounted(() => {
         </text>
       </view>
       <view class="steps">
-        <view class="step">
+        <view class="steps-line" aria-hidden="true" />
+        <view v-for="step in STEPS" :key="step.no" class="step">
+          <view class="step-node" aria-hidden="true" />
           <text class="step-no">
-            01
+            {{ step.no }}
           </text>
           <text class="step-title">
-            阅读汤面
+            {{ step.title }}
           </text>
           <text class="step-copy">
-            从一段反常的故事开头寻找线索。
+            {{ step.copy }}
           </text>
         </view>
-        <view class="step">
-          <text class="step-no">
-            02
-          </text>
-          <text class="step-title">
-            不断提问
-          </text>
-          <text class="step-copy">
-            用「是 / 否 / 无关」缩小真相范围。
-          </text>
-        </view>
-        <view class="step">
-          <text class="step-no">
-            03
-          </text>
-          <text class="step-title">
-            提交推理
-          </text>
-          <text class="step-copy">
-            串联线索，说出完整故事真相。
-          </text>
-        </view>
-      </view>
-      <view v-if="supportsPublicRooms" class="multi-entry" @click="openPublicRooms">
-        <view class="multi-copy-wrap">
-          <text class="multi-title">
-            多人房间
-          </text>
-          <text class="multi-copy">
-            和朋友一起推理同一碗汤
-          </text>
-        </view>
-        <text class="multi-arrow">
-          →
-        </text>
       </view>
     </section>
 
     <footer class="site-footer">
-      <view class="footer-brand">
-        <text class="hgt-en footer-en">
-          MOYUU
-        </text>
-        <text class="hgt-display footer-zh">
-          海龟汤
-        </text>
-        <text class="footer-tag">
-          每一个故事，都是一个小小的世界。
+      <text class="footer-brand">
+        墨鱼海龟汤
+      </text>
+      <text class="footer-tagline">
+        谜题沉在水下，真相等待浮现。
+      </text>
+      <view class="footer-links">
+        <text
+          v-for="link in footerLinks"
+          :key="link.name"
+          class="footer-link"
+          @click="openFooterLink(link)"
+        >
+          {{ link.label }}
         </text>
       </view>
-      <text class="footer-note">
-        谜题在深处，等你浮上水面。
+      <text class="footer-copy">
+        © 2026 MOYUU Turtle Soup
       </text>
     </footer>
   </view>
@@ -478,633 +462,587 @@ onMounted(() => {
   min-height: 100%;
   background: var(--hgt-bg);
   color: var(--hgt-text);
+  font-family: var(--hgt-font-body);
 }
 
-/* ===== Hero · 满幅水墨背景（对齐图1） ===== */
-.hero {
+.stage {
   position: relative;
-  display: flex;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: max(52vh, 440px);
-  height: calc(100vh - var(--hgt-header-h) - 240px);
-  max-height: min(72vh, 780px);
-  padding: 48px 48px 40px;
-  align-items: center;
   overflow: hidden;
   background: var(--hgt-bg);
 }
-.hero::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1;
-  height: 72px;
-  background: linear-gradient(180deg, rgba(248, 248, 247, 0) 0%, var(--hgt-bg) 100%);
-  pointer-events: none;
-}
-.hero-bg {
+
+.stage-bg {
   position: absolute;
   inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
+  background-color: #041418;
+  background-image: url('/static/hgt/bg/bg_deep_ocean_hero.jpg');
+  background-position: 62% 24%;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: scroll;
 }
-.hero-bg :deep(img) {
-  width: 100%;
-  height: 100%;
-  object-fit: cover !important;
-  /* 右侧保留枫叶/猫/亭，左侧留给文案 */
-  object-position: 62% center !important;
-}
-.hero-veil {
+
+.stage-veil {
   position: absolute;
   inset: 0;
   z-index: 1;
   background:
     linear-gradient(90deg,
-      rgba(248, 248, 247, 0.92) 0%,
-      rgba(248, 248, 247, 0.72) 28%,
-      rgba(248, 248, 247, 0.28) 48%,
-      rgba(248, 248, 247, 0.06) 72%,
-      rgba(248, 248, 247, 0) 100%),
+      rgba(4, 20, 24, 0.55) 0%,
+      rgba(4, 20, 24, 0.28) 28%,
+      rgba(4, 20, 24, 0.08) 52%,
+      transparent 72%),
     linear-gradient(180deg,
-      rgba(248, 248, 247, 0.12) 0%,
-      rgba(248, 248, 247, 0) 40%,
-      rgba(248, 248, 247, 0.35) 100%);
+      rgba(6, 26, 32, 0.06) 0%,
+      transparent 26%,
+      rgba(6, 26, 32, 0.22) 56%,
+      rgba(6, 26, 32, 0.62) 82%,
+      #061a20 100%);
   pointer-events: none;
 }
+
+.hero {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: clamp(420px, 50vh, 560px);
+  height: clamp(420px, 50vh, 560px);
+  padding: 40px 0 96px;
+  align-items: center;
+}
+
 .hero-inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
-  width: min(480px, 46%);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 16px;
+  align-items: flex-start;
   flex-direction: column;
 }
-.hero-kicker-row {
-  display: flex;
+
+.hero-kicker {
   margin-bottom: 18px;
-  align-items: center;
-  gap: 12px;
-}
-.hero-kicker-en {
   color: var(--hgt-brand);
   font-family: var(--hgt-font-en);
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 0.28em;
 }
-.hero-kicker-line {
-  width: 36px;
-  height: 1px;
-  background: var(--hgt-brand);
-  opacity: 0.55;
-}
-.hero-kicker-sub {
-  color: var(--hgt-text-3);
-  font-family: var(--hgt-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-}
+
 .hero-title {
-  color: var(--hgt-text);
+  max-width: 460px;
+  color: var(--hgt-text-bright);
   font-family: var(--hgt-font-display);
-  font-size: 40px;
+  font-size: 28px;
   font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0.06em;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
 }
-.hero-title-row {
-  display: flex;
-  margin-top: 2px;
-  color: var(--hgt-text);
-  font-family: var(--hgt-font-display);
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: 0.06em;
-  flex-wrap: wrap;
-}
+
 .hero-accent {
   color: var(--hgt-brand);
 }
+
 .hero-copy {
-  margin: 18px 0 24px;
+  max-width: 460px;
+  margin: 18px 0 28px;
   color: var(--hgt-text-2);
-  font-family: var(--hgt-font-display);
-  font-size: 15px;
-  line-height: 1.85;
-}
-.hero-actions {
-  display: flex;
-  margin-bottom: 28px;
-  gap: 12px;
-}
-.btn-primary {
-  display: flex;
-  height: 48px;
-  margin: 0;
-  padding: 0 28px;
-  border: 0;
-  border-radius: 6px;
-  align-items: center;
-  justify-content: center;
-  background: var(--hgt-brand);
-  color: var(--hgt-on-brand);
-  font-family: var(--hgt-font-display);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  transition: filter var(--hgt-dur-fast), transform var(--hgt-dur-fast);
-}
-.btn-primary:hover {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
-}
-.btn-primary::after {
-  border: 0;
-}
-.btn-ghost {
-  display: flex;
-  height: 48px;
-  margin: 0;
-  padding: 0 22px;
-  border: 1px solid var(--hgt-border);
-  border-radius: 6px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--hgt-text);
   font-family: var(--hgt-font-display);
   font-size: 14px;
-  letter-spacing: 0.08em;
-  transition: border-color var(--hgt-dur-fast), background var(--hgt-dur-fast);
+  line-height: 1.85;
 }
-.btn-ghost:hover {
-  border-color: var(--hgt-brand);
-  background: var(--hgt-brand-soft);
-}
-.btn-ghost::after {
-  border: 0;
-}
-.btn-ghost-sm {
-  height: 36px;
-  padding: 0 14px;
-  font-size: 12px;
-}
-.btn-play-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--hgt-brand);
-}
-.hero-stats {
+
+.hero-actions {
   display: flex;
-  gap: 36px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
-.hero-stat {
+
+.btn-primary,
+.btn-ghost {
   display: flex;
-  gap: 6px;
-  flex-direction: column;
-}
-.hero-stat-value {
-  color: var(--hgt-text);
+  height: 46px;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
   font-family: var(--hgt-font-display);
-  font-size: 22px;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.btn-primary {
+  padding: 0 24px;
+  border: 0;
+  border-radius: var(--hgt-radius-sm);
+  background: var(--hgt-brand);
+  color: var(--hgt-on-brand);
   font-weight: 600;
 }
-.hero-stat-label {
-  color: var(--hgt-text-3);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-}
-.hero-seal {
-  position: absolute;
-  z-index: 2;
-  left: 28px;
-  bottom: 88px;
-  padding: 8px 6px;
-  border: 2px solid var(--hgt-accent);
-  border-radius: 2px;
-  color: var(--hgt-accent);
-  font-family: var(--hgt-font-display);
-  font-size: 12px;
-  letter-spacing: 0.2em;
-  writing-mode: vertical-rl;
-  opacity: 0.9;
-  transform: rotate(-6deg);
-}
 
-/* ===== Categories ===== */
-.cat-band {
-  position: relative;
-  z-index: 2;
-  margin: -8px 48px 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-md);
-  background: color-mix(in srgb, var(--hgt-card) 92%, transparent);
-  box-shadow: var(--hgt-shadow-sm);
-  backdrop-filter: blur(8px);
-}
-.cat-scroll-view {
-  width: 100%;
-  white-space: nowrap;
-}
-.cat-row {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  align-items: center;
-}
-.cat-row-wrap {
-  flex-wrap: wrap;
-  row-gap: 8px;
-}
-.cat-chip {
-  display: inline-flex;
-  height: 34px;
-  padding: 0 14px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  align-items: center;
-  background: var(--hgt-card-2);
-  color: var(--hgt-text-2);
-  font-family: var(--hgt-font-display);
-  font-size: 13px;
-  white-space: nowrap;
-  transition: all var(--hgt-dur-fast);
-}
-.cat-chip.active {
-  border-color: var(--hgt-brand);
-  background: var(--hgt-brand-soft);
-  color: var(--hgt-brand-deep);
-}
-.cat-more {
-  border-style: dashed;
-  border-color: var(--hgt-border);
+.btn-ghost {
+  padding: 0 20px;
+  border: 1px solid rgba(232, 244, 242, 0.22);
+  border-radius: var(--hgt-radius-sm);
   background: transparent;
-  cursor: pointer;
+  color: var(--hgt-text);
 }
 
-/* ===== Featured ===== */
-.featured {
-  padding: 20px 48px 8px;
+.btn-primary::after,
+.btn-ghost::after,
+.btn-link::after,
+.btn-ghost-sm::after,
+.explore-link::after {
+  border: 0;
 }
+
+.featured {
+  position: relative;
+  z-index: 3;
+  box-sizing: border-box;
+  width: min(var(--hgt-content-max), 100%);
+  margin: -72px auto 0;
+  padding: 28px 20px 48px;
+}
+
 .section-head {
   display: flex;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   align-items: flex-end;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
+
 .section-title-wrap {
   display: flex;
   align-items: baseline;
   gap: 10px;
 }
+
 .section-title {
-  color: var(--hgt-text);
+  color: var(--hgt-text-bright);
   font-family: var(--hgt-font-display);
   font-size: 22px;
   font-weight: 600;
   letter-spacing: 0.08em;
 }
+
 .section-en {
   color: var(--hgt-text-3);
   font-family: var(--hgt-font-mono);
   font-size: 10px;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
 }
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .btn-link {
-  height: 32px;
+  height: 28px;
   margin: 0;
-  padding: 0 4px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--hgt-text-2);
+  color: var(--hgt-text-3);
   font-family: var(--hgt-font-display);
   font-size: 13px;
 }
-.btn-link:hover {
+
+.btn-link-strong {
+  color: var(--hgt-text-2);
+}
+
+.cat-scroll {
+  width: 100%;
+  margin-bottom: 20px;
+  white-space: nowrap;
+}
+
+.cat-tabs {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.cat-tabs-wrap {
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.cat-tab {
+  position: relative;
+  display: inline-flex;
+  padding: 8px 2px 10px;
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-display);
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cat-tab.active {
   color: var(--hgt-brand);
 }
-.btn-link::after {
-  border: 0;
+
+.cat-tab.active::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--hgt-brand);
+  content: '';
+}
+
+.cat-more {
+  color: var(--hgt-text-3);
+}
+
+.cat-more-icon {
+  margin-left: 4px;
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 13px;
 }
 
 .content-state {
   display: flex;
-  min-height: 220px;
+  min-height: 200px;
   padding: 24px 8px;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   color: var(--hgt-text-2);
+  font-family: var(--hgt-font-display);
   font-size: 13px;
-  text-align: center;
-}
-.empty-img {
-  width: min(200px, 56vw);
-  height: 140px;
-  border-radius: var(--hgt-radius-lg);
-  background: var(--hgt-card);
 }
 
-.puzzle-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-}
-.puzzle-card {
-  display: flex;
+.btn-ghost-sm {
+  height: 34px;
+  margin: 0;
+  padding: 0 14px;
   border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-md);
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--hgt-card);
-  box-shadow: var(--hgt-shadow-sm);
-  cursor: pointer;
-  transition: transform var(--hgt-dur-fast), border-color var(--hgt-dur-fast), box-shadow var(--hgt-dur-fast);
+  border-radius: var(--hgt-radius-sm);
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-family: var(--hgt-font-display);
+  font-size: 12px;
 }
-.puzzle-card:hover {
-  border-color: color-mix(in srgb, var(--hgt-brand) 40%, var(--hgt-border));
-  box-shadow: var(--hgt-shadow-md);
-  transform: translateY(-2px);
+
+.featured-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
-.card-cover {
+
+.explore {
   position: relative;
-  aspect-ratio: 16 / 10;
-  overflow: hidden;
-  background: var(--hgt-moon);
-}
-.cover-img {
   width: 100%;
-  height: 100%;
+  padding: 56px 20px 40px;
+  overflow: hidden;
+  background: var(--hgt-bg);
 }
-.cover-wash {
+
+.explore-glow {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(248, 248, 247, 0.04) 0%, rgba(42, 42, 40, 0.06) 100%);
+  top: 10%;
+  right: 8%;
+  width: min(420px, 60vw);
+  height: min(420px, 60vw);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(94, 196, 184, 0.12) 0%, rgba(94, 196, 184, 0.04) 42%, transparent 70%);
   pointer-events: none;
 }
-.card-body {
-  display: flex;
-  min-width: 0;
-  padding: 14px 14px 16px;
-  gap: 8px;
-  flex-direction: column;
-}
-.card-title {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--hgt-text);
-  font-family: var(--hgt-font-display);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.35;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.card-tags {
-  display: flex;
-  gap: 6px;
-}
-.tag {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  line-height: 1.5;
-}
-.tag-cat {
-  background: var(--hgt-card-2);
-  color: var(--hgt-text-2);
-}
-.tag-diff.easy {
-  background: var(--hgt-brand-soft);
-  color: var(--hgt-brand-deep);
-}
-.tag-diff.mid {
-  background: var(--hgt-gold-soft);
-  color: #8a6a12;
-}
-.tag-diff.hard {
-  background: var(--hgt-accent-soft);
-  color: var(--hgt-accent);
-}
-.card-surface {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--hgt-text-2);
-  font-size: 12px;
-  line-height: 1.55;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.card-meta {
-  display: flex;
-  margin-top: 2px;
-  align-items: center;
-  gap: 12px;
-  color: var(--hgt-text-3);
-  font-size: 11px;
-  white-space: nowrap;
+
+.explore-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(var(--hgt-content-max), 100%);
+  margin: 0 auto;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: end;
 }
 
-/* ===== How ===== */
-.how {
-  padding: 28px 48px 48px;
-}
-.steps {
-  display: grid;
-  margin-top: 18px;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-.step {
+.explore-left {
   display: flex;
-  padding: 22px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-md);
-  gap: 10px;
   flex-direction: column;
-  background: var(--hgt-card);
+  gap: 10px;
 }
+
+.explore-number {
+  color: var(--hgt-text-bright);
+  font-family: var(--hgt-font-mono);
+  font-size: clamp(72px, 16vw, 120px);
+  font-weight: 500;
+  line-height: 0.9;
+  opacity: 0.18;
+  user-select: none;
+}
+
+.explore-unit {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 22px;
+}
+
+.explore-right {
+  display: flex;
+  gap: 14px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.explore-copy {
+  color: var(--hgt-text-2);
+  font-family: var(--hgt-font-display);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.explore-rule {
+  width: 72px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(94, 196, 184, 0.55), transparent);
+}
+
+.explore-note {
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-display);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.explore-link {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-display);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.how {
+  width: min(var(--hgt-content-max), 100%);
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+.steps {
+  position: relative;
+  display: grid;
+  margin-top: 28px;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+
+.steps-line {
+  position: absolute;
+  top: 10px;
+  bottom: 24px;
+  left: 3px;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(94, 196, 184, 0.35), rgba(94, 196, 184, 0.08));
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+  padding-left: 20px;
+}
+
+.step-node {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--hgt-brand);
+  border-radius: 50%;
+  background: var(--hgt-bg);
+}
+
 .step-no {
   color: var(--hgt-brand);
   font-family: var(--hgt-font-mono);
   font-size: 12px;
-  letter-spacing: 0.16em;
 }
+
 .step-title {
-  color: var(--hgt-text);
+  color: var(--hgt-text-bright);
   font-family: var(--hgt-font-display);
   font-size: 18px;
   font-weight: 600;
 }
+
 .step-copy {
   color: var(--hgt-text-2);
-  font-size: 13px;
-  line-height: 1.6;
-}
-.multi-entry {
-  display: flex;
-  margin-top: 18px;
-  padding: 20px 24px;
-  border: 1px dashed var(--hgt-border-soft);
-  border-radius: var(--hgt-radius-md);
-  align-items: center;
-  gap: 16px;
-  background: var(--hgt-card);
-  cursor: pointer;
-}
-.multi-entry:hover {
-  border-color: var(--hgt-brand);
-  background: var(--hgt-brand-soft);
-}
-.multi-copy-wrap {
-  display: flex;
-  flex: 1;
-  gap: 6px;
-  flex-direction: column;
-}
-.multi-title {
-  color: var(--hgt-text);
   font-family: var(--hgt-font-display);
-  font-size: 15px;
-  font-weight: 600;
-}
-.multi-copy {
-  color: var(--hgt-text-2);
   font-size: 13px;
-}
-.multi-arrow {
-  color: var(--hgt-brand);
-  font-size: 18px;
+  line-height: 1.7;
 }
 
-/* ===== Footer ===== */
 .site-footer {
   display: flex;
-  margin: 0 48px;
-  padding: 24px 0 40px;
-  border-top: 1px solid var(--hgt-border);
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-.footer-brand {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.footer-en {
-  color: var(--hgt-brand);
-  font-size: 16px;
-  letter-spacing: 0.18em;
-}
-.footer-zh {
-  font-size: 16px;
-  letter-spacing: 0.12em;
-}
-.footer-tag {
+  box-sizing: border-box;
   width: 100%;
-  color: var(--hgt-text-3);
-  font-family: var(--hgt-font-display);
-  font-size: 12px;
+  padding: 40px 20px 48px;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  background: #041418;
+  border-top: 1px solid var(--hgt-border-soft);
 }
-.footer-note {
-  color: var(--hgt-text-3);
+
+.footer-brand {
+  color: var(--hgt-text-bright);
+  font-family: var(--hgt-font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.footer-tagline {
+  color: var(--hgt-text-2);
   font-family: var(--hgt-font-display);
   font-size: 13px;
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 1199px) {
-  .puzzle-grid {
+.footer-links {
+  display: flex;
+  margin-top: 10px;
+  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.footer-link {
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-display);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.footer-copy {
+  margin-top: 16px;
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 11px;
+}
+
+@media (min-width: 768px) {
+  .stage-bg {
+    background-position: 55% 22%;
+  }
+
+  .hero {
+    padding: 48px 0 120px;
+  }
+
+  .hero-inner {
+    padding: 0 clamp(24px, 4.5vw, 64px);
+  }
+
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .featured {
+    margin-top: -88px;
+    padding: 32px clamp(24px, 4.5vw, 64px) 56px;
+  }
+
+  .featured-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .explore {
+    padding: 72px clamp(24px, 4.5vw, 64px) 56px;
+  }
+
+  .explore-inner {
+    grid-template-columns: minmax(220px, 0.9fr) minmax(280px, 1.1fr);
+    gap: 40px;
+  }
+
+  .how {
+    padding: 24px clamp(24px, 4.5vw, 64px) 80px;
+  }
+
+  .steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+  }
+
+  .steps-line {
+    top: 9px;
+    right: 8%;
+    bottom: auto;
+    left: 0;
+    width: auto;
+    height: 1px;
+  }
+
+  .step {
+    padding-left: 0;
+    padding-top: 28px;
+  }
+
+  .site-footer {
+    padding: 48px clamp(24px, 4.5vw, 64px) 48px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero-title {
+    font-size: 40px;
+  }
+
+  .featured-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero-inner {
+    padding-left: clamp(32px, 3.5vw, 56px);
+    padding-right: clamp(32px, 3.5vw, 56px);
   }
 }
 
 @media (max-width: 767px) {
-  .hero {
-    min-height: auto;
-    height: auto;
-    max-height: none;
-    padding: 36px 20px 32px;
-    align-items: flex-start;
+  .stage-bg {
+    background-position: 70% 30%;
   }
-  .hero-bg :deep(img) {
-    object-position: 70% center !important;
-  }
-  .hero-veil {
+
+  .stage-veil {
     background:
+      linear-gradient(90deg,
+        rgba(4, 20, 24, 0.42) 0%,
+        rgba(4, 20, 24, 0.2) 40%,
+        transparent 75%),
       linear-gradient(180deg,
-        rgba(248, 248, 247, 0.78) 0%,
-        rgba(248, 248, 247, 0.55) 48%,
-        rgba(248, 248, 247, 0.72) 100%);
-  }
-  .hero-inner {
-    width: 100%;
-  }
-  .hero-title,
-  .hero-title-row {
-    font-size: 28px;
-  }
-  .hero-copy {
-    margin: 14px 0 22px;
-    font-size: 14px;
-  }
-  .hero-actions {
-    width: 100%;
-    margin-bottom: 24px;
-  }
-  .btn-primary,
-  .btn-ghost {
-    flex: 1;
-    padding: 0 12px;
-  }
-  .hero-stats {
-    width: 100%;
-    gap: 0;
-    justify-content: space-between;
-  }
-  .hero-stat-value {
-    font-size: 18px;
-  }
-  .hero-seal {
-    display: none;
-  }
-  .cat-band {
-    margin: 0 16px 8px;
-  }
-  .featured {
-    padding: 12px 16px 0;
-  }
-  .puzzle-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-  .card-body {
-    padding: 10px;
-    gap: 6px;
-  }
-  .card-title {
-    font-size: 14px;
-  }
-  .how {
-    padding: 20px 16px 32px;
-  }
-  .steps {
-    grid-template-columns: 1fr;
-  }
-  .site-footer {
-    margin: 0 16px;
-    padding-bottom: 28px;
-    align-items: flex-start;
-    flex-direction: column;
+        rgba(6, 26, 32, 0.05) 0%,
+        rgba(6, 26, 32, 0.2) 45%,
+        rgba(6, 26, 32, 0.68) 78%,
+        #061a20 100%);
   }
 }
 </style>

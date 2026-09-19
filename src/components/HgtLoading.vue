@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useAnimatedTheme } from '@/composables/useAnimatedTheme'
-
 const props = withDefaults(defineProps<{
   /** 文案；传空字符串则只显示 logo */
   text?: string
@@ -15,13 +13,7 @@ const props = withDefaults(defineProps<{
   block: false,
 })
 
-const { light } = useAnimatedTheme()
-
-const logoSrc = computed(() =>
-  light.value
-    ? '/static/brand/logo-mark-light.png'
-    : '/static/brand/logo-mark-dark.png',
-)
+const logoSrc = '/static/brand/logo-mark-dark.png'
 
 const showText = computed(() => props.text !== '' && props.text != null)
 </script>

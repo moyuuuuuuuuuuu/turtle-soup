@@ -42,6 +42,7 @@ declare global {
   const createSharedComposable: typeof import('@vueuse/core')['createSharedComposable']
   const createTemplatePromise: typeof import('@vueuse/core')['createTemplatePromise']
   const createUnrefFn: typeof import('@vueuse/core')['createUnrefFn']
+  const ctaForStatus: typeof import('./utils/gameStatus')['ctaForStatus']
   const currentAccessToken: typeof import('./api/player')['currentAccessToken']
   const currentDeviceId: typeof import('./api/player')['currentDeviceId']
   const customRef: typeof import('vue')['customRef']
@@ -50,6 +51,10 @@ declare global {
   const defineAsyncComponent: typeof import('vue')['defineAsyncComponent']
   const defineComponent: typeof import('vue')['defineComponent']
   const defineStore: typeof import('pinia')['defineStore']
+  const depthCode: typeof import('./utils/depth')['depthCode']
+  const depthFraction: typeof import('./utils/depth')['depthFraction']
+  const depthSegments: typeof import('./utils/depth')['depthSegments']
+  const difficultyLabel: typeof import('./utils/depth')['difficultyLabel']
   const donationApi: typeof import('./api/turtle')['donationApi']
   const eagerComputed: typeof import('@vueuse/core')['eagerComputed']
   const effectScope: typeof import('vue')['effectScope']
@@ -60,8 +65,13 @@ declare global {
   const emptySearchUrl: typeof import('./utils/questionCover')['emptySearchUrl']
   const ensureAnonymousSession: typeof import('./api/turtle')['ensureAnonymousSession']
   const ensurePlayerAccessToken: typeof import('./api/player')['ensurePlayerAccessToken']
+  const estimateMinutes: typeof import('./utils/depth')['estimateMinutes']
   const extendRef: typeof import('@vueuse/core')['extendRef']
+  const formatClock: typeof import('./utils/gameStatus')['formatClock']
   const formatCount: typeof import('./utils/index')['formatCount']
+  const formatDuration: typeof import('./utils/gameStatus')['formatDuration']
+  const formatPlayCount: typeof import('./utils/depth')['formatPlayCount']
+  const formatRelativeTime: typeof import('./utils/gameStatus')['formatRelativeTime']
   const friendLinkApi: typeof import('./api/turtle')['friendLinkApi']
   const gameApi: typeof import('./api/turtle')['gameApi']
   const getActivePinia: typeof import('pinia')['getActivePinia']
@@ -76,11 +86,13 @@ declare global {
   const inject: typeof import('vue')['inject']
   const injectLocal: typeof import('@vueuse/core')['injectLocal']
   const invalidatePlayerSession: typeof import('./api/player')['invalidatePlayerSession']
+  const isActiveStatus: typeof import('./utils/gameStatus')['isActiveStatus']
   const isDefined: typeof import('@vueuse/core')['isDefined']
   const isProxy: typeof import('vue')['isProxy']
   const isReactive: typeof import('vue')['isReactive']
   const isReadonly: typeof import('vue')['isReadonly']
   const isRef: typeof import('vue')['isRef']
+  const isSolvedStatus: typeof import('./utils/gameStatus')['isSolvedStatus']
   const makeDestructurable: typeof import('@vueuse/core')['makeDestructurable']
   const mapActions: typeof import('pinia')['mapActions']
   const mapGetters: typeof import('pinia')['mapGetters']
@@ -155,6 +167,8 @@ declare global {
   const refThrottled: typeof import('@vueuse/core')['refThrottled']
   const refWithControl: typeof import('@vueuse/core')['refWithControl']
   const resolveComponent: typeof import('vue')['resolveComponent']
+  const resolveDepth: typeof import('./utils/depth')['resolveDepth']
+  const resolveGameStatus: typeof import('./utils/gameStatus')['resolveGameStatus']
   const resolveRef: typeof import('@vueuse/core')['resolveRef']
   const resolveUnref: typeof import('@vueuse/core')['resolveUnref']
   const roomApi: typeof import('./api/turtle')['roomApi']
@@ -167,9 +181,11 @@ declare global {
   const storedTheme: typeof import('./utils/theme')['storedTheme']
   const subscribeSystemThemeChange: typeof import('./utils/systemTheme')['subscribeSystemThemeChange']
   const supportsPublicRooms: typeof import('./utils/platform')['supportsPublicRooms']
+  const surfaceExcerpt: typeof import('./utils/depth')['surfaceExcerpt']
   const syncRef: typeof import('@vueuse/core')['syncRef']
   const syncRefs: typeof import('@vueuse/core')['syncRefs']
   const tagApi: typeof import('./api/turtle')['tagApi']
+  const tagSummary: typeof import('./utils/depth')['tagSummary']
   const templateRef: typeof import('@vueuse/core')['templateRef']
   const themeColorOptions: typeof import('./composables/useManualTheme')['themeColorOptions']
   const throttledRef: typeof import('@vueuse/core')['throttledRef']
@@ -433,6 +449,7 @@ declare module 'vue' {
     readonly createSharedComposable: UnwrapRef<typeof import('@vueuse/core')['createSharedComposable']>
     readonly createTemplatePromise: UnwrapRef<typeof import('@vueuse/core')['createTemplatePromise']>
     readonly createUnrefFn: UnwrapRef<typeof import('@vueuse/core')['createUnrefFn']>
+    readonly ctaForStatus: UnwrapRef<typeof import('./utils/gameStatus')['ctaForStatus']>
     readonly currentAccessToken: UnwrapRef<typeof import('./api/player')['currentAccessToken']>
     readonly currentDeviceId: UnwrapRef<typeof import('./api/player')['currentDeviceId']>
     readonly customRef: UnwrapRef<typeof import('vue')['customRef']>
@@ -441,6 +458,10 @@ declare module 'vue' {
     readonly defineAsyncComponent: UnwrapRef<typeof import('vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('vue')['defineComponent']>
     readonly defineStore: UnwrapRef<typeof import('pinia')['defineStore']>
+    readonly depthCode: UnwrapRef<typeof import('./utils/depth')['depthCode']>
+    readonly depthFraction: UnwrapRef<typeof import('./utils/depth')['depthFraction']>
+    readonly depthSegments: UnwrapRef<typeof import('./utils/depth')['depthSegments']>
+    readonly difficultyLabel: UnwrapRef<typeof import('./utils/depth')['difficultyLabel']>
     readonly donationApi: UnwrapRef<typeof import('./api/turtle')['donationApi']>
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
@@ -451,8 +472,13 @@ declare module 'vue' {
     readonly emptySearchUrl: UnwrapRef<typeof import('./utils/questionCover')['emptySearchUrl']>
     readonly ensureAnonymousSession: UnwrapRef<typeof import('./api/turtle')['ensureAnonymousSession']>
     readonly ensurePlayerAccessToken: UnwrapRef<typeof import('./api/player')['ensurePlayerAccessToken']>
+    readonly estimateMinutes: UnwrapRef<typeof import('./utils/depth')['estimateMinutes']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly formatClock: UnwrapRef<typeof import('./utils/gameStatus')['formatClock']>
     readonly formatCount: UnwrapRef<typeof import('./utils/index')['formatCount']>
+    readonly formatDuration: UnwrapRef<typeof import('./utils/gameStatus')['formatDuration']>
+    readonly formatPlayCount: UnwrapRef<typeof import('./utils/depth')['formatPlayCount']>
+    readonly formatRelativeTime: UnwrapRef<typeof import('./utils/gameStatus')['formatRelativeTime']>
     readonly friendLinkApi: UnwrapRef<typeof import('./api/turtle')['friendLinkApi']>
     readonly gameApi: UnwrapRef<typeof import('./api/turtle')['gameApi']>
     readonly getActivePinia: UnwrapRef<typeof import('pinia')['getActivePinia']>
@@ -467,11 +493,13 @@ declare module 'vue' {
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
     readonly invalidatePlayerSession: UnwrapRef<typeof import('./api/player')['invalidatePlayerSession']>
+    readonly isActiveStatus: UnwrapRef<typeof import('./utils/gameStatus')['isActiveStatus']>
     readonly isDefined: UnwrapRef<typeof import('@vueuse/core')['isDefined']>
     readonly isProxy: UnwrapRef<typeof import('vue')['isProxy']>
     readonly isReactive: UnwrapRef<typeof import('vue')['isReactive']>
     readonly isReadonly: UnwrapRef<typeof import('vue')['isReadonly']>
     readonly isRef: UnwrapRef<typeof import('vue')['isRef']>
+    readonly isSolvedStatus: UnwrapRef<typeof import('./utils/gameStatus')['isSolvedStatus']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>
     readonly mapActions: UnwrapRef<typeof import('pinia')['mapActions']>
     readonly mapGetters: UnwrapRef<typeof import('pinia')['mapGetters']>
@@ -546,6 +574,8 @@ declare module 'vue' {
     readonly refThrottled: UnwrapRef<typeof import('@vueuse/core')['refThrottled']>
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
+    readonly resolveDepth: UnwrapRef<typeof import('./utils/depth')['resolveDepth']>
+    readonly resolveGameStatus: UnwrapRef<typeof import('./utils/gameStatus')['resolveGameStatus']>
     readonly resolveRef: UnwrapRef<typeof import('@vueuse/core')['resolveRef']>
     readonly resolveUnref: UnwrapRef<typeof import('@vueuse/core')['resolveUnref']>
     readonly roomApi: UnwrapRef<typeof import('./api/turtle')['roomApi']>
@@ -558,9 +588,11 @@ declare module 'vue' {
     readonly storedTheme: UnwrapRef<typeof import('./utils/theme')['storedTheme']>
     readonly subscribeSystemThemeChange: UnwrapRef<typeof import('./utils/systemTheme')['subscribeSystemThemeChange']>
     readonly supportsPublicRooms: UnwrapRef<typeof import('./utils/platform')['supportsPublicRooms']>
+    readonly surfaceExcerpt: UnwrapRef<typeof import('./utils/depth')['surfaceExcerpt']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
     readonly tagApi: UnwrapRef<typeof import('./api/turtle')['tagApi']>
+    readonly tagSummary: UnwrapRef<typeof import('./utils/depth')['tagSummary']>
     readonly templateRef: UnwrapRef<typeof import('@vueuse/core')['templateRef']>
     readonly themeColorOptions: UnwrapRef<typeof import('./composables/useManualTheme')['themeColorOptions']>
     readonly throttledRef: UnwrapRef<typeof import('@vueuse/core')['throttledRef']>

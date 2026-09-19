@@ -1,4 +1,7 @@
-/** 水墨封面池：仅使用 ink 目录，保证与主题一致 */
+/**
+ * @deprecated 题目全面取消无语义缩略图。仅保留空状态图与兼容占位。
+ * 新代码请使用 QuestionTextCard 无图文字卡。
+ */
 const INK = '/static/hgt/ink'
 
 const COVERS = {

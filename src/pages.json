@@ -80,7 +80,7 @@
       "type": "page",
       "name": "guess",
       "style": {
-        "navigationBarTitleText": "最终猜测"
+        "navigationBarTitleText": "提交真相"
       }
     },
     {

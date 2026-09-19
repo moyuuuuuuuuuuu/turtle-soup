@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
-import { paperTextureUrl } from '@/utils/questionCover'
 
-definePage({ name: 'guess', style: { navigationBarTitleText: '最终猜测' } })
+definePage({ name: 'guess', style: { navigationBarTitleText: '提交真相' } })
 
 const route = useRoute()
 const router = useRouter()
@@ -34,238 +33,199 @@ async function doSubmit() {
     busy.value = false
   }
 }
+
+function goBack() {
+  router.back()
+}
 </script>
 
 <template>
   <view class="guess-page">
-    <!-- #ifdef H5 -->
-    <image class="page-bg" src="/static/hgt/ink/hero_ink_landscape.png" mode="aspectFill" />
-    <view class="page-bg-veil" />
-    <!-- #endif -->
     <view class="guess-shell">
       <text class="guess-kicker">
-        FINAL GUESS
+        SUBMIT TRUTH
       </text>
       <text class="guess-title">
-        提交你的真相
+        你认为真相是什么？
       </text>
       <text class="guess-sub">
-        最终猜测仅有一次，提交后立即结算。请尽量说出人物、事件与关键因果。
+        把你目前推理出的完整故事写下来。提交后，主持人会根据汤底判断你的推理。
       </text>
 
-      <view class="paper">
-        <view class="paper-sheet">
-          <image class="paper-texture" :src="paperTextureUrl(gameId)" mode="aspectFill" />
-          <view class="paper-veil" />
-          <view class="paper-inner">
-            <text class="paper-label">
-              汤底
-            </text>
-            <textarea
-              v-model="guess"
-              class="paper-input"
-              :maxlength="2000"
-              placeholder="写下你认为完整的故事真相…"
-            />
-            <text class="paper-count">
-              {{ guess.length }}/2000
-            </text>
-          </view>
-          <image class="paper-key" src="/static/hgt/prop/prop_key.png" mode="aspectFit" />
-        </view>
-        <image class="paper-tape" src="/static/hgt/ui/tape.png" mode="aspectFit" />
+      <view class="truth-panel">
+        <text class="truth-label">
+          真相
+        </text>
+        <textarea
+          v-model="guess"
+          class="truth-input"
+          :maxlength="2000"
+          placeholder="人物、事件与关键因果……"
+        />
+        <text class="truth-count">
+          {{ guess.length }}/2000
+        </text>
       </view>
 
-      <button class="btn-primary" :disabled="!guess.trim() || busy" :loading="busy" @click="submit">
-        提交真相
-      </button>
+      <view class="truth-actions">
+        <button class="btn-ghost" @click="goBack">
+          返回继续提问
+        </button>
+        <button class="btn-primary" :disabled="!guess.trim() || busy" :loading="busy" @click="submit">
+          提交真相 →
+        </button>
+      </view>
+
+      <text class="truth-note">
+        ◇ 不完整也没关系，你可以继续推理后再次提交（若规则允许）。
+      </text>
     </view>
 
     <HgtConfirmDialog
       v-model="confirmOpen"
-      eyebrow="最终猜测"
-      title="确认提交真相？"
-      description="最终猜测仅能提交一次，提交后将立即揭晓汤底。"
-      confirm-text="确认提交"
-      tone="warning"
+      title="提交真相"
+      content="提交后，主持人会根据汤底判断你的推理。"
+      confirm-text="提交真相"
+      cancel-text="再想想"
       @confirm="doSubmit"
-      @cancel="confirmOpen = false"
     />
   </view>
 </template>
 
 <style scoped>
 .guess-page {
-  position: relative;
-  display: flex;
-  box-sizing: border-box;
   min-height: 100%;
-  padding: 48px 20px 64px;
-  align-items: center;
-  justify-content: center;
-  /* 非 H5（小程序等）与首页/登录页同一套灯塔底 */
-  background:
-    var(--hgt-atmo-veil),
-    url('/static/hgt/ink/hero_ink_landscape.png') center / cover;
+  padding: 40px 16px 64px;
+  background: var(--hgt-bg);
   color: var(--hgt-text);
 }
+
 .guess-shell {
-  position: relative;
-  z-index: 1;
+  width: min(var(--hgt-reading-max), 100%);
+  margin: 0 auto;
   display: flex;
-  width: min(560px, 100%);
-  gap: 14px;
   flex-direction: column;
+  gap: 12px;
 }
-/* #ifdef H5 */
-/* H5 用绝对定位 image 铺满视口，避免 CSS 背景在容器高度异常时露底 */
-.guess-page {
-  min-height: 100vh;
-  background: var(--hgt-bg);
-}
-.page-bg {
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  filter: var(--hgt-atmo-filter);
-}
-.page-bg-veil {
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  /* 统一亮度：不再用接近全黑的 veil */
-  background: var(--hgt-atmo-veil);
-}
-/* #endif */
+
 .guess-kicker {
   color: var(--hgt-brand);
   font-family: var(--hgt-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.28em;
+  font-size: 12px;
+  letter-spacing: 0.22em;
 }
+
 .guess-title {
-  color: var(--hgt-text);
+  color: var(--hgt-text-bright);
   font-family: var(--hgt-font-display);
   font-size: 28px;
   font-weight: 600;
+  line-height: 1.3;
 }
+
 .guess-sub {
-  margin-bottom: 8px;
   color: var(--hgt-text-2);
+  font-family: var(--hgt-font-display);
   font-size: 14px;
   line-height: 1.7;
 }
-.paper {
+
+.truth-panel {
   position: relative;
-  min-height: 260px;
-  padding-top: 10px;
-}
-.paper-sheet {
-  position: relative;
-  min-height: 260px;
+  margin-top: 12px;
+  padding: 18px;
+  min-height: 280px;
+  border: 1px solid var(--hgt-border-soft);
   border-radius: var(--hgt-radius-md);
-  overflow: hidden;
-  background: var(--hgt-paper);
-  box-shadow: var(--hgt-shadow-md);
+  background: rgba(15, 53, 57, 0.2);
 }
-.paper-texture {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.92;
-}
-.paper-texture :deep(uni-image),
-.paper-texture :deep(.uni-image),
-.paper-texture :deep(.uni-image-wrapper) {
-  width: 100%;
-  height: 100%;
-}
-.paper-tape {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  left: 50%;
-  width: 96px;
-  height: 30px;
-  transform: translateX(-50%) rotate(1.5deg);
-  opacity: 0.9;
-  pointer-events: none;
-}
-.paper-key {
-  position: absolute;
-  z-index: 0;
-  right: 8px;
-  bottom: 8px;
-  width: 72px;
-  height: 72px;
-  opacity: 0.2;
-  pointer-events: none;
-}
-.paper-veil {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--hgt-paper) 22%, transparent),
-    color-mix(in srgb, var(--hgt-paper) 48%, transparent)
-  );
-}
-.paper-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  padding: 20px 24px;
-  gap: 10px;
-  flex-direction: column;
-}
-.paper-label {
-  color: #5a5e48;
+
+.truth-label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
   font-size: 12px;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.16em;
 }
-.paper-input {
+
+.truth-input {
   box-sizing: border-box;
   width: 100%;
-  min-height: 180px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--hgt-paper-ink);
+  min-height: 220px;
+  color: var(--hgt-text-bright);
   font-family: var(--hgt-font-display);
   font-size: 16px;
-  line-height: 1.8;
+  line-height: 1.9;
+  background: transparent;
+  border: none;
 }
-.paper-count {
-  align-self: flex-end;
-  color: #6a6e58;
-  font-size: 11px;
+
+.truth-count {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
 }
-.btn-primary {
+
+.truth-actions {
+  display: flex;
+  margin-top: 8px;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-primary,
+.btn-ghost {
   height: 48px;
-  margin: 0;
-  padding: 0;
-  border: 0;
+  padding: 0 28px;
   border-radius: var(--hgt-radius-sm);
+  font-family: var(--hgt-font-body);
+  font-size: 15px;
+  line-height: 48px;
+}
+
+.btn-primary {
+  border: 1px solid var(--hgt-brand);
   background: var(--hgt-brand);
   color: var(--hgt-on-brand);
-  font-size: 15px;
-  font-weight: 600;
 }
-.btn-primary::after {
-  border: 0;
+
+.btn-primary[disabled] {
+  opacity: 0.45;
 }
-.btn-primary:disabled {
-  opacity: 0.5;
+
+.btn-ghost {
+  border: 1px solid var(--hgt-border);
+  background: transparent;
+  color: var(--hgt-text-2);
+}
+
+.truth-note {
+  margin-top: 8px;
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-body);
+  font-size: 12px;
+}
+
+@media screen and (max-width: 767px) {
+  .guess-page {
+    padding: 24px 16px 48px;
+  }
+
+  .guess-title {
+    font-size: 24px;
+  }
+
+  .truth-actions {
+    flex-direction: column-reverse;
+  }
+
+  .btn-primary,
+  .btn-ghost {
+    width: 100%;
+  }
 }
 </style>

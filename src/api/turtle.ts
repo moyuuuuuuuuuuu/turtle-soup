@@ -1,4 +1,4 @@
-import type { ApiEnvelope, DonationPage, FriendLink, GameSnapshot, HomeStats, PublicQuestion, PublicTag, RoomSnapshot } from '@/types/game'
+import type { ApiEnvelope, DonationPage, FriendLink, GameHistoryResult, GameSnapshot, HomeStats, PublicQuestion, PublicTag, RoomSnapshot } from '@/types/game'
 import { currentAccessToken, invalidatePlayerSession, playerApi } from '@/api/player'
 import { resolveApiBaseUrl } from '@/config/endpoints'
 
@@ -66,7 +66,16 @@ export const questionApi = {
 }
 export const tagApi = { list: () => request<{ items: PublicTag[] }>('/tags') }
 export const homeApi = { stats: () => request<HomeStats>('/home/stats') }
-export const gameApi = { create: (question_id: string, risk_confirmed = false) => request<GameSnapshot>('/games', 'POST', { question_id, language: 'zh-CN', risk_confirmed }), read: (id: string) => request<GameSnapshot>(`/games/read?id=${id}`), history: () => request<Array<{ id: string, status: string, title: string, difficulty: number }>>('/games/history'), ask: (id: string, question: string) => request<GameSnapshot>('/games/ask', 'POST', { id, question, request_id: requestId() }), hint: (id: string, level: number) => request<GameSnapshot>('/games/hint', 'POST', { id, level, request_id: requestId() }), guess: (id: string, guess: string) => request<GameSnapshot>('/games/guess', 'POST', { id, guess, request_id: requestId() }), abandon: (id: string) => request<GameSnapshot>('/games/abandon', 'POST', { id }) }
+export const gameApi = {
+  create: (question_id: string, risk_confirmed = false) => request<GameSnapshot>('/games', 'POST', { question_id, language: 'zh-CN', risk_confirmed }),
+  read: (id: string) => request<GameSnapshot>(`/games/read?id=${id}`),
+  history: (params: { status?: string, page?: number, page_size?: number, continue_only?: boolean } = {}) =>
+    request<GameHistoryResult>(`/games/history?${queryString(params)}`),
+  ask: (id: string, question: string) => request<GameSnapshot>('/games/ask', 'POST', { id, question, request_id: requestId() }),
+  hint: (id: string, level: number) => request<GameSnapshot>('/games/hint', 'POST', { id, level, request_id: requestId() }),
+  guess: (id: string, guess: string) => request<GameSnapshot>('/games/guess', 'POST', { id, guess, request_id: requestId() }),
+  abandon: (id: string) => request<GameSnapshot>('/games/abandon', 'POST', { id }),
+}
 export const roomApi = {
   list: () => request<RoomSnapshot[]>('/rooms'),
   mine: () => request<RoomSnapshot[]>('/rooms/mine'),

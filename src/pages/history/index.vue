@@ -1,47 +1,162 @@
 <script setup lang="ts">
-import type { GameSnapshot } from '@/types/game'
+import type { GameHistoryItem, GameHistoryStats } from '@/types/game'
 import { ensureAnonymousSession, gameApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
-import { emptyHistoryUrl } from '@/utils/questionCover'
-import { openQuestionDetail } from '@/utils/questionRoute'
+import { difficultyLabel, tagSummary } from '@/utils/depth'
+import { formatDuration, formatRelativeTime, isActiveStatus, resolveGameStatus } from '@/utils/gameStatus'
 
-interface HistoryItem { id: string, status: string, title: string, difficulty: number, question_count?: number, created_at?: string }
 definePage({ name: 'history', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
 const router = useRouter()
 const player = usePlayerStore()
-const items = ref<HistoryItem[]>([])
-const filter = ref('all')
+
+const PAGE_SIZE = 20
+
+type HistoryFilter = 'all' | 'playing' | 'solved' | 'unsolved'
+
+const filterTabs: Array<{ key: HistoryFilter, label: string }> = [
+  { key: 'all', label: '全部' },
+  { key: 'playing', label: '进行中' },
+  { key: 'solved', label: '已解开' },
+  { key: 'unsolved', label: '未解开' },
+]
+
+const items = ref<GameHistoryItem[]>([])
+const continueItems = ref<GameHistoryItem[]>([])
+const stats = ref<GameHistoryStats | null>(null)
+const filter = ref<HistoryFilter>('all')
+const keyword = ref('')
+const sortKey = ref<'update' | 'create'>('update')
+const page = ref(1)
+const total = ref(0)
 const loading = ref(true)
-const resultLoading = ref(false)
-const selectedResult = ref<GameSnapshot | null>(null)
-const completed = computed(() => items.value.filter(item => ['solved', 'finished'].includes(item.status)).length)
-const filtered = computed(() => filter.value === 'all' ? items.value : items.value.filter(item => filter.value === 'completed' ? ['solved', 'finished'].includes(item.status) : item.status === filter.value))
-const statusLabel = (status: string) => ({ created: '进行中', playing: '进行中', solved: '已完成', finished: '已完成', abandoned: '已放弃' }[status] || status)
-const statusClass = (status: string) => ['solved', 'finished'].includes(status) ? 'completed' : status === 'abandoned' ? 'abandoned' : 'playing'
-const difficultyStars = (value: number) => `${'★'.repeat(Math.max(0, Math.min(5, value)))}${'☆'.repeat(Math.max(0, 5 - value))}`
-async function openRecord(item: HistoryItem) {
-  if (['created', 'playing'].includes(item.status)) {
+const listLoading = ref(false)
+const loadError = ref('')
+const loggedIn = ref(false)
+
+const hasContinue = computed(() => continueItems.value.length > 0)
+
+const displayItems = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  let list = items.value
+  if (kw) {
+    list = list.filter((item) => {
+      const title = String(item.title || '').toLowerCase()
+      const surface = String(item.surface || '').toLowerCase()
+      const tags = (item.tags || []).map(tag => String(tag.name || '').toLowerCase())
+      return title.includes(kw) || surface.includes(kw) || tags.some(tag => tag.includes(kw))
+    })
+  }
+  const timeKey = sortKey.value === 'create' ? 'create_time' : 'update_time'
+  return [...list].sort((left, right) => {
+    const l = new Date(String(left[timeKey] || 0).replace(' ', 'T')).getTime() || 0
+    const r = new Date(String(right[timeKey] || 0).replace(' ', 'T')).getTime() || 0
+    return r - l
+  })
+})
+
+const hasMore = computed(() => items.value.length < total.value)
+const isEmpty = computed(() => !listLoading.value && !displayItems.value.length)
+
+const statusMeta = (status: string) => resolveGameStatus(status)
+
+function itemMetaLine(item: GameHistoryItem) {
+  const parts = [difficultyLabel(item.difficulty)]
+  const tags = tagSummary(item.tags, 2)
+  if (tags)
+    parts.push(tags)
+  return parts.join(' · ')
+}
+
+function itemCountLine(item: GameHistoryItem) {
+  const count = `${item.question_count || 0} 次提问`
+  const duration = formatDuration(item.duration_seconds)
+  return duration && duration !== '—' ? `${count} · ${duration}` : count
+}
+
+function openRecord(item: GameHistoryItem) {
+  if (isActiveStatus(item.status)) {
     router.push({ name: 'game', params: { id: item.id } })
     return
   }
-  resultLoading.value = true
+  router.push({ name: 'game', params: { id: item.id }, query: { mode: 'readonly' } })
+}
+
+function goLibrary() {
+  router.push({ name: 'questions' })
+}
+
+function goLogin() {
+  router.replace({ name: 'player-login', query: { redirect: '/pages/history/index' } })
+}
+
+function toggleSort() {
+  sortKey.value = sortKey.value === 'update' ? 'create' : 'update'
+}
+
+function changeFilter(next: HistoryFilter) {
+  if (filter.value === next)
+    return
+  filter.value = next
+  void loadList(true)
+}
+
+function historyParams(reset: boolean) {
+  const params: { status?: string, page: number, page_size: number, continue_only?: boolean } = {
+    page: reset ? 1 : page.value,
+    page_size: PAGE_SIZE,
+  }
+  if (filter.value === 'playing')
+    params.continue_only = true
+  else if (filter.value === 'solved')
+    params.status = 'solved'
+  else if (filter.value === 'unsolved')
+    params.status = 'finished'
+  return params
+}
+
+async function loadContinue() {
   try {
-    selectedResult.value = await gameApi.read(item.id)
+    const result = await gameApi.history({ continue_only: true, page: 1, page_size: 10 })
+    continueItems.value = (result.items || [])
+      .filter(item => isActiveStatus(item.status))
+      .slice(0, 3)
+  }
+  catch {
+    continueItems.value = []
+  }
+}
+
+async function loadList(reset = false) {
+  if (listLoading.value && !reset)
+    return
+  listLoading.value = true
+  loadError.value = ''
+  try {
+    const params = historyParams(reset)
+    const result = await gameApi.history(params)
+    const nextItems = result.items || []
+    items.value = reset ? nextItems : [...items.value, ...nextItems]
+    stats.value = result.stats || stats.value
+    total.value = result.pagination?.total ?? items.value.length
+    const fetchedPage = params.page
+    page.value = nextItems.length ? fetchedPage + 1 : fetchedPage
   }
   catch (error) {
-    uni.showToast({ title: (error as Error).message || '结算信息加载失败', icon: 'none' })
+    loadError.value = (error as Error).message || '推理履历加载失败'
   }
   finally {
-    resultLoading.value = false
+    listLoading.value = false
   }
 }
-function replay() {
-  const questionId = selectedResult.value?.question_id
-  if (!questionId)
-    return
-  selectedResult.value = null
-  void openQuestionDetail({ id: questionId })
+
+function loadMore() {
+  if (!listLoading.value && hasMore.value)
+    void loadList(false)
 }
+
+onReachBottom(loadMore)
+
 onMounted(async () => {
   try {
     await player.restore()
@@ -49,412 +164,673 @@ onMounted(async () => {
       router.replace({ name: 'player-login', query: { redirect: '/pages/history/index' } })
       return
     }
+    loggedIn.value = true
     await ensureAnonymousSession()
-    items.value = await gameApi.history()
+    await Promise.all([loadContinue(), loadList(true)])
   }
-  finally { loading.value = false }
+  finally {
+    loading.value = false
+  }
 })
 </script>
 
 <template>
   <view class="history-page">
-    <view class="page-head">
-      <text class="eyebrow">
-        ◎ 游玩记录
-      </text><text class="title">
-        历史记录
-      </text>
-    </view>
-    <template v-if="player.user">
-      <view class="stats">
-        <view><b>{{ items.length }}</b><text>总游戏数</text></view><view><b>{{ completed }}</b><text>完成数</text></view><view><b>{{ items.length ? Math.round(completed / items.length * 100) : 0 }}%</b><text>完成率</text></view><view><b>{{ items.reduce((sum, item) => sum + (item.question_count || 0), 0) }}</b><text>累计提问</text></view>
-      </view>
-      <scroll-view scroll-x class="filters">
-        <button v-for="tab in [{ key: 'all', label: '全部' }, { key: 'playing', label: '进行中' }, { key: 'completed', label: '已完成' }, { key: 'abandoned', label: '已放弃' }]" :key="tab.key" :class="[tab.key, { active: filter === tab.key }]" @click="filter = tab.key">
-          {{ tab.label }}
+    <template v-if="!loggedIn && !loading">
+      <view class="empty-state">
+        <text class="empty-mark">
+          ◇
+        </text>
+        <text class="empty-title">
+          需要登录后查看推理履历
+        </text>
+        <button class="btn-primary empty-action" @click="goLogin">
+          去登录
         </button>
-      </scroll-view>
-      <view v-if="!filtered.length" class="empty">
-        <image class="empty-img" :src="emptyHistoryUrl" mode="aspectFit" />
-        <text>日志还空着，去题库开一碗吧</text>
-      </view>
-      <view v-else class="records">
-        <view class="table-head">
-          <text>题目</text><text>状态</text><text>难度</text><text>提问次数</text><text>操作</text>
-        </view>
-        <view v-for="item in filtered" :key="item.id" class="record">
-          <text class="record-title">
-            {{ item.title }}
-          </text><text class="status" :class="statusClass(item.status)">
-            {{ statusLabel(item.status) }}
-          </text><text class="stars" :aria-label="`难度 ${item.difficulty} 星`">
-            {{ difficultyStars(item.difficulty) }}
-          </text><text>{{ item.question_count || 0 }} 次</text><button :disabled="resultLoading" @click="openRecord(item)">
-            {{ ['created', 'playing'].includes(item.status) ? '继续' : '查看' }} →
-          </button>
-        </view>
       </view>
     </template>
-    <wd-popup :model-value="Boolean(selectedResult)" position="center" :root-portal="true" custom-class="history-result-popup" @update:model-value="!$event && (selectedResult = null)">
-      <view v-if="selectedResult" class="result-modal">
-        <text class="result-label">
-          {{ selectedResult.status === 'solved' ? '推理成功' : selectedResult.status === 'abandoned' ? '本局已放弃' : '本局结束' }}
+    <template v-else>
+      <view class="page-head">
+        <text class="title">
+          我的推理
         </text>
-        <text class="result-title">
-          {{ selectedResult.title }}
+        <text class="subtitle">
+          查看正在进行和已经完成的谜题。
         </text>
-        <text v-if="selectedResult.guess?.summary" class="result-summary">
-          {{ selectedResult.guess.summary }}
-        </text>
-        <view class="result-bottom">
-          <text class="result-section-label">
-            汤底揭晓
-          </text>
-          <text>{{ selectedResult.bottom || '暂无汤底内容' }}</text>
-        </view>
-        <view v-if="selectedResult.points?.length" class="result-points">
-          <text class="result-section-label">
-            关键推理点
-          </text>
-          <text v-for="point in selectedResult.points" :key="point.key" class="result-point">
-            {{ point.content }}
-          </text>
-        </view>
-        <view class="result-actions">
-          <button @click="selectedResult = null">
-            关闭
-          </button>
-          <button class="primary" :disabled="!selectedResult.question_id" @click="replay">
-            再次游玩
-          </button>
-        </view>
       </view>
-    </wd-popup>
+
+      <view v-if="loading" class="loading-line">
+        正在读取推理履历…
+      </view>
+
+      <template v-else>
+        <section v-if="hasContinue" class="continue-section">
+          <text class="section-label">
+            继续推理
+          </text>
+          <view
+            v-for="item in continueItems"
+            :key="item.id"
+            class="continue-row"
+            role="button"
+            @click="openRecord(item)"
+          >
+            <view class="continue-main">
+              <view class="continue-title-row">
+                <text class="status-dot" :style="{ color: statusMeta(item.status).color }">
+                  {{ statusMeta(item.status).mark }}
+                </text>
+                <text class="continue-title">
+                  {{ item.title }}
+                </text>
+              </view>
+              <text class="continue-meta">
+                {{ itemMetaLine(item) }}
+              </text>
+              <text class="continue-meta soft">
+                上次推理：{{ formatRelativeTime(item.update_time) || '—' }} · 已提问 {{ item.question_count || 0 }} 次
+              </text>
+            </view>
+            <text class="continue-cta">
+              继续推理 →
+            </text>
+          </view>
+        </section>
+
+        <section v-if="stats" class="resume-stats">
+          <text class="section-label">
+            推理履历
+          </text>
+          <view class="stats-row">
+            <view class="stat-cell">
+              <text class="stat-value">
+                {{ stats.played ?? 0 }}
+              </text>
+              <text class="stat-label">
+                玩过的谜题
+              </text>
+            </view>
+            <view class="stat-cell">
+              <text class="stat-value">
+                {{ stats.solved ?? 0 }}
+              </text>
+              <text class="stat-label">
+                已解开
+              </text>
+            </view>
+            <view class="stat-cell">
+              <text class="stat-value">
+                {{ stats.total_questions ?? 0 }}
+              </text>
+              <text class="stat-label">
+                累计提问
+              </text>
+            </view>
+            <view class="stat-cell">
+              <text class="stat-value">
+                {{ formatDuration(stats.total_duration_seconds) }}
+              </text>
+              <text class="stat-label">
+                推理时间
+              </text>
+            </view>
+          </view>
+        </section>
+
+        <section class="history-section">
+          <text class="section-label">
+            历史记录
+          </text>
+
+          <view class="toolbar">
+            <view class="status-tabs">
+              <button
+                v-for="tab in filterTabs"
+                :key="tab.key"
+                class="status-tab"
+                :class="{ active: filter === tab.key }"
+                @click="changeFilter(tab.key)"
+              >
+                {{ tab.label }}
+              </button>
+            </view>
+            <view class="toolbar-right">
+              <input
+                v-model="keyword"
+                class="search-input"
+                type="text"
+                placeholder="搜索玩过的谜题"
+                confirm-type="search"
+              >
+              <button class="sort-btn" @click="toggleSort">
+                {{ sortKey === 'update' ? '最近推理' : '最近游玩' }}⌄
+              </button>
+            </view>
+          </view>
+
+          <view v-if="loadError" class="error-line">
+            {{ loadError }}
+            <button class="text-btn" @click="loadList(true)">
+              重试
+            </button>
+          </view>
+
+          <view v-else-if="isEmpty" class="empty-state">
+            <text class="empty-mark">
+              ◇
+            </text>
+            <text class="empty-title">
+              还没有推理记录
+            </text>
+            <text class="empty-copy">
+              选一碗汤，开始你的第一次推理。
+            </text>
+            <button class="btn-primary empty-action" @click="goLibrary">
+              去题库看看 →
+            </button>
+          </view>
+
+          <view v-else class="record-list">
+            <view
+              v-for="item in displayItems"
+              :key="item.id"
+              class="record-row"
+              role="button"
+              @click="openRecord(item)"
+            >
+              <view class="record-main">
+                <view class="record-title-row">
+                  <text class="record-mark" :style="{ color: statusMeta(item.status).color }">
+                    {{ statusMeta(item.status).mark }}
+                  </text>
+                  <text class="record-title">
+                    {{ item.title }}
+                  </text>
+                </view>
+                <text class="record-meta">
+                  {{ itemMetaLine(item) }}
+                </text>
+                <text class="record-meta soft">
+                  {{ itemCountLine(item) }}
+                </text>
+              </view>
+              <view class="record-side">
+                <text class="record-status" :style="{ color: statusMeta(item.status).color }">
+                  {{ statusMeta(item.status).label }}
+                </text>
+                <text class="record-time">
+                  {{ formatRelativeTime(item.update_time) || formatRelativeTime(item.create_time) }}
+                </text>
+                <text class="record-arrow">
+                  →
+                </text>
+              </view>
+            </view>
+          </view>
+
+          <view v-if="hasMore && !isEmpty" class="load-more">
+            <button class="load-more-btn" :disabled="listLoading" @click="loadMore">
+              {{ listLoading ? '加载中…' : '显示更多' }}
+            </button>
+          </view>
+        </section>
+      </template>
+    </template>
   </view>
 </template>
 
 <style scoped>
 .history-page {
   min-height: 100%;
-  padding-bottom: 40px;
+  padding-bottom: calc(48px + env(safe-area-inset-bottom));
   background: var(--hgt-bg);
   color: var(--hgt-text);
 }
+
 .page-head {
   display: flex;
-  padding: 36px 48px 24px;
-  border-bottom: 1px solid var(--hgt-border);
+  padding: 36px 48px 20px;
   gap: 8px;
   flex-direction: column;
 }
-.eyebrow {
-  color: var(--hgt-brand);
-  font-family: var(--hgt-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.28em;
-}
+
 .title {
   color: var(--hgt-text);
   font-family: var(--hgt-font-display);
   font-size: 28px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
-.stats {
-  display: grid;
-  border-bottom: 1px solid var(--hgt-border);
-  grid-template-columns: repeat(4, 1fr);
-}
-.stats view {
-  display: flex;
-  padding: 22px 48px;
-  border-right: 1px solid var(--hgt-border);
-  gap: 6px;
-  flex-direction: column;
-}
-.stats view:last-child {
-  border-right: 0;
-}
-.stats b {
-  color: var(--hgt-text);
-  font-family: var(--hgt-font-display);
-  font-size: 24px;
-  font-weight: 600;
-}
-.stats text {
-  color: var(--hgt-text-2);
-  font-size: 12px;
-  letter-spacing: 0.1em;
-}
-.filters {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 14px 48px;
-  border-bottom: 1px solid var(--hgt-border);
-  white-space: nowrap;
-  background: var(--hgt-card);
-}
-.filters button {
-  display: inline-flex;
-  height: 34px;
-  margin-right: 8px;
-  padding: 0 14px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-full);
-  align-items: center;
-  background: transparent;
-  color: var(--hgt-text-2);
-  font-size: 13px;
-}
-.filters button::after {
-  border: 0;
-}
-.filters .active {
-  border-color: var(--hgt-brand);
-  background: var(--hgt-brand-soft);
-  color: var(--hgt-brand);
-}
-.filters .playing.active {
-  border-color: var(--hgt-warning);
-  color: var(--hgt-warning);
-  background: rgba(240, 194, 57, 0.14);
-}
-.filters .completed.active {
-  border-color: var(--hgt-success);
-  color: var(--hgt-success-text);
-  background: rgba(120, 146, 98, 0.16);
-}
-.filters .abandoned.active {
-  border-color: var(--hgt-danger);
-  color: var(--hgt-danger);
-  background: rgba(158, 83, 86, 0.12);
-}
-.empty {
-  display: flex;
-  min-height: 240px;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  color: var(--hgt-text-2);
-}
-.empty-img {
-  width: 176px;
-  height: 176px;
-  opacity: 1;
-  border-radius: 0;
-  filter: drop-shadow(0 12px 32px rgba(42, 42, 40, 0.12));
-}
-.records {
-  margin: 24px 48px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-md);
-  overflow: hidden;
-  background: var(--hgt-card);
-}
-.table-head,
-.record {
-  display: grid;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--hgt-border);
-  align-items: center;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-  font-size: 13px;
-}
-.table-head {
-  background: var(--hgt-card-2);
-  color: var(--hgt-text-3);
-  font-size: 12px;
-  letter-spacing: 0.1em;
-}
-.record:last-child {
-  border-bottom: 0;
-}
-.record-title {
-  color: var(--hgt-text);
-  font-family: var(--hgt-font-display);
-  font-size: 15px;
-  font-weight: 600;
-}
-.status {
-  justify-self: start;
-  padding: 3px 8px;
-  border-radius: var(--hgt-radius-xs);
-  font-size: 12px;
-  border: 1px solid;
-}
-.status.playing {
-  border-color: rgba(240, 194, 57, 0.5);
-  color: var(--hgt-warning);
-}
-.status.completed {
-  border-color: rgba(120, 146, 98, 0.5);
-  color: var(--hgt-success-text);
-}
-.status.abandoned {
-  border-color: rgba(158, 83, 86, 0.5);
-  color: var(--hgt-danger);
-}
-.stars {
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  color: var(--hgt-warning);
-}
-.record button {
-  justify-self: start;
-  height: 32px;
-  margin: 0;
-  padding: 0 12px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-sm);
-  background: transparent;
-  color: var(--hgt-brand);
-  font-size: 12px;
-}
-.record button::after {
-  border: 0;
-}
-.result-modal {
-  display: flex;
-  box-sizing: border-box;
-  width: 100%;
-  padding: 28px;
-  gap: 14px;
-  flex-direction: column;
-  background: var(--hgt-card);
-  color: var(--hgt-text);
-}
-.result-label,
-.result-section-label {
-  color: var(--hgt-text-3);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-}
-.result-title {
-  color: var(--hgt-text);
-  font-family: var(--hgt-font-display);
-  font-size: 24px;
-  font-weight: 600;
-}
-.result-summary {
-  color: var(--hgt-text-2);
-  font-size: 13px;
-  line-height: 1.7;
-}
-.result-bottom {
-  display: flex;
-  padding: 18px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-md);
-  gap: 10px;
-  flex-direction: column;
-  background: var(--hgt-paper);
-  color: var(--hgt-paper-ink);
-  font-size: 14px;
-  line-height: 1.8;
-}
-.result-bottom .result-section-label {
-  color: #5a5e48;
-}
-.result-points {
-  display: flex;
-  gap: 8px;
-  flex-direction: column;
-}
-.result-point {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--hgt-border);
+
+.subtitle {
   color: var(--hgt-text-2);
   font-size: 13px;
   line-height: 1.6;
 }
-.result-actions {
+
+.section-label {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+}
+
+.loading-line {
+  padding: 48px;
+  color: var(--hgt-text-3);
+  font-size: 13px;
+}
+
+/* Continue */
+.continue-section {
+  padding: 8px 48px 28px;
+}
+
+.continue-row {
   display: flex;
-  margin-top: 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hgt-border);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.continue-row:first-of-type {
+  border-top: 1px solid var(--hgt-border);
+}
+
+.continue-main {
+  display: flex;
+  min-width: 0;
+  gap: 6px;
+  flex-direction: column;
+}
+
+.continue-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot,
+.record-mark {
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.continue-title {
+  color: var(--hgt-text-bright);
+  font-family: var(--hgt-font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.continue-meta,
+.record-meta {
+  color: var(--hgt-text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.continue-meta.soft,
+.record-meta.soft {
+  color: var(--hgt-text-3);
+}
+
+.continue-cta {
+  flex: none;
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+/* Stats — unframed numbers + thin dividers */
+.resume-stats {
+  padding: 8px 48px 32px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--hgt-border);
+  border-bottom: 1px solid var(--hgt-border);
+}
+
+.stat-cell {
+  display: flex;
+  padding: 20px 16px;
+  gap: 8px;
+  flex-direction: column;
+  border-right: 1px solid var(--hgt-border);
+}
+
+.stat-cell:first-child {
+  padding-left: 0;
+}
+
+.stat-cell:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.stat-value {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.stat-label {
+  color: var(--hgt-text-3);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+/* History list */
+.history-section {
+  padding: 8px 48px 24px;
+}
+
+.toolbar {
+  display: flex;
+  margin-bottom: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.status-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.status-tab {
+  position: relative;
+  height: 36px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-text-3);
+  font-size: 13px;
+  line-height: 36px;
+}
+
+.status-tab::after {
+  border: 0;
+}
+
+.status-tab.active {
+  color: var(--hgt-text);
+}
+
+.status-tab.active::after {
+  position: absolute;
+  right: 8px;
+  bottom: 0;
+  left: 8px;
+  height: 2px;
+  background: var(--hgt-brand);
+  content: '';
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
-.result-actions button {
-  display: flex;
-  height: 44px;
+
+.search-input {
+  box-sizing: border-box;
+  width: min(220px, 42vw);
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: transparent;
+  color: var(--hgt-text);
+  font-size: 12px;
+}
+
+.sort-btn {
+  height: 34px;
   margin: 0;
-  padding: 0 16px;
-  border: 1px solid var(--hgt-border-soft);
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 12px;
+}
+
+.sort-btn::after {
+  border: 0;
+}
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.record-row {
+  display: flex;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hgt-border);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.record-row:first-child {
+  border-top: 1px solid var(--hgt-border);
+}
+
+.record-main {
+  display: flex;
+  min-width: 0;
+  gap: 6px;
+  flex-direction: column;
+}
+
+.record-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.record-title {
+  overflow: hidden;
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-side {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.record-status {
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
+}
+
+.record-time {
+  color: var(--hgt-text-3);
+  font-size: 12px;
+}
+
+.record-arrow {
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 14px;
+}
+
+.load-more {
+  display: flex;
+  padding: 20px 0 8px;
+  justify-content: center;
+}
+
+.load-more-btn,
+.text-btn,
+.btn-primary,
+.empty-action {
+  margin: 0;
+}
+
+.load-more-btn {
+  min-width: 140px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 13px;
+}
+
+.load-more-btn::after,
+.text-btn::after,
+.btn-primary::after,
+.empty-action::after {
+  border: 0;
+}
+
+.load-more-btn:disabled {
+  opacity: 0.55;
+}
+
+.error-line {
+  display: flex;
+  padding: 24px 0;
+  align-items: center;
+  gap: 12px;
+  color: var(--hgt-danger);
+  font-size: 13px;
+}
+
+.text-btn {
+  height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-brand);
+  font-size: 12px;
+}
+
+.empty-state {
+  display: flex;
+  min-height: 220px;
+  padding: 32px 0;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-direction: column;
+  text-align: center;
+}
+
+.empty-mark {
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 20px;
+}
+
+.empty-title {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.empty-copy {
+  color: var(--hgt-text-2);
+  font-size: 13px;
+}
+
+.btn-primary,
+.empty-action {
+  display: flex;
+  height: 40px;
+  margin-top: 8px;
+  padding: 0 18px;
+  border: 0;
   border-radius: var(--hgt-radius-sm);
   align-items: center;
   justify-content: center;
-  flex: 1;
-  background: transparent;
-  color: var(--hgt-text);
-  font-size: 14px;
-}
-.result-actions button::after {
-  border: 0;
-}
-.result-actions .primary {
-  border-color: transparent;
   background: var(--hgt-brand);
   color: var(--hgt-on-brand);
-}
-:deep(.history-result-popup) {
-  box-sizing: border-box;
-  width: min(560px, calc(100vw - 32px));
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-lg);
-  background: var(--hgt-card);
-  color: var(--hgt-text);
-  overflow: hidden;
-}
-:deep(.history-result-popup) .result-modal {
-  width: 100%;
-  border: 0;
-  box-shadow: none;
+  font-size: 13px;
 }
 
 @media (max-width: 767px) {
   .page-head,
-  .filters {
+  .continue-section,
+  .resume-stats,
+  .history-section {
     padding-right: 16px;
     padding-left: 16px;
   }
-  .stats {
+
+  .stats-row {
     grid-template-columns: repeat(2, 1fr);
   }
-  .stats view {
-    padding: 16px;
+
+  .stat-cell {
+    padding: 16px 12px;
+  }
+
+  .stat-cell:nth-child(2n) {
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .stat-cell:nth-child(2n + 1) {
+    padding-left: 0;
+  }
+
+  .stat-cell:nth-child(-n + 2) {
     border-bottom: 1px solid var(--hgt-border);
   }
-  .stats view:nth-child(2n) {
-    border-right: 0;
+
+  .stat-value {
+    font-size: 22px;
   }
-  .records {
-    display: flex;
-    margin: 16px;
-    border: 0;
-    gap: 10px;
+
+  .toolbar {
+    align-items: stretch;
     flex-direction: column;
-    background: transparent;
   }
-  .table-head {
-    display: none;
+
+  .status-tabs {
+    overflow-x: auto;
   }
-  .record {
-    display: grid;
-    padding: 14px 12px;
-    border: 1px solid var(--hgt-border);
-    border-radius: var(--hgt-radius-md);
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
-    background: var(--hgt-card);
+
+  .toolbar-right {
+    width: 100%;
   }
-  .record-title {
-    overflow: hidden;
-    font-size: 14px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+  .search-input {
+    flex: 1;
+    width: auto;
   }
-  .status {
-    padding: 2px 6px;
-    font-size: 11px;
+
+  .record-side {
+    align-items: flex-end;
   }
 }
 </style>

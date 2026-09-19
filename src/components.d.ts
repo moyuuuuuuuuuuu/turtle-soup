@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     DemoBlock: typeof import('./components/DemoBlock.vue')['default']
+    DepthBadge: typeof import('./components/DepthBadge.vue')['default']
     GlobalDialog: typeof import('./components/GlobalDialog.vue')['default']
     GlobalLoading: typeof import('./components/GlobalLoading.vue')['default']
     GlobalToast: typeof import('./components/GlobalToast.vue')['default']
@@ -21,11 +22,11 @@ declare module 'vue' {
     PlayerLegalDocumentPopup: typeof import('./components/player/LegalDocumentPopup.vue')['default']
     PlayerPlayerAuth: typeof import('./components/player/PlayerAuth.vue')['default']
     PrivacyPopup: typeof import('./components/PrivacyPopup.vue')['default']
+    QuestionTextCard: typeof import('./components/QuestionTextCard.vue')['default']
     WdConfigProvider: typeof import('@wot-ui/ui/components/wd-config-provider/wd-config-provider.vue')['default']
     WdDialog: typeof import('@wot-ui/ui/components/wd-dialog/wd-dialog.vue')['default']
     WdIcon: typeof import('@wot-ui/ui/components/wd-icon/wd-icon.vue')['default']
     WdLoading: typeof import('@wot-ui/ui/components/wd-loading/wd-loading.vue')['default']
-    WdLoadmore: typeof import('@wot-ui/ui/components/wd-loadmore/wd-loadmore.vue')['default']
     WdNotify: typeof import('@wot-ui/ui/components/wd-notify/wd-notify.vue')['default']
     WdPopup: typeof import('@wot-ui/ui/components/wd-popup/wd-popup.vue')['default']
     WdSwitch: typeof import('@wot-ui/ui/components/wd-switch/wd-switch.vue')['default']

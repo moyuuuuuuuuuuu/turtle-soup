@@ -1,100 +1,176 @@
 <script setup lang="ts">
-import type { PublicQuestion } from '@/types/game'
-import { questionApi } from '@/api/turtle'
-import { formatCount } from '@/utils'
-import { emptyNetworkUrl, emptyNoneUrl, emptySearchUrl, questionCoverUrl } from '@/utils/questionCover'
+import type { PublicQuestion, PublicTag } from '@/types/game'
+import { ensureAnonymousSession, questionApi, tagApi } from '@/api/turtle'
+import QuestionTextCard from '@/components/QuestionTextCard.vue'
+import { difficultyLabel } from '@/utils/depth'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'questions', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
 const route = useRoute()
 const roomId = computed(() => String(route.query.room_id || ''))
+
+interface CategoryTab { label: string, tagId?: number }
+
+/** 主分类下划线标签；tagId 与后端 turtle_tags 对齐 */
+const PRIMARY_TABS: CategoryTab[] = [
+  { label: '全部' },
+  { label: '悬疑', tagId: 3 },
+  { label: '逻辑推理', tagId: 4 },
+  { label: '本格', tagId: 20 },
+  { label: '清汤', tagId: 17 },
+]
+
+const DIFFICULTY_OPTIONS: Array<{ label: string, value: number | undefined }> = [
+  { label: '不限', value: undefined },
+  { label: '简单', value: 1 },
+  { label: '普通', value: 2 },
+  { label: '困难', value: 3 },
+  { label: '很难', value: 4 },
+  { label: '极难', value: 5 },
+]
+
+type SortKey = 'default' | 'plays_desc' | 'diff_asc' | 'diff_desc'
+
+const SORT_OPTIONS: Array<{ key: SortKey, label: string }> = [
+  { key: 'default', label: '默认排序' },
+  { key: 'plays_desc', label: '最多推理' },
+  { key: 'diff_asc', label: '难度从低到高' },
+  { key: 'diff_desc', label: '难度从高到低' },
+]
+
 const items = ref<PublicQuestion[]>([])
 const keyword = ref('')
-const difficulty = ref<number>()
+const difficulty = ref<number | undefined>(undefined)
+const activeTagId = ref<number | undefined>(undefined)
+const activeTabLabel = ref('全部')
 const filtersVisible = ref(false)
-const excludedRiskTypes = ref<string[]>([])
-const viewMode = ref<'grid' | 'list'>('grid')
-const loading = ref(false)
+const sortKey = ref<SortKey>('default')
+const sortOpen = ref(false)
+const loading = ref(true)
 const loadError = ref(false)
 const page = ref(1)
-/** 移动端两列布局用偶数 page_size；桌面三列保持 21 */
+const total = ref(0)
+const categories = ref<CategoryTab[]>(PRIMARY_TABS)
+let keywordSearchTimer: ReturnType<typeof setTimeout> | null = null
+
 function resolvePageSize() {
   // #ifdef H5
-  return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 20 : 21
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 12 : 24
   // #endif
   // #ifndef H5
-  return 20
+  return 12
   // #endif
 }
-const total = ref(0)
-const activeRiskId = ref<string | null>(null)
-const activeFilterCount = computed(() => (difficulty.value ? 1 : 0) + excludedRiskTypes.value.length + (keyword.value.trim() ? 1 : 0))
-const loadmoreState = computed<'loading' | 'finished' | 'error'>(() => {
-  if (loadError.value)
-    return 'error'
-  if (loading.value)
-    return 'loading'
-  return items.value.length >= total.value ? 'finished' : 'loading'
+
+const pageSize = resolvePageSize()
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
+const headerCountText = computed(() => {
+  if (total.value > 0)
+    return `${total.value} 个等待被解开的故事。`
+  return '题库在故事表面之下，寻找不合常理的真相。'
 })
-const difficultyLabel = (value: number) => ['未知', '简单', '普通', '中等', '困难', '极难'][value] || `难度 ${value}`
-const difficultyClass = (value: number) => ['unknown', 'easy', 'normal', 'medium', 'hard', 'extreme'][value] || 'unknown'
-const riskLevelLabels: Record<PublicQuestion['risk_level'], string> = { safe: '安全', caution: '需注意', restricted: '受限内容' }
-const riskTypeLabels: Record<string, string> = {
-  death: '死亡',
-  violence: '暴力',
-  gore: '血腥',
-  self_harm: '自伤',
-  sexual: '性内容',
-  child_safety: '未成年人',
-  discrimination: '歧视',
-  illegal: '违法',
-  substance: '成瘾物',
-  other: '其他',
+const resultLine = computed(() => {
+  if (loading.value && !items.value.length)
+    return ''
+  return `${total.value} 个谜题`
+})
+const sortLabel = computed(() => SORT_OPTIONS.find(item => item.key === sortKey.value)?.label || '默认排序')
+const activeTagLabel = computed(() => {
+  if (activeTagId.value === undefined)
+    return ''
+  return activeTabLabel.value
+})
+const hasActiveFilter = computed(() =>
+  activeTagId.value !== undefined
+  || difficulty.value !== undefined
+  || Boolean(keyword.value.trim()),
+)
+const SORT_API_MAP: Record<string, string> = {
+  default: '',
+  plays_desc: 'popular',
+  diff_asc: 'difficulty_asc',
+  diff_desc: 'difficulty_desc',
 }
-const riskTypeOptions = Object.entries(riskTypeLabels).map(([value, label]) => ({ value, label }))
-const riskLevelLabel = (value: PublicQuestion['risk_level']) => riskLevelLabels[value] || value
-const riskTypeText = (types: string[] | undefined) => types?.length ? types.map(type => riskTypeLabels[type] || type).join('、') : '无特别标注'
-// 风险类型仍为前端过滤；keyword / difficulty 由服务端筛选
-const filtered = computed(() => items.value.filter(item => !item.risk_types?.some(type => excludedRiskTypes.value.includes(type))))
-let keywordSearchTimer: ReturnType<typeof setTimeout> | null = null
+
+const displayItems = computed(() => items.value)
+const pageList = computed(() => {
+  const current = page.value
+  const last = totalPages.value
+  if (last <= 7)
+    return Array.from({ length: last }, (_, i) => i + 1)
+  const pages = new Set<number>([1, last, current, current - 1, current + 1])
+  if (current <= 3)
+    [2, 3, 4].forEach(p => pages.add(p))
+  if (current >= last - 2)
+    [last - 1, last - 2, last - 3].forEach(p => pages.add(p))
+  return [...pages].filter(p => p >= 1 && p <= last).sort((a, b) => a - b)
+})
+
+async function loadCategories() {
+  try {
+    const result = await tagApi.list()
+    if (!result.items?.length)
+      return
+    const byName = new Map(result.items.map((tag: PublicTag) => [tag.name, tag.id]))
+    categories.value = [
+      { label: '全部' },
+      ...PRIMARY_TABS.slice(1).map(tab => ({
+        label: tab.label,
+        tagId: byName.get(tab.label) ?? tab.tagId,
+      })),
+    ]
+  }
+  catch {
+    // 保留内置分类，筛选仍可用
+  }
+}
+
 async function load(reset = false) {
-  if (loading.value && !reset)
-    return
   if (reset) {
     page.value = 1
-    total.value = 0
-    items.value = []
   }
   loading.value = true
   loadError.value = false
   try {
+    await ensureAnonymousSession()
     const trimmedKeyword = keyword.value.trim()
+    const sortParam = SORT_API_MAP[sortKey.value]
     const result = await questionApi.list({
-      ...(difficulty.value ? { difficulty: difficulty.value } : {}),
+      ...(difficulty.value !== undefined ? { difficulty: difficulty.value } : {}),
+      ...(activeTagId.value !== undefined ? { tag_id: activeTagId.value } : {}),
       ...(trimmedKeyword ? { keyword: trimmedKeyword } : {}),
+      ...(sortParam ? { sort: sortParam } : {}),
       page: page.value,
-      page_size: resolvePageSize(),
+      page_size: pageSize,
     })
-    items.value = reset ? result.items : [...items.value, ...result.items]
-    total.value = result.pagination.total || items.value.length
-    if (items.value.length < total.value)
-      page.value += 1
+    items.value = result.items || []
+    const pagination = result.pagination || {}
+    total.value = Number(pagination.total) || items.value.length
   }
   catch {
     loadError.value = true
+    if (reset) {
+      items.value = []
+      total.value = 0
+    }
   }
   finally {
     loading.value = false
   }
 }
-function loadMore() {
-  if (!loading.value && items.value.length < total.value)
-    void load()
+
+function selectTab(tab: CategoryTab) {
+  activeTabLabel.value = tab.label
+  activeTagId.value = tab.tagId
+  void load(true)
 }
-function changeDifficulty(value?: number) {
+
+function setDifficulty(value: number | undefined) {
   difficulty.value = value
   void load(true)
 }
+
 function onKeywordInput() {
   if (keywordSearchTimer)
     clearTimeout(keywordSearchTimer)
@@ -103,79 +179,102 @@ function onKeywordInput() {
     void load(true)
   }, 300)
 }
+
 function clearKeyword() {
   keyword.value = ''
   void load(true)
 }
-function toggleExcludedRiskType(value: string) {
-  excludedRiskTypes.value = excludedRiskTypes.value.includes(value)
-    ? excludedRiskTypes.value.filter(type => type !== value)
-    : [...excludedRiskTypes.value, value]
-}
-function clearFilters() {
-  excludedRiskTypes.value = []
+
+function clearAllFilters() {
   keyword.value = ''
-  if (difficulty.value !== undefined)
-    changeDifficulty()
-  else
-    void load(true)
+  difficulty.value = undefined
+  activeTagId.value = undefined
+  activeTabLabel.value = '全部'
+  void load(true)
 }
-onMounted(() => load(true))
+
+function goPage(next: number) {
+  const target = Math.min(totalPages.value, Math.max(1, next))
+  if (target === page.value && !loadError.value)
+    return
+  page.value = target
+  void load()
+}
+
+function setSort(key: SortKey) {
+  if (sortKey.value === key) {
+    sortOpen.value = false
+    return
+  }
+  sortKey.value = key
+  sortOpen.value = false
+  void load(true)
+}
+
+function openQuestion(id: string) {
+  void openQuestionDetail({ id, roomId: roomId.value || undefined })
+}
+
+onMounted(() => {
+  void load(true)
+  void loadCategories()
+})
 onUnmounted(() => {
   if (keywordSearchTimer)
     clearTimeout(keywordSearchTimer)
 })
-onReachBottom(loadMore)
-function openQuestion(id: string) {
-  void openQuestionDetail({ id, roomId: roomId.value || undefined })
-}
-function toggleRisk(id: string) {
-  activeRiskId.value = activeRiskId.value === id ? null : id
-}
 </script>
 
 <template>
   <view class="library-page">
-    <view class="page-head">
-      <text class="eyebrow">
-        TURTLE SOUP · LIBRARY
-      </text>
-      <text class="title">
-        题库
-      </text>
-      <text class="subtitle">
-        浏览全部谜题，按难度与风险筛选
-      </text>
-    </view>
-
-    <view class="filter-shell">
-      <view class="filter-toolbar">
+    <view class="page-shell">
+      <view class="page-head">
+        <text class="title">
+          题库
+        </text>
+        <text class="subtitle">
+          {{ headerCountText }}
+        </text>
         <view class="search">
-          <text class="search-icon">
+          <text class="search-icon" aria-hidden="true">
             ⌕
           </text>
-          <input v-model="keyword" placeholder="搜索题目、汤面..." confirm-type="search" @input="onKeywordInput" @confirm="onKeywordInput">
+          <input
+            v-model="keyword"
+            class="search-input"
+            placeholder="搜索题目、汤面或标签……"
+            confirm-type="search"
+            @input="onKeywordInput"
+            @confirm="onKeywordInput"
+          >
           <button v-if="keyword" class="search-clear" aria-label="清除搜索" @click="clearKeyword">
             ×
           </button>
         </view>
-        <button class="filter-trigger" :class="{ active: filtersVisible || activeFilterCount }" @click="filtersVisible = !filtersVisible">
-          <text>筛选</text>
-          <text v-if="activeFilterCount" class="filter-count">
-            {{ activeFilterCount }}
-          </text>
-          <text class="filter-arrow">
+      </view>
+
+      <view class="tab-row">
+        <view class="tabs">
+          <button
+            v-for="tab in categories"
+            :key="tab.label"
+            class="tab"
+            :class="{ active: activeTagId === tab.tagId && activeTabLabel === tab.label }"
+            @click="selectTab(tab)"
+          >
+            {{ tab.label }}
+          </button>
+        </view>
+        <button
+          class="more-filter"
+          :class="{ active: filtersVisible }"
+          @click="filtersVisible = !filtersVisible"
+        >
+          更多筛选
+          <text class="more-arrow">
             {{ filtersVisible ? '↑' : '↓' }}
           </text>
         </button>
-        <view class="view-toggle">
-          <button :class="{ active: viewMode === 'grid' }" aria-label="网格视图" @click="viewMode = 'grid'">
-            ⊞
-          </button>
-          <button :class="{ active: viewMode === 'list' }" aria-label="列表视图" @click="viewMode = 'list'">
-            ☰
-          </button>
-        </view>
       </view>
 
       <view v-if="filtersVisible" class="filter-panel">
@@ -183,190 +282,197 @@ function toggleRisk(id: string) {
           <text class="filter-label">
             难度
           </text>
-          <view class="filter-options">
-            <button :class="{ active: difficulty === undefined }" @click="changeDifficulty()">
-              全部
-            </button>
+          <view class="chip-row">
             <button
-              v-for="level in [1, 2, 3, 4, 5]"
-              :key="level"
-              :class="[{ active: difficulty === level }, difficultyClass(level)]"
-              @click="changeDifficulty(level)"
+              v-for="option in DIFFICULTY_OPTIONS"
+              :key="option.label"
+              class="chip"
+              :class="{ active: difficulty === option.value }"
+              @click="setDifficulty(option.value)"
             >
-              {{ difficultyLabel(level) }}
-            </button>
-          </view>
-        </view>
-        <view class="filter-group risk-filter-group">
-          <view class="filter-label-row">
-            <text class="filter-label">
-              排除风险类型
-            </text>
-            <text class="filter-hint">
-              可多选
-            </text>
-          </view>
-          <view class="filter-options risk-options">
-            <button
-              v-for="option in riskTypeOptions"
-              :key="option.value"
-              :class="{ excluded: excludedRiskTypes.includes(option.value) }"
-              @click="toggleExcludedRiskType(option.value)"
-            >
-              <text class="option-mark">
-                {{ excludedRiskTypes.includes(option.value) ? '×' : '+' }}
-              </text>
               {{ option.label }}
             </button>
           </view>
         </view>
-        <button v-if="activeFilterCount" class="clear-filter" @click="clearFilters">
+        <button v-if="hasActiveFilter" class="reset-btn" @click="clearAllFilters">
+          重置筛选
+        </button>
+      </view>
+
+      <view v-if="hasActiveFilter" class="active-chips">
+        <button v-if="activeTagLabel" class="active-chip" @click="selectTab({ label: '全部' })">
+          {{ activeTagLabel }}
+          <text class="chip-x">
+            ×
+          </text>
+        </button>
+        <button v-if="difficulty !== undefined" class="active-chip" @click="setDifficulty(undefined)">
+          {{ difficultyLabel(difficulty) }}
+          <text class="chip-x">
+            ×
+          </text>
+        </button>
+        <button v-if="keyword.trim()" class="active-chip" @click="clearKeyword">
+          {{ keyword.trim() }}
+          <text class="chip-x">
+            ×
+          </text>
+        </button>
+        <button class="active-chip clear" @click="clearAllFilters">
+          清除全部
+        </button>
+      </view>
+
+      <view class="result-bar">
+        <text class="result-count">
+          {{ resultLine }}
+        </text>
+        <view class="sort-wrap">
+          <button class="sort-trigger" @click="sortOpen = !sortOpen">
+            {{ sortLabel }}
+            <text class="sort-arrow">
+              ⌄
+            </text>
+          </button>
+          <view v-if="sortOpen" class="sort-menu">
+            <button
+              v-for="option in SORT_OPTIONS"
+              :key="option.key"
+              class="sort-item"
+              :class="{ active: sortKey === option.key }"
+              @click="setSort(option.key)"
+            >
+              {{ option.label }}
+            </button>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="loading && !items.length" class="skeleton-grid">
+        <view v-for="n in 6" :key="n" class="skeleton-card">
+          <view class="sk-bar sk-meta" />
+          <view class="sk-bar sk-title" />
+          <view class="sk-bar sk-line" />
+          <view class="sk-bar sk-line short" />
+        </view>
+      </view>
+      <view v-else-if="loadError && !items.length" class="empty">
+        <text class="empty-mark">
+          ◇
+        </text>
+        <text class="empty-title">
+          网络好像迷路了
+        </text>
+        <button class="empty-action" @click="load(true)">
+          重新加载
+        </button>
+      </view>
+      <view v-else-if="!displayItems.length" class="empty">
+        <text class="empty-mark">
+          ◇
+        </text>
+        <text class="empty-title">
+          没找到这碗汤
+        </text>
+        <text class="empty-desc">
+          试试换一个关键词，或者减少一些筛选条件。
+        </text>
+        <button class="empty-action" @click="clearAllFilters">
           清除筛选
         </button>
       </view>
-    </view>
+      <view v-else class="question-grid">
+        <QuestionTextCard
+          v-for="(item, index) in displayItems"
+          :key="item.id"
+          :question="item"
+          :index="index"
+          @click="openQuestion"
+        />
+      </view>
 
-    <view class="result-count">
-      {{ keyword || excludedRiskTypes.length ? `当前匹配 ${filtered.length} 个谜题` : `已加载 ${items.length} / ${total} 个谜题` }}
-    </view>
-
-    <view v-if="loading && !items.length" class="empty">
-      <HgtLoading text="正在潜入题库…" size="md" />
-    </view>
-    <view v-else-if="loadError && !items.length" class="empty">
-      <image class="empty-img" :src="emptyNetworkUrl" mode="aspectFit" />
-      <text>网络好像迷路了</text>
-      <button class="btn-ghost" @click="load(true)">
-        重新加载
-      </button>
-    </view>
-    <view v-else-if="!filtered.length" class="empty">
-      <image class="empty-img" :src="keyword.trim() ? emptySearchUrl : emptyNoneUrl" mode="aspectFit" />
-      <text>{{ keyword.trim() ? '换个关键词试试吧' : '没有找到匹配的谜题' }}</text>
-    </view>
-    <view v-else class="question-wrap" :class="viewMode">
-      <view
-        v-for="item in filtered"
-        :key="item.id"
-        class="question-card"
-        @click="openQuestion(item.id)"
-      >
-        <view class="card-cover">
-          <image class="cover-img" :src="questionCoverUrl(item)" mode="aspectFill" />
-          <view class="card-tags">
-            <text v-if="item.tags?.[0]" class="tag-cat">
-              {{ item.tags[0].name }}
-            </text>
-            <text class="tag-diff" :class="difficultyClass(item.difficulty)">
-              {{ difficultyLabel(item.difficulty) }}
-            </text>
-          </view>
-          <view v-if="item.risk_level !== 'safe'" class="risk-wrap" @click.stop="toggleRisk(item.id)">
-            <text class="risk" :class="item.risk_level">
-              {{ riskLevelLabel(item.risk_level) }}
-            </text>
-            <view v-if="activeRiskId === item.id" class="risk-tip" @click.stop>
-              <text class="risk-tip-title">
-                风险类型：{{ riskTypeText(item.risk_types) }}
-              </text>
-              <text class="risk-tip-note">
-                {{ item.risk_note || item.risk_warning || '暂无具体说明' }}
-              </text>
-            </view>
-          </view>
-        </view>
-        <view class="card-body">
-          <text class="question-title">
-            {{ item.title }}
+      <view v-if="totalPages > 1 && items.length" class="pager">
+        <button class="pager-nav" :disabled="page <= 1" @click="goPage(page - 1)">
+          ←
+        </button>
+        <template v-for="(p, i) in pageList" :key="p">
+          <text v-if="i > 0 && p - pageList[i - 1] > 1" class="pager-gap">
+            …
           </text>
-          <text class="surface">
-            {{ item.surface }}
-          </text>
-          <view v-if="item.tags?.length" class="tags">
-            <text v-for="tag in item.tags" :key="tag.id" class="tag">
-              {{ tag.name }}
-            </text>
-          </view>
-          <view class="foot">
-            <text>{{ formatCount(item.play_count) }} 人玩过</text>
-            <text class="enter">
-              进入 →
-            </text>
-          </view>
-        </view>
+          <button class="pager-page" :class="{ active: p === page }" @click="goPage(p)">
+            {{ p }}
+          </button>
+        </template>
+        <button class="pager-nav" :disabled="page >= totalPages" @click="goPage(page + 1)">
+          →
+        </button>
       </view>
     </view>
-
-    <wd-loadmore
-      v-if="items.length"
-      :state="loadmoreState"
-      loading-text="正在加载更多谜题…"
-      finished-text="已经到底了"
-      error-text="加载失败，点击重试"
-      @reload="loadMore"
-    />
   </view>
 </template>
 
 <style scoped>
 .library-page {
   min-height: 100%;
-  padding-bottom: 40px;
+  padding-bottom: 48px;
   background: var(--hgt-bg);
   color: var(--hgt-text);
 }
+
+.page-shell {
+  width: min(1400px, 100%);
+  margin: 0 auto;
+  padding: 28px 32px 0;
+  box-sizing: border-box;
+}
+
 .page-head {
   display: flex;
-  padding: 36px 48px 24px;
-  gap: 8px;
   flex-direction: column;
-  border-bottom: 1px solid var(--hgt-border);
+  gap: 10px;
+  padding-bottom: 20px;
 }
-.eyebrow {
-  color: var(--hgt-brand);
-  font-family: var(--hgt-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.28em;
-}
+
 .title {
-  color: var(--hgt-text);
+  color: var(--hgt-text-bright);
   font-family: var(--hgt-font-display);
   font-size: 28px;
   font-weight: 600;
   letter-spacing: 0.08em;
 }
+
 .subtitle {
   color: var(--hgt-text-2);
   font-size: 14px;
+  line-height: 1.6;
 }
-.filter-shell {
-  padding: 16px 48px 0;
-}
-.filter-toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
+
 .search {
   display: flex;
-  flex: 1;
-  max-width: 360px;
-  height: 42px;
+  align-items: center;
+  gap: 10px;
+  width: min(640px, 100%);
+  height: 44px;
+  margin-top: 6px;
   padding: 0 14px;
+  box-sizing: border-box;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-sm);
-  align-items: center;
-  gap: 8px;
-  background: var(--hgt-card);
+  background: rgba(15, 53, 57, 0.28);
 }
-.search input {
+
+.search-icon {
+  color: var(--hgt-text-3);
+  font-size: 14px;
+}
+
+.search-input {
   flex: 1;
+  min-width: 0;
   color: var(--hgt-text);
   font-size: 14px;
 }
-.search-icon {
-  color: var(--hgt-text-3);
-}
+
 .search-clear {
   display: flex;
   flex: none;
@@ -384,370 +490,450 @@ function toggleRisk(id: string) {
   font-size: 14px;
   line-height: 1;
 }
-.search-clear::after { border: 0; }
-.filter-trigger,
-.view-toggle button,
-.filter-options button,
-.clear-filter {
-  display: inline-flex;
-  height: 42px;
+
+.search-clear::after {
+  border: 0;
+}
+
+.tab-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--hgt-border-soft);
+}
+
+.tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.tab {
+  position: relative;
+  flex: none;
+  height: 40px;
   margin: 0;
-  padding: 0 14px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-sm);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--hgt-text-3);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.tab::after {
+  border: 0;
+}
+
+.tab.active {
+  color: var(--hgt-text-bright);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  background: var(--hgt-brand);
+}
+
+.more-filter {
+  display: inline-flex;
+  flex: none;
+  height: 40px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-text-3);
+  font-size: 13px;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+}
+
+.more-filter::after {
+  border: 0;
+}
+
+.more-filter.active {
+  color: var(--hgt-brand);
+}
+
+.more-arrow {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hgt-border-soft);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter-label {
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  height: 30px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-full);
+  align-items: center;
   background: transparent;
   color: var(--hgt-text-2);
-  font-size: 13px;
+  font-size: 12px;
 }
-.filter-trigger.active,
-.view-toggle button.active,
-.filter-options button.active {
+
+.chip::after {
+  border: 0;
+}
+
+.chip.active {
   border-color: var(--hgt-brand);
   background: var(--hgt-brand-soft);
   color: var(--hgt-brand);
 }
-.filter-trigger::after,
-.view-toggle button::after,
-.filter-options button::after,
-.clear-filter::after {
+
+.reset-btn {
+  height: 30px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-brand);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.reset-btn::after {
   border: 0;
 }
-.filter-count {
-  display: inline-flex;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: var(--hgt-radius-full);
-  align-items: center;
-  justify-content: center;
-  background: var(--hgt-brand);
-  color: var(--hgt-on-brand);
-  font-size: 11px;
-}
-.view-toggle {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-.view-toggle button {
-  width: 42px;
-  padding: 0;
-  justify-content: center;
-}
-.filter-panel {
-  position: relative;
-  display: grid;
-  margin-top: 12px;
-  padding: 18px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-md);
-  gap: 18px;
-  background: var(--hgt-card);
-  grid-template-columns: minmax(220px, 0.7fr) minmax(280px, 1.3fr);
-}
-.filter-label {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--hgt-text);
-  font-size: 13px;
-  font-weight: 600;
-}
-.filter-label-row {
-  display: flex;
-  margin-bottom: 10px;
-  align-items: center;
-  gap: 8px;
-}
-.filter-label-row .filter-label {
-  margin-bottom: 0;
-}
-.filter-hint {
-  color: var(--hgt-text-3);
-  font-size: 12px;
-}
-.filter-options {
+
+.active-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 14px;
 }
-.risk-options button.excluded {
-  border-color: var(--hgt-danger);
-  background: rgba(158, 83, 86, 0.12);
-  color: var(--hgt-danger);
+
+.active-chip {
+  display: inline-flex;
+  height: 28px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-full);
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 12px;
 }
-.option-mark {
-  width: 12px;
-}
-.clear-filter {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  height: 30px;
+
+.active-chip::after {
   border: 0;
-  color: var(--hgt-brand);
-  text-decoration: underline;
 }
+
+.active-chip.clear {
+  border-color: transparent;
+  color: var(--hgt-text-3);
+}
+
+.chip-x {
+  color: var(--hgt-text-3);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  margin-bottom: 12px;
+  min-height: 28px;
+}
+
 .result-count {
-  padding: 16px 48px 8px;
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.sort-wrap {
+  position: relative;
+}
+
+.sort-trigger {
+  display: inline-flex;
+  height: 28px;
+  margin: 0;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-trigger::after {
+  border: 0;
+}
+
+.sort-arrow {
   color: var(--hgt-text-3);
   font-size: 12px;
 }
-.empty {
+
+.sort-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
   display: flex;
-  min-height: 240px;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
+  min-width: 148px;
+  padding: 6px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
   flex-direction: column;
+  background: var(--hgt-bg-deep);
+}
+
+.sort-item {
+  height: 34px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--hgt-radius-xs);
+  background: transparent;
   color: var(--hgt-text-2);
+  font-size: 13px;
+  text-align: left;
 }
-.empty-img {
-  width: 120px;
-  height: 120px;
-  opacity: 0.9;
-  border-radius: var(--hgt-radius-lg);
-  filter: drop-shadow(0 6px 18px rgba(4, 12, 14, 0.35));
+
+.sort-item::after {
+  border: 0;
 }
-.question-wrap {
-  padding: 12px 48px 24px;
+
+.sort-item.active {
+  color: var(--hgt-brand);
+  background: var(--hgt-brand-soft);
 }
-.question-wrap.grid {
+
+.question-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
-.question-wrap.list {
-  display: flex;
-  gap: 12px;
-  flex-direction: column;
-}
-.question-card {
-  display: flex;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-md);
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--hgt-card);
-  box-shadow: var(--hgt-shadow-sm);
-  transition: transform var(--hgt-dur-fast), border-color var(--hgt-dur-fast), box-shadow var(--hgt-dur-fast);
-}
-.question-card:hover {
-  border-color: var(--hgt-border-soft);
-  box-shadow: var(--hgt-shadow-md);
-  transform: translateY(-2px);
-}
-.question-wrap.list .question-card {
+
+.skeleton-grid {
   display: grid;
-  grid-template-columns: 160px 1fr;
-}
-.card-cover {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--hgt-card-2);
-}
-.question-wrap.list .card-cover {
-  aspect-ratio: auto;
-  min-height: 120px;
-  height: 100%;
-}
-.cover-img {
-  width: 100%;
-  height: 100%;
-}
-.card-tags {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  gap: 6px;
-}
-.tag-cat,
-.tag-diff {
-  padding: 3px 8px;
-  border-radius: var(--hgt-radius-xs);
-  font-size: 11px;
-}
-.tag-cat {
-  background: rgba(248, 248, 247, 0.92);
-  color: var(--hgt-text-2);
-  border: 1px solid var(--hgt-border-soft);
-}
-.tag-diff.easy {
-  background: rgba(120, 146, 98, 0.92);
-  color: #fff;
-}
-.tag-diff.normal,
-.tag-diff.medium {
-  background: rgba(240, 194, 57, 0.95);
-  color: #4a3a08;
-}
-.tag-diff.hard,
-.tag-diff.extreme {
-  background: rgba(158, 83, 86, 0.92);
-  color: #fff;
-}
-.risk-wrap {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-}
-.risk {
-  padding: 2px 7px;
-  border-radius: var(--hgt-radius-xs);
-  font-size: 11px;
-  background: rgba(248, 248, 247, 0.92);
-  border: 1px solid var(--hgt-border-soft);
-  color: var(--hgt-text-2);
-}
-.risk.caution {
-  color: var(--hgt-warning);
-}
-.risk.restricted {
-  color: var(--hgt-danger);
-}
-.risk-tip {
-  position: absolute;
-  z-index: 20;
-  right: 0;
-  bottom: calc(100% + 8px);
-  display: flex;
-  width: 240px;
-  padding: 12px;
-  border: 1px solid var(--hgt-border-soft);
-  border-radius: var(--hgt-radius-sm);
-  gap: 6px;
-  flex-direction: column;
-  background: var(--hgt-bg-deep);
-  box-shadow: var(--hgt-shadow-float);
-}
-.risk-tip-title {
-  color: var(--hgt-text);
-  font-size: 12px;
-}
-.risk-tip-note {
-  color: var(--hgt-text-2);
-  font-size: 12px;
-  line-height: 1.55;
-}
-.card-body {
-  display: flex;
-  padding: 14px 16px 16px;
-  gap: 8px;
-  flex-direction: column;
-}
-.question-title {
-  color: var(--hgt-text);
-  font-family: var(--hgt-font-display);
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.35;
-}
-.surface {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--hgt-text-2);
-  font-size: 13px;
-  line-height: 1.55;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 22px;
-}
-.tag {
-  padding: 2px 8px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-xs);
-  color: var(--hgt-text-3);
-  font-size: 11px;
-}
-.foot {
-  display: flex;
-  margin-top: 4px;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--hgt-text-3);
-  font-size: 12px;
-}
-.enter {
-  color: var(--hgt-brand);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
 
-@media (max-width: 1199px) {
-  .question-wrap.grid {
+.skeleton-card {
+  display: flex;
+  min-height: 176px;
+  padding: 18px;
+  border: 1px solid var(--hgt-border-soft);
+  border-radius: var(--hgt-radius-md);
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(15, 53, 57, 0.16);
+}
+
+.sk-bar {
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(232, 244, 242, 0.06),
+    rgba(232, 244, 242, 0.12),
+    rgba(232, 244, 242, 0.06)
+  );
+}
+
+.sk-meta {
+  width: 36%;
+}
+
+.sk-title {
+  width: 72%;
+  height: 14px;
+  margin-top: 6px;
+}
+
+.sk-line {
+  width: 100%;
+}
+
+.sk-line.short {
+  width: 68%;
+}
+
+.empty {
+  display: flex;
+  min-height: 280px;
+  padding: 32px 16px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty-mark {
+  color: var(--hgt-brand);
+  font-size: 22px;
+  opacity: 0.7;
+}
+
+.empty-title {
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.empty-desc {
+  color: var(--hgt-text-2);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.empty-action {
+  height: 34px;
+  margin: 6px 0 0;
+  padding: 0 14px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
+  background: transparent;
+  color: var(--hgt-brand);
+  font-size: 13px;
+}
+
+.empty-action::after {
+  border: 0;
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 28px;
+}
+
+.pager-nav,
+.pager-page {
+  display: inline-flex;
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--hgt-radius-xs);
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--hgt-text-2);
+  font-family: var(--hgt-font-mono);
+  font-size: 13px;
+}
+
+.pager-nav::after,
+.pager-page::after {
+  border: 0;
+}
+
+.pager-nav[disabled] {
+  opacity: 0.28;
+}
+
+.pager-page.active {
+  border-color: var(--hgt-border);
+  color: var(--hgt-brand);
+  background: var(--hgt-brand-soft);
+}
+
+.pager-gap {
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+@media (max-width: 1024px) {
+  .question-grid,
+  .skeleton-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .filter-panel {
-    grid-template-columns: 1fr;
-  }
 }
+
 @media (max-width: 767px) {
-  .page-head,
-  .filter-shell,
-  .result-count,
-  .question-wrap {
-    padding-right: 16px;
-    padding-left: 16px;
+  .page-shell {
+    padding: 20px 16px 0;
   }
+
   .title {
     font-size: 24px;
   }
-  .filter-toolbar {
-    flex-wrap: wrap;
+
+  .tab-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
   }
-  .search {
-    max-width: none;
-    width: 100%;
+
+  .more-filter {
+    justify-content: flex-start;
+    height: 36px;
+    padding-left: 12px;
   }
-  .view-toggle {
-    margin-left: 0;
-  }
-  .question-wrap.grid {
+
+  .question-grid,
+  .skeleton-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-  .question-wrap.grid .card-body {
-    padding: 10px 10px 12px;
-    gap: 6px;
-  }
-  .question-wrap.grid .card-title {
-    font-size: 14px;
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-  .question-wrap.grid .card-surface {
-    font-size: 12px;
-  }
-  .question-wrap.grid .card-meta {
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    font-size: 11px;
-    margin-top: 2px;
-  }
-  .question-wrap.grid .card-tags {
-    top: 6px;
-    left: 6px;
-    gap: 4px;
-  }
-  .question-wrap.grid .tag-cat,
-  .question-wrap.grid .tag-diff {
-    padding: 2px 6px;
-    font-size: 10px;
-  }
-  .question-wrap.list .question-card {
-    grid-template-columns: 1fr;
-  }
-  .clear-filter {
-    position: static;
-    width: max-content;
+
+  .skeleton-card {
+    min-height: 150px;
+    padding: 14px;
   }
 }
 </style>
