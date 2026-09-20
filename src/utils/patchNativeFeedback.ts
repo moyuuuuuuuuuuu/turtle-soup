@@ -33,10 +33,13 @@ function safeCallback(fn?: (res: any) => void, res?: any) {
  * 业务代码可继续写 uni.showToast，视觉统一走 HgtFeedbackHost。
  */
 export function patchNativeFeedback() {
-  if (patched)
+  if (patched || typeof uni === 'undefined')
     return
+  try {
+    rememberNativeFeedbackApi()
+  }
+  catch {}
   patched = true
-  rememberNativeFeedbackApi()
 
   uni.showToast = ((options: UniApp.ShowToastOptions = {}) => {
     const title = options.title || ''

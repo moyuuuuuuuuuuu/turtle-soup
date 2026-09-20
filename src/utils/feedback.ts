@@ -25,14 +25,18 @@ const nativeApi: {
   hideLoading?: typeof uni.hideLoading
 } = {}
 
+function safeBind(fn: unknown, thisArg: unknown): ((...args: any[]) => any) | undefined {
+  return typeof fn === 'function' ? (fn as (...args: any[]) => any).bind(thisArg) : undefined
+}
+
 export function rememberNativeFeedbackApi() {
-  if (!nativeApi.showToast) {
-    nativeApi.showToast = uni.showToast.bind(uni)
-    nativeApi.hideToast = uni.hideToast.bind(uni)
-    nativeApi.showModal = uni.showModal.bind(uni)
-    nativeApi.showLoading = uni.showLoading.bind(uni)
-    nativeApi.hideLoading = uni.hideLoading.bind(uni)
-  }
+  if (nativeApi.showToast || typeof uni === 'undefined')
+    return
+  nativeApi.showToast = safeBind(uni.showToast, uni)
+  nativeApi.hideToast = safeBind(uni.hideToast, uni)
+  nativeApi.showModal = safeBind(uni.showModal, uni)
+  nativeApi.showLoading = safeBind(uni.showLoading, uni)
+  nativeApi.hideLoading = safeBind(uni.hideLoading, uni)
 }
 
 function getStore() {
