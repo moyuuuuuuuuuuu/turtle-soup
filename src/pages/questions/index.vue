@@ -584,15 +584,19 @@ onUnmounted(() => {
 
 .tab {
   position: relative;
+  display: inline-flex;
   flex: none;
   height: 40px;
   margin: 0;
   padding: 0 12px;
   border: 0;
   border-radius: 0;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--hgt-text-2);
   font-size: 13px;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -624,7 +628,9 @@ onUnmounted(() => {
   background: transparent;
   color: var(--hgt-text-2);
   font-size: 13px;
+  line-height: 1;
   align-items: center;
+  justify-content: flex-start;
   gap: 4px;
 }
 
@@ -775,7 +781,9 @@ onUnmounted(() => {
   background: transparent;
   color: var(--hgt-text);
   font-size: 13px;
+  line-height: 1;
   align-items: center;
+  justify-content: flex-end;
   gap: 4px;
 }
 
@@ -803,14 +811,18 @@ onUnmounted(() => {
 }
 
 .sort-item {
-  height: 34px;
+  display: flex;
+  height: 36px;
   margin: 0;
   padding: 0 10px;
   border: 0;
   border-radius: var(--hgt-radius-xs);
+  align-items: center;
+  justify-content: flex-start;
   background: transparent;
   color: var(--hgt-text-2);
   font-size: 13px;
+  line-height: 1;
   text-align: left;
 }
 
@@ -914,14 +926,18 @@ onUnmounted(() => {
 }
 
 .empty-action {
-  height: 34px;
+  display: flex;
+  height: 36px;
   margin: 6px 0 0;
-  padding: 0 14px;
+  padding: 0 16px;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--hgt-brand);
   font-size: 13px;
+  line-height: 1;
 }
 
 .empty-action::after {

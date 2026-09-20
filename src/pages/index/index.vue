@@ -804,15 +804,19 @@ onUnmounted(() => {
 }
 
 .btn-ghost-sm {
-  height: 34px;
+  display: flex;
+  height: 36px;
   margin: 0;
-  padding: 0 14px;
+  padding: 0 16px;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-sm);
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--hgt-text-2);
   font-family: var(--hgt-font-display);
   font-size: 12px;
+  line-height: 1;
 }
 
 .featured-grid {
