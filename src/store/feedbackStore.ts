@@ -75,13 +75,14 @@ export const useFeedbackStore = defineStore('hgt-feedback', {
   }),
   actions: {
     claimHost(id: string) {
-      if (!this.hostId)
-        this.hostId = id
+      this.hostId = id
       return this.hostId === id
     },
     releaseHost(id: string) {
-      if (this.hostId === id)
+      if (this.hostId === id) {
         this.hostId = null
+        this.settleConfirm(false)
+      }
     },
     showToast(message: string, tone: HgtToastTone = 'info', duration = 2000) {
       if (toastTimer) {

@@ -4,6 +4,7 @@ import { useAnimatedTheme } from '@/composables/useAnimatedTheme'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { usePlayerStore } from '@/store/playerStore'
 import { resolveAssetUrl } from '@/utils/assetUrl'
+import { returnToGame } from '@/utils/gameRoute'
 import { resolveCapsuleRightPadding, resolveShellChromeMetrics } from '@/utils/navSafeArea'
 import { supportsPublicRooms } from '@/utils/platform'
 
@@ -141,10 +142,15 @@ async function recoverActiveRoom() {
   catch {}
 }
 
-function returnToRoom() {
+async function returnToRoom() {
   if (!player.user || !activeRoom.value?.game_id)
     return
-  router.push({ name: 'game', params: { id: activeRoom.value.game_id } })
+  try {
+    await returnToGame(activeRoom.value.game_id)
+  }
+  catch (error) {
+    uni.showToast({ title: (error as Error).message, icon: 'none' })
+  }
 }
 
 function openSearch() {

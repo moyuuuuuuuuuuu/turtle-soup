@@ -32,6 +32,7 @@ declare global {
   const computedWithControl: typeof import('@vueuse/core')['computedWithControl']
   const controlledComputed: typeof import('@vueuse/core')['controlledComputed']
   const controlledRef: typeof import('@vueuse/core')['controlledRef']
+  const copyText: typeof import('./utils/clipboard')['copyText']
   const coverPlaceholderUrl: typeof import('./utils/questionCover')['coverPlaceholderUrl']
   const createApis: typeof import('./api/createApis')['createApis']
   const createApp: typeof import('vue')['createApp']
@@ -69,6 +70,7 @@ declare global {
   const ensureAnonymousSession: typeof import('./api/turtle')['ensureAnonymousSession']
   const ensurePlayerAccessToken: typeof import('./api/player')['ensurePlayerAccessToken']
   const estimateMinutes: typeof import('./utils/depth')['estimateMinutes']
+  const exitAbandonedRoom: typeof import('./utils/abandonedRoom')['exitAbandonedRoom']
   const extendRef: typeof import('@vueuse/core')['extendRef']
   const formatClock: typeof import('./utils/gameStatus')['formatClock']
   const formatCount: typeof import('./utils/index')['formatCount']
@@ -191,6 +193,7 @@ declare global {
   const resolveTopNavMetrics: typeof import('./utils/navSafeArea')['resolveTopNavMetrics']
   const resolveTopNavOffset: typeof import('./utils/navSafeArea')['resolveTopNavOffset']
   const resolveUnref: typeof import('@vueuse/core')['resolveUnref']
+  const returnToGame: typeof import('./utils/gameRoute')['returnToGame']
   const roomApi: typeof import('./api/turtle')['roomApi']
   const serviceErrorMessage: typeof import('./utils/serviceError')['serviceErrorMessage']
   const setActivePinia: typeof import('pinia')['setActivePinia']
@@ -461,6 +464,7 @@ declare module 'vue' {
     readonly computedWithControl: UnwrapRef<typeof import('@vueuse/core')['computedWithControl']>
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
+    readonly copyText: UnwrapRef<typeof import('./utils/clipboard')['copyText']>
     readonly coverPlaceholderUrl: UnwrapRef<typeof import('./utils/questionCover')['coverPlaceholderUrl']>
     readonly createApis: UnwrapRef<typeof import('./api/createApis')['createApis']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
@@ -498,6 +502,7 @@ declare module 'vue' {
     readonly ensureAnonymousSession: UnwrapRef<typeof import('./api/turtle')['ensureAnonymousSession']>
     readonly ensurePlayerAccessToken: UnwrapRef<typeof import('./api/player')['ensurePlayerAccessToken']>
     readonly estimateMinutes: UnwrapRef<typeof import('./utils/depth')['estimateMinutes']>
+    readonly exitAbandonedRoom: UnwrapRef<typeof import('./utils/abandonedRoom')['exitAbandonedRoom']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
     readonly formatClock: UnwrapRef<typeof import('./utils/gameStatus')['formatClock']>
     readonly formatCount: UnwrapRef<typeof import('./utils/index')['formatCount']>
@@ -620,6 +625,7 @@ declare module 'vue' {
     readonly resolveTopNavMetrics: UnwrapRef<typeof import('./utils/navSafeArea')['resolveTopNavMetrics']>
     readonly resolveTopNavOffset: UnwrapRef<typeof import('./utils/navSafeArea')['resolveTopNavOffset']>
     readonly resolveUnref: UnwrapRef<typeof import('@vueuse/core')['resolveUnref']>
+    readonly returnToGame: UnwrapRef<typeof import('./utils/gameRoute')['returnToGame']>
     readonly roomApi: UnwrapRef<typeof import('./api/turtle')['roomApi']>
     readonly serviceErrorMessage: UnwrapRef<typeof import('./utils/serviceError')['serviceErrorMessage']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>

@@ -6,6 +6,8 @@ import { useGameSocket } from '@/composables/useGameSocket'
 import { resolveShareUrl } from '@/config/endpoints'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { exitAbandonedRoom } from '@/utils/abandonedRoom'
+import { copyText } from '@/utils/clipboard'
 import { resolveDepth } from '@/utils/depth'
 import { formatDuration } from '@/utils/gameStatus'
 import { resolveShellChromeMetrics } from '@/utils/navSafeArea'
@@ -19,6 +21,7 @@ const router = useRouter()
 const store = useGameStore()
 const player = usePlayerStore()
 const socket = useGameSocket()
+const pageInstance = getCurrentInstance()
 
 /** 小程序沉浸布局：与 shell 同一套系统 px，避免 CSS 变量/100dvh/env 在抖音端失效 */
 const shellChrome = ref(resolveShellChromeMetrics())
@@ -57,6 +60,10 @@ const busy = ref(false)
 const creatingRoom = ref(false)
 const roomPrivacyUpdating = ref(false)
 const inviteOpen = ref(false)
+const inviteCopyState = ref<'idle' | 'copying' | 'copied' | 'failed'>('idle')
+const inviteLink = computed(() => resolveShareUrl(roomSharePath()))
+const returningToLibrary = ref(false)
+const returnLibraryError = ref('')
 const resultOpen = ref(false)
 const confirmOpen = ref(false)
 const confirmTitle = ref('')
@@ -74,6 +81,8 @@ const mobileSurfaceOpen = ref(false)
 const mobileSurfaceRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null)
 /** 移动端底栏横向滚动：左右箭头翻页，减少滑动误触 */
 const mobileBarScrollLeft = ref(0)
+let mobileBarActualLeft = 0
+let mobileBarWidth = 0
 const mobileBarCanLeft = ref(false)
 const mobileBarCanRight = ref(false)
 const mobileSurfaceOverflow = ref(false)
@@ -102,6 +111,9 @@ const typingMembers = socket.typingMembers
 const routeGameId = computed(() => String(route.query.id || route.params.id || ''))
 const gameId = ref(routeGameId.value)
 let switchingGameId = ''
+const pageActive = ref(true)
+let pageMounted = false
+let pageVersion = 0
 
 /** 只读回放：history 以 mode=readonly / readonly=1 打开（避开 vue 自动导入的 readonlyMode） */
 const readonlyMode = computed(() => {
@@ -261,7 +273,7 @@ function startElapsedClock(fromSeconds = 0) {
 }
 
 watch(socket.gameSnapshot, (value) => {
-  if (!value)
+  if (!pageActive.value || !value)
     return
   const expectedGameId = switchingGameId || gameId.value
   if (value.id !== expectedGameId)
@@ -272,9 +284,10 @@ watch(socket.gameSnapshot, (value) => {
 })
 
 async function switchToGame(nextGameId: string) {
-  if (!nextGameId || nextGameId === game.value?.id || nextGameId === switchingGameId)
+  if (!pageActive.value || !nextGameId || nextGameId === game.value?.id || nextGameId === switchingGameId)
     return
   switchingGameId = nextGameId
+  const version = pageVersion
   resultOpen.value = false
   errorMessage.value = ''
   question.value = ''
@@ -284,12 +297,10 @@ async function switchToGame(nextGameId: string) {
   notesDrawerOpen.value = false
   startElapsedClock(0)
   try {
-    if (readonlyMode.value) {
-      store.setGame(await gameApi.read(nextGameId))
-    }
-    else {
-      store.setGame(await socket.join(nextGameId))
-    }
+    const snapshot = readonlyMode.value ? await gameApi.read(nextGameId) : await socket.join(nextGameId)
+    if (!pageActive.value || version !== pageVersion)
+      return
+    store.setGame(snapshot)
     gameId.value = nextGameId
     // #ifdef H5
     const url = new URL(window.location.href)
@@ -373,28 +384,44 @@ watch(socket.memberLeftNotice, (notice) => {
 })
 
 async function refresh() {
+  if (!pageActive.value)
+    return
+  const requestedId = gameId.value
+  const version = ++pageVersion
+  const isCurrentPage = () => pageActive.value && version === pageVersion && requestedId === gameId.value
   pageError.value = ''
-  store.clear()
-  socket.clearRoom()
+  if (store.current?.id !== requestedId) {
+    store.clear()
+    socket.clearRoom()
+  }
   if (!gameId.value) {
     pageError.value = '题目链接无效，请重新选择题目'
     return
   }
   try {
     if (readonlyMode.value) {
-      store.setGame(await gameApi.read(gameId.value))
+      const snapshot = await gameApi.read(requestedId)
+      if (!isCurrentPage())
+        return
+      store.setGame(snapshot)
     }
     else {
-      try { store.setGame(await socket.join(gameId.value)) }
-      catch { store.setGame(await gameApi.read(gameId.value)) }
+      const snapshot = await socket.join(requestedId).catch(() => gameApi.read(requestedId))
+      if (!isCurrentPage())
+        return
+      store.setGame(snapshot)
       if (game.value?.mode === 'multiplayer' && game.value.room_id)
         await socket.roomJoin(game.value.room_id)
     }
+    if (!isCurrentPage())
+      return
     startElapsedClock(0)
     if (route.query.show_result === '1' && game.value && ['solved', 'finished', 'abandoned'].includes(game.value.status))
       resultOpen.value = true
   }
   catch (error) {
+    if (!isCurrentPage())
+      return
     store.clear()
     socket.clearRoom()
     pageError.value = (error as Error).message || '题目加载失败'
@@ -402,7 +429,7 @@ async function refresh() {
 }
 
 watch(routeGameId, (nextGameId) => {
-  if (!nextGameId || nextGameId === gameId.value)
+  if (!pageActive.value || route.name !== 'game' || !nextGameId || nextGameId === gameId.value)
     return
   gameId.value = nextGameId
   void refresh()
@@ -667,12 +694,21 @@ function measureMobileSurface() {
   mobileSurfaceOverflow.value = Boolean(element && element.scrollHeight > element.clientHeight + 1)
 }
 
+function measureMobileBar() {
+  const query = uni.createSelectorQuery().in(pageInstance?.proxy)
+  query.select('.mobile-bar').boundingClientRect((rect) => {
+    if (rect && !Array.isArray(rect))
+      mobileBarWidth = rect.width || 0
+  }).exec()
+}
+
 function onMobileBarScroll(event: { detail?: { scrollLeft?: number, scrollWidth?: number, clientWidth?: number } }) {
   const detail = event?.detail || {}
   const left = Number(detail.scrollLeft) || 0
   const scrollWidth = Number(detail.scrollWidth) || 0
-  const clientWidth = Number(detail.clientWidth) || 0
-  mobileBarScrollLeft.value = left
+  const clientWidth = Number(detail.clientWidth) || mobileBarWidth
+  // 只记录实际位置，避免 scroll-left 与原生滚动事件形成反馈循环。
+  mobileBarActualLeft = left
   mobileBarCanLeft.value = left > 2
   if (scrollWidth > 0 && clientWidth > 0)
     mobileBarCanRight.value = left + clientWidth < scrollWidth - 2
@@ -680,20 +716,10 @@ function onMobileBarScroll(event: { detail?: { scrollLeft?: number, scrollWidth?
     mobileBarCanRight.value = true
 }
 
-function scrollMobileBar(direction: -1 | 1) {
-  const step = 160
-  mobileBarScrollLeft.value = Math.max(0, mobileBarScrollLeft.value + direction * step)
-  mobileBarCanLeft.value = mobileBarScrollLeft.value > 2
-  // #ifdef H5
-  nextTick(() => {
-    if (typeof document === 'undefined')
-      return
-    const el = document.querySelector('.mobile-bar') as HTMLElement | null
-    if (!el)
-      return
-    mobileBarCanRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
-  })
-  // #endif
+async function scrollMobileBar(direction: -1 | 1) {
+  mobileBarScrollLeft.value = mobileBarActualLeft
+  await nextTick()
+  mobileBarScrollLeft.value = Math.max(0, mobileBarActualLeft + direction * 160)
 }
 
 async function submitBottom() {
@@ -725,6 +751,8 @@ function submitJudgeInput() {
 }
 
 async function invite() {
+  if (!supportsPublicRooms || creatingRoom.value)
+    return
   if (!player.user) {
     uni.showToast({ title: '登录后才能邀请队友', icon: 'none' })
     router.push({ name: 'player-login' })
@@ -752,14 +780,20 @@ async function invite() {
     }
   }
   inviteOpen.value = true
+  inviteCopyState.value = 'idle'
 }
 
 async function copyInviteLink() {
-  const currentRoom = room.value || (game.value?.room_id ? await roomApi.read(game.value.room_id) : null)
-  if (!currentRoom)
+  if (!room.value || inviteCopyState.value === 'copying')
     return
-  const link = resolveShareUrl(roomSharePath())
-  uni.setClipboardData({ data: link, success: () => uni.showToast({ title: '邀请链接已复制', icon: 'success' }) })
+  inviteCopyState.value = 'copying'
+  try {
+    await copyText(inviteLink.value)
+    inviteCopyState.value = 'copied'
+  }
+  catch {
+    inviteCopyState.value = 'failed'
+  }
 }
 
 function backToQuestion() {
@@ -767,8 +801,25 @@ function backToQuestion() {
     void openQuestionDetail({ id: game.value.question_id })
   else router.push({ name: 'questions' })
 }
-function returnToQuestionLibrary() {
-  router.replace({ name: 'questions' })
+async function returnToQuestionLibrary() {
+  if (returningToLibrary.value)
+    return
+  returningToLibrary.value = true
+  returnLibraryError.value = ''
+  try {
+    if (!readonlyMode.value && await exitAbandonedRoom(game.value))
+      socket.clearRoom()
+    closePageOverlays()
+    await nextTick()
+    await router.replace({ name: 'questions' })
+  }
+  catch (error) {
+    returnLibraryError.value = (error as Error).message
+    uni.showToast({ title: (error as Error).message, icon: 'none' })
+  }
+  finally {
+    returningToLibrary.value = false
+  }
 }
 
 async function continuePlaying() {
@@ -831,21 +882,56 @@ watch(() => game.value?.surface, async () => {
 function onWindowResize() {
   shellChrome.value = resolveShellChromeMetrics()
   measureMobileSurface()
+  measureMobileBar()
 }
+
+function closePageOverlays() {
+  resultOpen.value = false
+  inviteOpen.value = false
+  confirmOpen.value = false
+  confirmAction = undefined
+  notesDrawerOpen.value = false
+  notesPanelFloating.value = false
+  mobileSurfaceOpen.value = false
+}
+
+function deactivatePage() {
+  pageActive.value = false
+  pageVersion++
+  closePageOverlays()
+}
+
+watch(() => route.path, (path) => {
+  if (path !== '/pages/game/index')
+    deactivatePage()
+}, { flush: 'sync' })
+onDeactivated(deactivatePage)
+onBeforeUnmount(deactivatePage)
+
+onShow(() => {
+  pageActive.value = true
+  if (pageMounted)
+    void nextTick().then(refresh)
+})
+onHide(deactivatePage)
 
 onMounted(async () => {
   shellChrome.value = resolveShellChromeMetrics()
   await player.restore()
   await refresh()
+  pageMounted = true
   surfaceExpanded.value = false
   await nextTick()
   measureMobileSurface()
   // 默认假定可向右滚，真实边界在首次 scroll / H5 测量后修正
   mobileBarCanLeft.value = false
   mobileBarCanRight.value = true
+  measureMobileBar()
   uni.onWindowResize(onWindowResize)
 })
 onUnmounted(() => {
+  pageActive.value = false
+  pageVersion++
   if (typingTimer)
     clearTimeout(typingTimer)
   if (elapsedTimer)
@@ -1002,7 +1088,7 @@ onUnmounted(() => {
               </text>
             </button>
             <button
-              v-if="player.user && (!room || room.member_count < room.max_players) && !readonlyMode"
+              v-if="supportsPublicRooms && player.user && (!room || room.member_count < room.max_players) && !readonlyMode"
               class="hgt-mono outline"
               :disabled="creatingRoom"
               @click="invite"
@@ -1249,6 +1335,7 @@ onUnmounted(() => {
                 </button>
                 <scroll-view
                   scroll-x
+                  :show-scrollbar="false"
                   class="mobile-bar"
                   :scroll-left="mobileBarScrollLeft"
                   @scroll="onMobileBarScroll"
@@ -1272,7 +1359,7 @@ onUnmounted(() => {
                       提交真相
                     </button>
                     <button
-                      v-if="player.user && (!room || room.member_count < room.max_players) && !readonlyMode"
+                      v-if="supportsPublicRooms && player.user && (!room || room.member_count < room.max_players) && !readonlyMode"
                       class="mobile-bar-btn"
                       :disabled="creatingRoom"
                       @click="invite"
@@ -1523,7 +1610,7 @@ onUnmounted(() => {
       </view>
     </view>
 
-    <wd-popup v-if="room && inviteOpen" v-model="inviteOpen" position="center" :root-portal="true" custom-class="invite-popup">
+    <wd-popup v-if="pageActive && supportsPublicRooms && room" v-model="inviteOpen" position="center" :root-portal="true" custom-style="box-sizing: border-box; width: 90vw; max-width: 480px; border-radius: 12px; overflow: hidden; background: #061A20;">
       <view class="invite-modal">
         <text class="hgt-mono label">
           邀请队友
@@ -1536,8 +1623,8 @@ onUnmounted(() => {
             邀请码 {{ room.invite_code }}
           </text>
           <!-- #ifdef H5 -->
-          <button class="copy-button hgt-mono" @click="copyInviteLink">
-            复制链接
+          <button class="copy-button hgt-mono" :disabled="inviteCopyState === 'copying'" @click="copyInviteLink">
+            {{ inviteCopyState === 'copying' ? '复制中…' : inviteCopyState === 'copied' ? '已复制' : '复制链接' }}
           </button>
           <!-- #endif -->
           <!-- #ifdef MP-WEIXIN || MP-TOUTIAO -->
@@ -1545,6 +1632,15 @@ onUnmounted(() => {
             分享给好友
           </button>
           <!-- #endif -->
+        </view>
+        <text v-if="inviteCopyState === 'copied'" class="invite-copy-feedback">
+          邀请链接已复制，可以发送给好友。
+        </text>
+        <view v-if="inviteCopyState === 'failed'" class="invite-copy-feedback">
+          <text>未能自动复制，请长按或选择下方链接复制：</text>
+          <text selectable class="invite-manual-link">
+            {{ inviteLink }}
+          </text>
         </view>
         <text class="hgt-mono invite-members-title">
           当前队伍 ({{ room.member_count }}/{{ room.max_players }})
@@ -1565,7 +1661,7 @@ onUnmounted(() => {
     </wd-popup>
 
     <!-- 完成：安静的真相浮现 -->
-    <wd-popup v-if="resultOpen" v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
+    <wd-popup v-if="pageActive && resultOpen" v-model="resultOpen" position="center" :close-on-click-modal="true" :root-portal="true" custom-class="result-popup">
       <view class="result-modal">
         <view class="result-content">
           <text class="result-kicker hgt-mono">
@@ -1611,9 +1707,12 @@ onUnmounted(() => {
               {{ point.content }}
             </text>
           </view>
+          <text v-if="returnLibraryError" class="invite-copy-feedback">
+            {{ returnLibraryError }}
+          </text>
           <view class="result-actions">
-            <button class="btn-ghost-result" @click="returnToQuestionLibrary">
-              返回题库
+            <button class="btn-ghost-result" :disabled="returningToLibrary" @click="returnToQuestionLibrary">
+              {{ returningToLibrary ? '正在返回…' : '返回题库' }}
             </button>
             <button class="btn-primary-result" :disabled="busy" @click="continuePlaying">
               再来一题
@@ -2950,7 +3049,7 @@ onUnmounted(() => {
 .clue-tabs button.active {
   color: var(--hgt-brand);
 }
-.clue-tabs button.active::after {
+.clue-tabs button.active::before {
   position: absolute;
   right: 28%;
   bottom: 0;
@@ -3163,6 +3262,16 @@ onUnmounted(() => {
   font-size: 22px;
   font-weight: 600;
 }
+.invite-copy-feedback {
+  color: var(--hgt-brand);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.invite-manual-link {
+  display: block;
+  user-select: text;
+  overflow-wrap: anywhere;
+}
 .invite-link-row {
   display: flex;
   gap: 8px;
@@ -3344,15 +3453,6 @@ onUnmounted(() => {
 .btn-ghost-result::after,
 .btn-primary-result::after { border: 0; }
 
-:deep(.invite-popup) {
-  box-sizing: border-box;
-  width: min(480px, calc(100vw - 32px));
-  border: 1px solid rgba(117, 220, 211, 0.12);
-  border-radius: var(--hgt-radius-lg);
-  background: #061A20;
-  color: var(--hgt-text);
-  overflow: hidden;
-}
 :deep(.result-popup) {
   width: min(520px, calc(100vw - 32px));
   background: transparent;
@@ -3480,7 +3580,7 @@ onUnmounted(() => {
   .mobile-bar-track {
     display: inline-flex;
     box-sizing: border-box;
-    width: max-content;
+    min-width: 100%;
     padding: 6px 8px;
     gap: 6px;
     vertical-align: middle;
@@ -3488,7 +3588,7 @@ onUnmounted(() => {
   .mobile-bar-btn {
     display: inline-flex;
     box-sizing: border-box;
-    width: max-content !important;
+    width: auto !important;
     max-width: none;
     flex: 0 0 auto;
     height: 34px;

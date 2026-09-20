@@ -120,20 +120,20 @@ function requestRiskConfirmation(): Promise<boolean> {
 async function start() {
   if (!question.value || starting.value)
     return
-  let confirmed = false
-  if (question.value.risk_level !== 'safe') {
-    confirmed = await requestRiskConfirmation()
-    if (!confirmed)
-      return
-  }
   starting.value = true
   try {
+    let confirmed = false
+    if (question.value.risk_level !== 'safe') {
+      confirmed = await requestRiskConfirmation()
+      if (!confirmed)
+        return
+    }
     await ensureAnonymousSession()
     if (roomId.value) {
       const room = await roomApi.next(roomId.value, question.value.id, confirmed)
       if (!room.game_id)
         throw new Error('房间尚未关联游戏，请稍后重试')
-      router.replace({ name: 'game', params: { id: room.game_id } })
+      await router.replace({ name: 'game', params: { id: room.game_id } })
       return
     }
     if (player.user) {
@@ -149,7 +149,7 @@ async function start() {
       }
     }
     store.setGame(await gameApi.create(question.value.id, confirmed))
-    router.replace({ name: 'game', params: { id: store.current!.id } })
+    await router.replace({ name: 'game', params: { id: store.current!.id } })
   }
   catch (error) {
     uni.showToast({ title: (error as Error).message || '开始游戏失败', icon: 'none' })

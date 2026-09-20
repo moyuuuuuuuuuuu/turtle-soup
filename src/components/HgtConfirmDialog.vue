@@ -24,11 +24,11 @@ const emit = defineEmits<{
 }>()
 
 function close(confirmed: boolean) {
-  emit('update:modelValue', false)
   if (confirmed)
     emit('confirm')
   else
     emit('cancel')
+  emit('update:modelValue', false)
 }
 </script>
 
@@ -94,6 +94,7 @@ export default {
 
 <style scoped>
 .hgt-confirm-mask {
+  pointer-events: auto;
   position: fixed;
   z-index: 10010;
   top: 0;

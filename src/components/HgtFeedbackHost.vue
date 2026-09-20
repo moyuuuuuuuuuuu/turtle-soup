@@ -3,10 +3,17 @@ import { useFeedbackStore } from '@/store/feedbackStore'
 
 const store = useFeedbackStore()
 const hostId = `hgt-feedback-${Math.random().toString(36).slice(2, 10)}`
-const isPrimary = ref(false)
+const isPrimary = computed(() => store.hostId === hostId)
 
 onMounted(() => {
-  isPrimary.value = store.claimHost(hostId)
+  store.claimHost(hostId)
+})
+
+onShow(() => {
+  store.claimHost(hostId)
+})
+onHide(() => {
+  store.releaseHost(hostId)
 })
 
 onUnmounted(() => {
@@ -25,7 +32,9 @@ function onCancel() {
 <script lang="ts">
 export default {
   options: {
+    // #ifndef MP-TOUTIAO
     virtualHost: true,
+    // #endif
     addGlobalClass: true,
     styleIsolation: 'shared',
   },
@@ -33,7 +42,7 @@ export default {
 </script>
 
 <template>
-  <view v-if="isPrimary" class="hgt-feedback-host">
+  <view v-if="isPrimary" class="hgt-feedback-host" :class="{ 'is-confirming': store.confirm.show }">
     <HgtLoadingOverlay />
     <HgtToast />
     <HgtConfirmDialog
@@ -64,7 +73,7 @@ export default {
   pointer-events: none;
 }
 
-.hgt-feedback-host :deep(.hgt-confirm-mask) {
+.hgt-feedback-host.is-confirming {
   pointer-events: auto;
 }
 
