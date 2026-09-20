@@ -48,11 +48,13 @@ const filtersVisible = ref(false)
 const sortKey = ref<SortKey>('default')
 const sortOpen = ref(false)
 const loading = ref(true)
+const loadingMore = ref(false)
 const loadError = ref(false)
 const page = ref(1)
 const total = ref(0)
 const categories = ref<CategoryTab[]>(PRIMARY_TABS)
 let keywordSearchTimer: ReturnType<typeof setTimeout> | null = null
+let loadSeq = 0
 
 function resolvePageSize() {
   // #ifdef H5
@@ -64,7 +66,6 @@ function resolvePageSize() {
 }
 
 const pageSize = resolvePageSize()
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
 const headerCountText = computed(() => {
   if (total.value > 0)
     return `${total.value} 个等待被解开的故事。`
@@ -73,7 +74,9 @@ const headerCountText = computed(() => {
 const resultLine = computed(() => {
   if (loading.value && !items.value.length)
     return ''
-  return `${total.value} 个谜题`
+  if (!total.value)
+    return '0 个谜题'
+  return `${items.value.length}/${total.value} 个谜题`
 })
 const sortLabel = computed(() => SORT_OPTIONS.find(item => item.key === sortKey.value)?.label || '默认排序')
 const activeTagLabel = computed(() => {
@@ -86,6 +89,7 @@ const hasActiveFilter = computed(() =>
   || difficulty.value !== undefined
   || Boolean(keyword.value.trim()),
 )
+const hasMore = computed(() => items.value.length > 0 && items.value.length < total.value)
 const SORT_API_MAP: Record<string, string> = {
   default: '',
   plays_desc: 'popular',
@@ -94,18 +98,6 @@ const SORT_API_MAP: Record<string, string> = {
 }
 
 const displayItems = computed(() => items.value)
-const pageList = computed(() => {
-  const current = page.value
-  const last = totalPages.value
-  if (last <= 7)
-    return Array.from({ length: last }, (_, i) => i + 1)
-  const pages = new Set<number>([1, last, current, current - 1, current + 1])
-  if (current <= 3)
-    [2, 3, 4].forEach(p => pages.add(p))
-  if (current >= last - 2)
-    [last - 1, last - 2, last - 3].forEach(p => pages.add(p))
-  return [...pages].filter(p => p >= 1 && p <= last).sort((a, b) => a - b)
-})
 
 async function loadCategories() {
   try {
@@ -127,28 +119,41 @@ async function loadCategories() {
 }
 
 async function load(reset = false) {
+  if (!reset && (loading.value || loadingMore.value || !hasMore.value))
+    return
+  const seq = ++loadSeq
   if (reset) {
     page.value = 1
+    loading.value = true
   }
-  loading.value = true
+  else {
+    loadingMore.value = true
+  }
   loadError.value = false
   try {
     await ensureAnonymousSession()
     const trimmedKeyword = keyword.value.trim()
     const sortParam = SORT_API_MAP[sortKey.value]
+    const requestPage = reset ? 1 : page.value
     const result = await questionApi.list({
       ...(difficulty.value !== undefined ? { difficulty: difficulty.value } : {}),
       ...(activeTagId.value !== undefined ? { tag_id: activeTagId.value } : {}),
       ...(trimmedKeyword ? { keyword: trimmedKeyword } : {}),
       ...(sortParam ? { sort: sortParam } : {}),
-      page: page.value,
+      page: requestPage,
       page_size: pageSize,
     })
-    items.value = result.items || []
+    if (seq !== loadSeq)
+      return
+    const nextItems = result.items || []
+    items.value = reset ? nextItems : [...items.value, ...nextItems]
     const pagination = result.pagination || {}
     total.value = Number(pagination.total) || items.value.length
+    page.value = requestPage + 1
   }
   catch {
+    if (seq !== loadSeq)
+      return
     loadError.value = true
     if (reset) {
       items.value = []
@@ -156,9 +161,36 @@ async function load(reset = false) {
     }
   }
   finally {
-    loading.value = false
+    if (seq === loadSeq) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
 }
+
+function loadMore() {
+  if (loading.value || loadingMore.value)
+    return
+  if (!hasMore.value && !loadError.value)
+    return
+  void load(false)
+}
+
+/** H5 自定义布局下页面可能不走 onReachBottom，补窗口滚动检测 */
+function setupH5InfiniteScroll() {
+  // #ifdef H5
+  const onScroll = () => {
+    const el = document.scrollingElement || document.documentElement
+    const threshold = 280
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold)
+      loadMore()
+  }
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onUnmounted(() => window.removeEventListener('scroll', onScroll))
+  // #endif
+}
+
+onReachBottom(loadMore)
 
 function selectTab(tab: CategoryTab) {
   activeTabLabel.value = tab.label
@@ -193,14 +225,6 @@ function clearAllFilters() {
   void load(true)
 }
 
-function goPage(next: number) {
-  const target = Math.min(totalPages.value, Math.max(1, next))
-  if (target === page.value && !loadError.value)
-    return
-  page.value = target
-  void load()
-}
-
 function setSort(key: SortKey) {
   if (sortKey.value === key) {
     sortOpen.value = false
@@ -218,6 +242,7 @@ function openQuestion(id: string) {
 onMounted(() => {
   void load(true)
   void loadCategories()
+  setupH5InfiniteScroll()
 })
 onUnmounted(() => {
   if (keywordSearchTimer)
@@ -395,21 +420,16 @@ onUnmounted(() => {
         />
       </view>
 
-      <view v-if="totalPages > 1 && items.length" class="pager">
-        <button class="pager-nav" :disabled="page <= 1" @click="goPage(page - 1)">
-          ←
+      <view v-if="displayItems.length" class="load-more">
+        <text v-if="loadingMore" class="load-more-text">
+          正在加载更多…
+        </text>
+        <button v-else-if="hasMore || loadError" class="load-more-btn" @click="loadMore">
+          {{ loadError && !hasMore ? '加载失败，点击重试' : '加载更多' }}
         </button>
-        <template v-for="(p, i) in pageList" :key="p">
-          <text v-if="i > 0 && p - pageList[i - 1] > 1" class="pager-gap">
-            …
-          </text>
-          <button class="pager-page" :class="{ active: p === page }" @click="goPage(p)">
-            {{ p }}
-          </button>
-        </template>
-        <button class="pager-nav" :disabled="page >= totalPages" @click="goPage(page + 1)">
-          →
-        </button>
+        <text v-else class="load-more-end">
+          已经到底了
+        </text>
       </view>
     </view>
   </view>
@@ -944,52 +964,46 @@ onUnmounted(() => {
   border: 0;
 }
 
-.pager {
+.load-more {
   display: flex;
-  flex-wrap: wrap;
+  min-height: 72px;
+  margin-top: 20px;
+  padding: 12px 0 28px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: 28px;
 }
 
-.pager-nav,
-.pager-page {
-  display: inline-flex;
-  min-width: 32px;
-  height: 32px;
+.load-more-text,
+.load-more-end {
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-display);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.load-more-btn {
+  display: flex;
+  min-width: 140px;
+  height: 40px;
   margin: 0;
-  padding: 0 8px;
-  border: 1px solid transparent;
-  border-radius: var(--hgt-radius-xs);
+  padding: 0 18px;
+  border: 1px solid var(--hgt-border);
+  border-radius: var(--hgt-radius-sm);
   align-items: center;
   justify-content: center;
   background: transparent;
   color: var(--hgt-text-2);
-  font-family: var(--hgt-font-mono);
+  font-family: var(--hgt-font-display);
   font-size: 13px;
+  line-height: 1;
 }
 
-.pager-nav::after,
-.pager-page::after {
+.load-more-btn::after {
   border: 0;
 }
 
-.pager-nav[disabled] {
-  opacity: 0.28;
-}
-
-.pager-page.active {
-  border-color: var(--hgt-border);
-  color: var(--hgt-brand);
-  background: var(--hgt-brand-soft);
-}
-
-.pager-gap {
-  color: var(--hgt-text-3);
-  font-family: var(--hgt-font-mono);
-  font-size: 12px;
-  padding: 0 2px;
+.load-more-btn:disabled {
+  opacity: 0.55;
 }
 
 @media (max-width: 1024px) {
