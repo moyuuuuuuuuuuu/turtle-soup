@@ -1,11 +1,19 @@
 /* eslint-disable style/max-statements-per-line */
 import { resolveApiBaseUrl } from '@/config/endpoints'
+import { serviceErrorMessage } from '@/utils/serviceError'
 
 export interface PlayerUser { id: string, username: string, email: string | null, avatar_url?: string, bio?: string | null, status: string }
 export interface PlayerSession { id: string, device_name: string, platform: string, last_used_at?: string, expires_at: string }
 interface Envelope<T> { code: string, message: string, data: T }
 export interface AuthResult { access_token: string, refresh_token: string, expires_in: number, session: PlayerSession, user: PlayerUser, merged_games: number }
 export interface LegalDocuments { service_terms: string, privacy_policy: string }
+
+export class PlayerApiError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(serviceErrorMessage(code, message))
+    this.name = 'PlayerApiError'
+  }
+}
 
 const baseUrl = resolveApiBaseUrl()
 const refreshKey = 'turtle_player_refresh_token'
@@ -41,7 +49,7 @@ async function call<T>(path: string, method: 'GET' | 'POST' | 'DELETE' = 'POST',
     success: ({ data: raw }) => {
       const body = raw as Envelope<T>; if (body?.code === 'success')
         return resolve(body.data); if (authenticated && !retried && body?.code === 'auth.token_invalid')
-        return restoreAccess().then(result => result ? call<T>(path, method, data, true, true).then(resolve, reject) : reject(new Error(body.message || body.code))); return reject(new Error(body?.message || body?.code || '操作失败，请稍后重试'))
+        return restoreAccess().then(result => result ? call<T>(path, method, data, true, true).then(resolve, reject) : reject(new PlayerApiError(body.code, body.message || body.code))); return reject(new PlayerApiError(body?.code || 'system.error', body?.message || body?.code || '操作失败，请稍后重试'))
     },
     fail: () => reject(new Error('网络请求失败，请检查网络连接')),
   }))
@@ -60,8 +68,8 @@ async function uploadAvatarFile(filePath: string, retried = false): Promise<Play
         if (body?.code === 'success')
           return resolve(body.data)
         if (!retried && body?.code === 'auth.token_invalid')
-          return restoreAccess().then(result => result ? uploadAvatarFile(filePath, true).then(resolve, reject) : reject(new Error(body.message || body.code)))
-        reject(new Error(body?.message || body?.code || '头像上传失败'))
+          return restoreAccess().then(result => result ? uploadAvatarFile(filePath, true).then(resolve, reject) : reject(new PlayerApiError(body.code, body.message || body.code)))
+        reject(new PlayerApiError(body?.code || 'system.error', body?.message || body?.code || '头像上传失败'))
       }
       catch {
         reject(new Error('头像上传响应格式异常'))

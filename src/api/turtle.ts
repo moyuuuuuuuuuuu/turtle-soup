@@ -1,6 +1,7 @@
 import type { ApiEnvelope, DonationPage, FriendLink, GameHistoryResult, GameSnapshot, HomeStats, PublicQuestion, PublicTag, RoomSnapshot } from '@/types/game'
 import { currentAccessToken, invalidatePlayerSession, playerApi } from '@/api/player'
 import { resolveApiBaseUrl } from '@/config/endpoints'
+import { serviceErrorMessage } from '@/utils/serviceError'
 
 const baseUrl = resolveApiBaseUrl()
 const tokenKey = 'turtle_anonymous_token'
@@ -8,7 +9,7 @@ const requestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
 export class TurtleApiError extends Error {
   constructor(public readonly code: string, message: string) {
-    super(message)
+    super(serviceErrorMessage(code, message))
     this.name = 'TurtleApiError'
   }
 }

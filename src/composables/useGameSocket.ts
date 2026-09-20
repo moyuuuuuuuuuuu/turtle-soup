@@ -3,6 +3,7 @@ import type { GameSnapshot, RoomSnapshot } from '@/types/game'
 import { ensurePlayerAccessToken } from '@/api/player'
 import { ensureAnonymousSession, roomApi } from '@/api/turtle'
 import { resolveWebSocketUrl } from '@/config/endpoints'
+import { GameSocketError } from '@/utils/serviceError'
 
 interface PendingRequest { resolve: (value: unknown) => void, reject: (reason: Error) => void }
 interface SocketEnvelope { event?: string, request_id?: string, data?: Record<string, unknown> }
@@ -125,7 +126,7 @@ export function useGameSocket() {
           return
         pending.delete(message.request_id)
         if (message.event === 'v1.game.error')
-          job.reject(new Error(String(message.data?.code || 'system.error')))
+          job.reject(new GameSocketError(String(message.data?.code || 'system.error')))
         else job.resolve(message.data)
       })
       socket.onClose(() => {
