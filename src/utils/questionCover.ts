@@ -1,3 +1,5 @@
+import { resolveAssetUrl } from './assetUrl'
+
 /**
  * @deprecated 题目全面取消无语义缩略图。仅保留空状态图与兼容占位。
  * 新代码请使用 QuestionTextCard 无图文字卡。
@@ -71,10 +73,10 @@ export function questionCoverUrl(question?: CoverSource | null) {
 
   for (const group of TAG_COVER_GROUPS) {
     if (group.names.some(name => tagNames.has(name)))
-      return group.covers[hashId(id) % group.covers.length]
+      return resolveAssetUrl(group.covers[hashId(id) % group.covers.length])
   }
 
-  return ALL_COVERS[hashId(id) % ALL_COVERS.length]
+  return resolveAssetUrl(ALL_COVERS[hashId(id) % ALL_COVERS.length])
 }
 
 /** 按题目/对局 id 轮换纸纹，避免全站同一张 paper_01 */
@@ -85,14 +87,14 @@ export function paperTextureUrl(seed?: string | null) {
     '/static/hgt/paper/paper_03.png',
     '/static/hgt/paper/paper_04.png',
   ]
-  return papers[hashId(String(seed || 'default')) % papers.length]
+  return resolveAssetUrl(papers[hashId(String(seed || 'default')) % papers.length])
 }
 
-export const coverPlaceholderUrl = '/static/hgt/ink/cover_cat_lantern.png'
-export const emptyNetworkUrl = '/static/hgt/empty/empty_network.png'
+export const coverPlaceholderUrl = resolveAssetUrl('/static/hgt/ink/cover_cat_lantern.png')
+export const emptyNetworkUrl = resolveAssetUrl('/static/hgt/empty/empty_network.png')
 /** 首选 HgtLoading 组件；此 URL 仅作兼容占位（品牌 logo） */
-export const emptyLoadingUrl = '/static/brand/logo-mark-light.png'
-export const emptySearchUrl = '/static/hgt/empty/empty_search.png'
-export const emptyNoneUrl = '/static/hgt/empty/empty_none.png'
-export const emptyHistoryUrl = '/static/hgt/empty/empty_history.png'
-export const paperTagUrl = '/static/hgt/paper/paper_tag.png'
+export const emptyLoadingUrl = resolveAssetUrl('/static/brand/logo-mark-light.png')
+export const emptySearchUrl = resolveAssetUrl('/static/hgt/empty/empty_search.png')
+export const emptyNoneUrl = resolveAssetUrl('/static/hgt/empty/empty_none.png')
+export const emptyHistoryUrl = resolveAssetUrl('/static/hgt/empty/empty_history.png')
+export const paperTagUrl = resolveAssetUrl('/static/hgt/paper/paper_tag.png')

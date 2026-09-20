@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { DonationPage } from '@/types/game'
 import { donationApi } from '@/api/turtle'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 
 definePage({ name: 'donate', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
+const heroBgSrc = resolveAssetUrl('/static/hgt/bg/bg_starry.jpg')
 
 /** 仅开发环境预览弹幕；生产构建经 tree-shaking / 环境判断不注入 */
 const isDev = import.meta.env.DEV
@@ -75,7 +78,7 @@ onMounted(async () => {
     <section class="donate-hero">
       <image
         class="hero-bg"
-        src="/static/hgt/bg/bg_starry.jpg"
+        :src="heroBgSrc"
         mode="aspectFill"
       />
       <view class="hero-veil" />

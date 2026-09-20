@@ -8,6 +8,7 @@ import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 import { resolveDepth } from '@/utils/depth'
 import { formatDuration } from '@/utils/gameStatus'
+import { resolveShellChromeMetrics } from '@/utils/navSafeArea'
 import { supportsPublicRooms } from '@/utils/platform'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
@@ -18,6 +19,31 @@ const router = useRouter()
 const store = useGameStore()
 const player = usePlayerStore()
 const socket = useGameSocket()
+
+/** 小程序沉浸布局：与 shell 同一套系统 px，避免 CSS 变量/100dvh/env 在抖音端失效 */
+const shellChrome = ref(resolveShellChromeMetrics())
+const gamePageStyle = computed(() => {
+  // #ifdef MP
+  const metrics = shellChrome.value
+  const top = metrics.defaultNav ? 0 : metrics.offset
+  const bottom = 64 + metrics.safeBottom
+  return {
+    // 小程序 slot 样式隔离会阻止 Shell 的 :deep 定位规则命中页面。
+    // 由页面自身建立确定的视口高度，避免 auto 高度令 flex 正文坍缩为 0。
+    position: 'fixed' as const,
+    top: `${top}px`,
+    right: '0px',
+    bottom: `${bottom}px`,
+    left: '0px',
+    height: 'auto',
+    minHeight: '0',
+    maxHeight: 'none',
+  }
+  // #endif
+  // #ifndef MP
+  return {}
+  // #endif
+})
 
 const question = ref('')
 const teamMessage = ref('')
@@ -803,10 +829,12 @@ watch(() => game.value?.surface, async () => {
 })
 
 function onWindowResize() {
+  shellChrome.value = resolveShellChromeMetrics()
   measureMobileSurface()
 }
 
 onMounted(async () => {
+  shellChrome.value = resolveShellChromeMetrics()
   await player.restore()
   await refresh()
   surfaceExpanded.value = false
@@ -815,22 +843,20 @@ onMounted(async () => {
   // 默认假定可向右滚，真实边界在首次 scroll / H5 测量后修正
   mobileBarCanLeft.value = false
   mobileBarCanRight.value = true
-  if (typeof window !== 'undefined')
-    window.addEventListener('resize', onWindowResize)
+  uni.onWindowResize(onWindowResize)
 })
 onUnmounted(() => {
   if (typingTimer)
     clearTimeout(typingTimer)
   if (elapsedTimer)
     clearInterval(elapsedTimer)
-  if (typeof window !== 'undefined')
-    window.removeEventListener('resize', onWindowResize)
+  uni.offWindowResize(onWindowResize)
 })
 </script>
 
 <template>
   <template v-if="game">
-    <view class="game-page">
+    <view class="game-page" :style="gamePageStyle">
       <!-- PC 隐藏中间导航条，保留站点 Logo 导航；移动端保留轻量顶栏 -->
       <header class="game-topbar">
         <text class="topbar-brand hgt-mono">
@@ -1020,19 +1046,21 @@ onUnmounted(() => {
                     {{ mobilePuzzleExpanded ? '收起 −' : '题目信息 +' }}
                   </text>
                 </view>
-                <!-- 展开时自然撑高；标题栏 sticky，避免汤面盖住题目名与收起 -->
-                <view v-if="mobilePuzzleExpanded" class="mobile-puzzle-body">
-                  <text class="mobile-puzzle-label hgt-mono">
-                    汤面
-                  </text>
-                  <text class="mobile-puzzle-surface">
-                    {{ game.surface }}
-                  </text>
-                  <DepthBadge :difficulty="game.difficulty" compact />
-                  <text v-if="game.tags?.length" class="mobile-puzzle-tags">
-                    {{ game.tags.map(tag => tag.name).join(' · ') }}
-                  </text>
-                </view>
+                <!-- 题目限高并独立滚动，始终为对话和底部输入保留空间 -->
+                <scroll-view v-if="mobilePuzzleExpanded" scroll-y class="mobile-puzzle-scroll">
+                  <view class="mobile-puzzle-body">
+                    <text class="mobile-puzzle-label hgt-mono">
+                      汤面
+                    </text>
+                    <text class="mobile-puzzle-surface">
+                      {{ game.surface }}
+                    </text>
+                    <DepthBadge :difficulty="game.difficulty" compact />
+                    <text v-if="game.tags?.length" class="mobile-puzzle-tags">
+                      {{ game.tags.map(tag => tag.name).join(' · ') }}
+                    </text>
+                  </view>
+                </scroll-view>
               </view>
 
               <!-- 默认：主持人；多人房间时增加队伍讨论 Tab -->
@@ -1607,7 +1635,7 @@ onUnmounted(() => {
       @cancel="cancelConfirmAction"
     />
   </template>
-  <view v-else-if="pageError" class="game-load-state">
+  <view v-else-if="pageError" class="game-load-state" :style="gamePageStyle">
     <text class="hgt-mono game-load-eyebrow">
       GAME UNAVAILABLE
     </text>
@@ -1621,7 +1649,7 @@ onUnmounted(() => {
       返回题库
     </button>
   </view>
-  <view v-else class="game-load-state">
+  <view v-else class="game-load-state" :style="gamePageStyle">
     <HgtLoading size="lg" text="" eyebrow />
     <text class="hgt-display game-load-title">
       正在进入题目
@@ -1657,7 +1685,7 @@ onUnmounted(() => {
 .mobile-puzzle {
   display: none;
   box-sizing: border-box;
-  flex: 0 1 auto;
+  flex: none;
   min-height: 0;
   max-height: 46%;
   overflow: hidden;
@@ -1667,14 +1695,14 @@ onUnmounted(() => {
 }
 
 .mobile-puzzle.expanded {
+  height: 280px;
   max-height: min(52%, 280px);
 }
 
 .center-stack {
   display: flex;
   min-height: 0;
-  height: 100%;
-  flex: 1;
+  flex: 1 1 0;
   flex-direction: column;
 }
 
@@ -1703,7 +1731,7 @@ onUnmounted(() => {
   display: flex;
   box-sizing: border-box;
   width: 100%;
-  min-height: 140px;
+  min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
   overflow: hidden;
@@ -1763,17 +1791,18 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
+.mobile-puzzle-scroll {
+  height: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
 .mobile-puzzle-body {
   display: flex;
   box-sizing: border-box;
   padding: 0 12px 12px;
   gap: 8px;
-  flex: 1 1 auto;
-  min-height: 0;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-puzzle-label {
@@ -1871,7 +1900,8 @@ onUnmounted(() => {
 
 /* ===== Topbar：移动端与 PC 都保留，作为线索笔记等入口 ===== */
 .game-topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   box-sizing: border-box;
   width: 100%;
   height: 48px;
@@ -1908,7 +1938,7 @@ onUnmounted(() => {
 
 @media (min-width: 900px) {
   .game-topbar {
-    display: flex !important;
+    display: grid !important;
   }
   .mobile-puzzle {
     display: none !important;
@@ -1921,7 +1951,7 @@ onUnmounted(() => {
 
 @media (max-width: 899px) {
   .game-topbar {
-    display: flex !important;
+    display: grid !important;
   }
   .mobile-puzzle {
     display: flex;
@@ -1930,7 +1960,7 @@ onUnmounted(() => {
   .topbar-brand {
     display: none;
   }
-  .topbar-title {
+  .game-topbar .topbar-title {
     display: block;
     overflow: hidden;
     flex: 1;
@@ -1940,7 +1970,7 @@ onUnmounted(() => {
     font-size: 12px;
     font-weight: 400;
     letter-spacing: 0.08em;
-    text-align: left;
+    text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -2008,6 +2038,9 @@ onUnmounted(() => {
   background: var(--hgt-bg-deep);
 }
 .topbar-brand {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
   flex: none;
   color: var(--hgt-text-2);
   font-size: 12px;
@@ -2015,6 +2048,7 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 .topbar-title {
+  grid-column: 2;
   overflow: hidden;
   flex: 1;
   min-width: 0;
@@ -2034,6 +2068,8 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 .topbar-actions {
+  grid-column: 3;
+  justify-self: end;
   display: flex;
   flex: none;
   align-items: center;
@@ -2075,12 +2111,15 @@ onUnmounted(() => {
 .game-body {
   display: grid;
   box-sizing: border-box;
-  width: min(1200px, 100%);
+  /* 小程序不支持 min() 时，auto 宽度与左右 auto 外边距会使内容区收缩。 */
+  width: 100%;
+  max-width: 1200px;
   min-height: 0;
   margin: 0 auto;
   flex: 1;
   overflow: hidden;
   grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 /* ===== Left panel ===== */
@@ -2444,6 +2483,7 @@ onUnmounted(() => {
 .stage {
   box-sizing: border-box;
   width: 100%;
+  height: 0;
   flex: 1;
   min-height: 0;
   padding: 20px 16px 12px;
@@ -2484,6 +2524,8 @@ onUnmounted(() => {
   overflow-x: hidden !important;
 }
 .chat-zone :deep(.uni-scroll-view) {
+  height: 100% !important;
+  min-height: 0 !important;
   overflow-y: scroll !important;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -3044,8 +3086,8 @@ onUnmounted(() => {
   display: flex;
   box-sizing: border-box;
   width: 100%;
-  max-height: min(72vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 16px));
-  margin-bottom: calc(var(--hgt-tabbar-h, 64px) + env(safe-area-inset-bottom));
+  max-height: min(72vh, calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px) - 16px));
+  margin-bottom: var(--hgt-shell-bottom, 0px);
   padding: 8px 0 16px;
   border-top: 1px solid rgba(117, 220, 211, 0.12);
   border-radius: var(--hgt-radius-lg) var(--hgt-radius-lg) 0 0;
@@ -3079,7 +3121,7 @@ onUnmounted(() => {
 .sheet-body {
   flex: 1;
   min-height: 0;
-  max-height: calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 120px);
+  max-height: calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px) - 120px);
   padding: 0 16px 12px;
   box-sizing: border-box;
   overflow-y: auto;
@@ -3324,7 +3366,8 @@ onUnmounted(() => {
 .game-load-state {
   display: flex;
   box-sizing: border-box;
-  min-height: 100vh;
+  min-height: calc(var(--hgt-viewport-h, 100vh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px));
+  min-height: calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px));
   padding: 48px 24px;
   align-items: center;
   justify-content: center;
@@ -3369,16 +3412,26 @@ onUnmounted(() => {
 
 /* ===== Mobile-first responsive ===== */
 @media (max-width: 899px) {
+  /* ≤767px：高度由 shell 沉浸布局绝对定位撑满，此处不重复扣减 tabbar */
   .game-page {
-    height: calc(100vh - var(--hgt-mobile-header-offset, 56px) - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom));
-    height: calc(100dvh - var(--hgt-mobile-header-offset, 56px) - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom));
+    height: calc(var(--hgt-viewport-h, 100vh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px));
+    height: calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px));
   }
 
   .game-body {
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
+    height: 0;
   }
   .puzzle-panel {
     display: none;
+  }
+  .panel-center {
+    height: auto;
+    flex: 1 1 0;
+  }
+  .center-stack {
+    min-height: 0;
   }
   .topbar-depth {
     font-size: 11px;
@@ -3466,11 +3519,11 @@ onUnmounted(() => {
   .notes-drawer:not(.is-floating-panel) {
     top: auto;
     right: 0;
-    bottom: calc(var(--hgt-tabbar-h, 64px) + env(safe-area-inset-bottom));
+    bottom: var(--hgt-shell-bottom, 0px);
     left: 0;
     width: 100%;
     height: auto;
-    max-height: min(70vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 48px));
+    max-height: min(70vh, calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px) - 48px));
     border-left: 0;
     border-top: 1px solid rgba(117, 220, 211, 0.16);
     border-radius: var(--hgt-radius-lg) var(--hgt-radius-lg) 0 0;
@@ -3480,11 +3533,11 @@ onUnmounted(() => {
   }
   .notes-drawer:not(.is-floating-panel) .drawer-body {
     min-height: 160px;
-    height: min(42vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 180px));
+    height: min(42vh, calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px) - 180px));
   }
 
   .bottom-sheet .sheet-body {
-    height: min(48vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 140px));
+    height: min(48vh, calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 0px) - 140px));
   }
   .stage {
     padding: 18px 12px 8px;
@@ -3499,8 +3552,9 @@ onUnmounted(() => {
   .player-card {
     max-width: 92%;
   }
+  /* safe-area 由 shell tabbar 自己吃掉，composer 底边贴齐内容区底边 */
   .composer {
-    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+    padding: 8px 10px 10px;
   }
   .input-row .send-btn {
     width: 80px;

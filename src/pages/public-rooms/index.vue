@@ -4,9 +4,12 @@ import { gameApi, roomApi, TurtleApiError } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 import { supportsPublicRooms } from '@/utils/platform'
 
 definePage({ name: 'public-rooms', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
+const heroBgSrc = resolveAssetUrl('/static/hgt/bg/bg_deep_ocean.jpg')
 
 const ROOM_STATUS_LABEL: Record<string, string> = {
   waiting: '等待中',
@@ -162,7 +165,7 @@ onMounted(async () => {
       <section class="rooms-hero">
         <image
           class="hero-bg"
-          src="/static/hgt/bg/bg_deep_ocean.jpg"
+          :src="heroBgSrc"
           mode="aspectFill"
         />
         <view class="hero-veil" />

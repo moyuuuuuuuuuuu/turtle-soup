@@ -33,7 +33,7 @@ async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', data?: R
       if (body?.code === 'success')
         return resolve(body.data)
       if (!retried && currentAccessToken() && body?.code === 'auth.token_invalid')
-        return playerApi.restore().then(result => result ? request<T>(path, method, data, true).then(resolve, reject) : reject(new TurtleApiError(body.code, body.message || body.code)))
+        return playerApi.restore().then(result => result ? request<T>(path, method, data, true).then(resolve, reject) : reject(new TurtleApiError(body.code, body.message || body.code)), reject)
       if (currentAccessToken() && body?.code === 'auth.login_required')
         invalidatePlayerSession()
       if (!retried && !currentAccessToken() && ['auth.token_invalid', 'auth.anonymous_invalid'].includes(body?.code)) {

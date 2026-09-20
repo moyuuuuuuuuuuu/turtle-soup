@@ -3,6 +3,8 @@ import { roomApi } from '@/api/turtle'
 import { useAnimatedTheme } from '@/composables/useAnimatedTheme'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { usePlayerStore } from '@/store/playerStore'
+import { resolveAssetUrl } from '@/utils/assetUrl'
+import { resolveCapsuleRightPadding, resolveShellChromeMetrics } from '@/utils/navSafeArea'
 import { supportsPublicRooms } from '@/utils/platform'
 
 const router = useRouter()
@@ -11,7 +13,46 @@ const player = usePlayerStore()
 const socket = useGameSocket()
 const { light, overlay, toggleTheme } = useAnimatedTheme()
 const mobileHeaderStyle = ref<Record<string, string>>({})
-const mobileHeaderOffset = ref('56px')
+/** 小程序：自定义导航需预留状态栏+胶囊；原生导航视口已扣除，offset=0 */
+const topNav = resolveShellChromeMetrics()
+const mobileHeaderOffset = ref(`${topNav.offset}px`)
+/** 原生默认导航时隐藏自定义顶栏，避免与微信/抖音导航叠一层 */
+const hideMobileChrome = ref(topNav.defaultNav)
+/** 可视内容区高度 / 底部安全区：用系统 px，避免 100dvh、env() 在小程序端失效 */
+const viewportHeightPx = ref(topNav.viewportHeight)
+const safeBottomPx = ref(topNav.safeBottom)
+
+const shellChromeStyle = computed(() => {
+  const style: Record<string, string> = {
+    '--hgt-mobile-header-offset': mobileHeaderOffset.value,
+  }
+  // H5 keeps the CSS 100dvh fallback so browser chrome changes remain dynamic.
+  // #ifndef H5
+  if (viewportHeightPx.value > 0)
+    style['--hgt-viewport-h'] = `${viewportHeightPx.value}px`
+  style['--hgt-safe-bottom'] = `${safeBottomPx.value}px`
+  // #endif
+  return style
+})
+
+function applyMobileNavChrome() {
+  const metrics = resolveShellChromeMetrics()
+  hideMobileChrome.value = metrics.defaultNav
+  mobileHeaderOffset.value = `${metrics.offset}px`
+  viewportHeightPx.value = metrics.viewportHeight
+  safeBottomPx.value = metrics.safeBottom
+  if (metrics.defaultNav || metrics.offset <= 0) {
+    mobileHeaderStyle.value = {}
+    return
+  }
+  mobileHeaderStyle.value = {
+    height: `${metrics.offset}px`,
+    paddingTop: `${metrics.statusBarHeight}px`,
+    paddingRight: `${resolveCapsuleRightPadding()}px`,
+  }
+}
+
+applyMobileNavChrome()
 
 const activeRoom = computed(() => {
   const room = socket.roomSnapshot.value
@@ -67,7 +108,7 @@ const mobileNav = computed(() =>
 )
 
 const logoSrc = computed(() =>
-  light.value ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png',
+  resolveAssetUrl(light.value ? '/static/brand/logo-mark-light.png' : '/static/brand/logo-mark-dark.png'),
 )
 
 async function go(item: { name: string, path: string }) {
@@ -111,31 +152,28 @@ function openSearch() {
 }
 
 onMounted(async () => {
-  // #ifdef MP-WEIXIN
-  const system = uni.getSystemInfoSync()
-  const menu = typeof uni.getMenuButtonBoundingClientRect === 'function' ? uni.getMenuButtonBoundingClientRect() : null
-  const statusBarHeight = system.statusBarHeight || 0
-  const navigationHeight = menu ? menu.height + Math.max(0, menu.top - statusBarHeight) * 2 : 44
-  const totalHeight = statusBarHeight + navigationHeight
-  mobileHeaderOffset.value = `${totalHeight}px`
-  const padRight = menu ? Math.max(16, system.windowWidth - menu.left + 12) : 16
-  mobileHeaderStyle.value = {
-    height: `${totalHeight}px`,
-    paddingTop: `${statusBarHeight}px`,
-    paddingRight: `${padRight}px`,
-  }
-  // #endif
+  // 挂载后再测一次：部分基础库 onLaunch 阶段 getMenuButton 尚不可用
+  applyMobileNavChrome()
+  uni.onWindowResize(applyMobileNavChrome)
   if (!player.ready)
     await player.restore()
   await recoverActiveRoom()
+})
+
+onUnmounted(() => {
+  uni.offWindowResize(applyMobileNavChrome)
 })
 </script>
 
 <template>
   <view
     class="hgt-app"
-    :class="{ 'hgt-light': light, 'is-immersive-game': immersiveGame }"
-    :style="{ '--hgt-mobile-header-offset': mobileHeaderOffset }"
+    :class="{
+      'hgt-light': light,
+      'is-immersive-game': immersiveGame,
+      'mp-default-nav': hideMobileChrome,
+    }"
+    :style="shellChromeStyle"
   >
     <HgtThemeTransition v-bind="overlay" />
     <HgtParticleBackground />
@@ -197,7 +235,7 @@ onMounted(async () => {
             <image
               v-else-if="player.user"
               class="hgt-avatar-img"
-              src="/static/hgt/avatars/avatar_default.png"
+              :src="resolveAssetUrl('/static/hgt/avatars/avatar_default.png')"
               mode="aspectFill"
             />
             <text v-else class="hgt-avatar-fallback">
@@ -275,6 +313,8 @@ onMounted(async () => {
 
 <style scoped>
 .hgt-app {
+  --hgt-shell-top: var(--hgt-header-h, 56px);
+  --hgt-shell-bottom: 0px;
   position: relative;
   isolation: isolate;
   min-height: 100vh;
@@ -305,6 +345,7 @@ onMounted(async () => {
   z-index: 30;
   top: 0;
   display: block;
+  box-sizing: border-box;
   height: var(--hgt-header-h);
   border-bottom: 1px solid var(--hgt-border);
   background: color-mix(in srgb, var(--hgt-bg-deep) 92%, transparent);
@@ -580,7 +621,16 @@ onMounted(async () => {
 }
 
 /* ===== Mobile ===== */
+/* #ifdef H5 */
 @media (max-width: 767px) {
+/* #endif */
+/* #ifndef H5 */
+@media all {
+/* #endif */
+  .hgt-app {
+    --hgt-shell-top: var(--hgt-mobile-header-offset, 56px);
+    --hgt-shell-bottom: calc(var(--hgt-tabbar-h, 64px) + var(--hgt-safe-bottom, env(safe-area-inset-bottom, 0px)));
+  }
   .hgt-topbar {
     display: none;
   }
@@ -626,8 +676,33 @@ onMounted(async () => {
   .hgt-main {
     min-height: 100vh;
     padding-top: var(--hgt-mobile-header-offset, 56px);
-    padding-bottom: calc(var(--hgt-tabbar-h) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--hgt-tabbar-h, 64px) + var(--hgt-safe-bottom, env(safe-area-inset-bottom, 0px)));
   }
+
+  /* 推理页：main 定高铺满视口，页面根节点绝对占满 header 与 tabbar 之间，
+     避免 padding 与页面自身 100dvh 计算重复扣减 tabbar，造成输入框下方空隙 */
+  .hgt-app.is-immersive-game .hgt-main {
+    position: relative;
+    min-height: 0;
+    height: var(--hgt-viewport-h, 100vh);
+    height: var(--hgt-viewport-h, 100dvh);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .hgt-app.is-immersive-game .hgt-main :deep(.game-page),
+  .hgt-app.is-immersive-game .hgt-main :deep(.game-load-state) {
+    position: absolute;
+    top: var(--hgt-mobile-header-offset, 56px);
+    right: 0;
+    bottom: calc(var(--hgt-tabbar-h, 64px) + var(--hgt-safe-bottom, env(safe-area-inset-bottom, 0px)));
+    left: 0;
+    height: auto !important;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+  }
+
   .hgt-tabbar {
     position: fixed;
     z-index: 25;
@@ -635,8 +710,9 @@ onMounted(async () => {
     bottom: 0;
     left: 0;
     display: flex;
-    min-height: var(--hgt-tabbar-h);
-    padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: border-box;
+    height: var(--hgt-shell-bottom);
+    padding-bottom: var(--hgt-safe-bottom, env(safe-area-inset-bottom, 0px));
     align-items: stretch;
     border-top: 1px solid var(--hgt-border);
     background: color-mix(in srgb, var(--hgt-bg-deep) 94%, transparent);
@@ -682,7 +758,7 @@ onMounted(async () => {
   }
   .hgt-room-return {
     right: 14px;
-    bottom: calc(78px + env(safe-area-inset-bottom));
+    bottom: calc(var(--hgt-shell-bottom) + 14px);
     min-width: 0;
     width: auto;
     max-width: calc(100vw - 28px);
@@ -692,16 +768,23 @@ onMounted(async () => {
   .hgt-room-return-copy > text:last-child {
     max-width: 140px;
   }
-}
 
-/* #ifdef MP-TOUTIAO */
-@media (max-width: 767px) {
-  .hgt-main {
-    padding-top: 0;
+  /* 原生默认导航：视口已在导航下方，不再绘制自定义顶栏/二次 padding */
+  .hgt-app.mp-default-nav .hgt-mobile-header {
+    display: none !important;
   }
-  .hgt-mobile-header {
-    display: none;
+  .hgt-app.mp-default-nav .hgt-main {
+    padding-top: 0 !important;
+  }
+  /* 原生导航下 game 区：top 归零，高度/底边用系统 px（--hgt-viewport-h / --hgt-safe-bottom） */
+  .hgt-app.mp-default-nav.is-immersive-game .hgt-main {
+    height: var(--hgt-viewport-h, 100vh);
+    height: var(--hgt-viewport-h, 100dvh);
+  }
+  .hgt-app.mp-default-nav.is-immersive-game .hgt-main :deep(.game-page),
+  .hgt-app.mp-default-nav.is-immersive-game .hgt-main :deep(.game-load-state) {
+    top: 0 !important;
+    bottom: calc(var(--hgt-tabbar-h, 64px) + var(--hgt-safe-bottom, env(safe-area-inset-bottom, 0px))) !important;
   }
 }
-/* #endif */
 </style>

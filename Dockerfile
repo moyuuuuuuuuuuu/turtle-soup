@@ -8,7 +8,10 @@ COPY docs/package.json ./docs/
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm build:h5:production
+# H5 uses the Compose gateway; mini-program builds retain their own public URLs.
+ARG VITE_API_BASE_URL=/api/v1
+ARG VITE_WS_BASE_URL=
+RUN VITE_API_BASE_URL="$VITE_API_BASE_URL" VITE_WS_BASE_URL="$VITE_WS_BASE_URL" pnpm build:h5:production
 
 FROM nginx:1.27-alpine
 

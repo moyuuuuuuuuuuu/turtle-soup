@@ -24,8 +24,11 @@ const pending = new Map<string, PendingRequest>()
 let socket: UniApp.SocketTask | null = null
 let connecting: Promise<void> | null = null
 let heartbeat: ReturnType<typeof setInterval> | null = null
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let cancelConnect: (() => void) | null = null
+let connectionGeneration = 0
 let attempts = 0
-let intentionalDisconnect = false
+let needsSnapshotRecovery = false
 const maxReconnectAttempts = 5
 
 const createRequestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -43,23 +46,93 @@ function updateTyping(data: Record<string, unknown>) {
 
 export function useGameSocket() {
   async function connect() {
-    if (connected.value)
-      return
     if (connecting)
       return connecting
-    const token = await ensurePlayerAccessToken() || await ensureAnonymousSession()
-    connecting = new Promise<void>((resolve, reject) => {
+    if (connected.value)
+      return
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+      reconnecting.value = false
+    }
+    const generation = connectionGeneration
+    // Publish the shared promise before token restoration can yield.
+    const connection = Promise.resolve().then(async () => {
+      const token = await ensurePlayerAccessToken() || await ensureAnonymousSession()
+      if (generation !== connectionGeneration)
+        throw new Error('websocket.disconnected')
+      return openSocket(token)
+    }).then(async () => {
+      await recoverSnapshots()
+      if (generation !== connectionGeneration || !connected.value)
+        throw new Error('websocket.disconnected')
+      attempts = 0
+    }).catch((error) => {
+      if (generation === connectionGeneration) {
+        cancelConnect?.()
+        if (needsSnapshotRecovery)
+          reconnect()
+      }
+      throw error
+    }).finally(() => {
+      if (connecting === connection)
+        connecting = null
+    })
+    connecting = connection
+    return connection
+  }
+  function openSocket(token: string) {
+    return new Promise<void>((resolve, reject) => {
       const authRequestId = createRequestId()
-      socket = uni.connectSocket({ url: wsUrl, complete: () => {} })
-      socket.onOpen(() => socket?.send({ data: JSON.stringify({ event: 'v1.auth', request_id: authRequestId, data: { token } }) }))
-      socket.onMessage(({ data }) => {
+      const currentSocket = uni.connectSocket({ url: wsUrl, complete: () => {} })
+      socket = currentSocket
+      let authenticated = false
+      let authTimer: ReturnType<typeof setTimeout>
+      const failConnection = (error: Error, close = true) => {
+        clearTimeout(authTimer)
+        reject(error)
+        if (socket !== currentSocket)
+          return
+        needsSnapshotRecovery ||= authenticated
+        socket = null
+        connected.value = false
+        cancelConnect = null
+        stopHeartbeat()
+        failPending(error)
+        if (close)
+          currentSocket.close({ code: 1000, reason: 'connection.failed' })
+        if (needsSnapshotRecovery)
+          reconnect()
+      }
+      authTimer = setTimeout(() => failConnection(new Error('websocket.timeout')), 15000)
+      cancelConnect = () => failConnection(new Error('websocket.disconnected'))
+      currentSocket.onOpen(() => {
+        if (socket !== currentSocket)
+          return
+        currentSocket.send({
+          data: JSON.stringify({ event: 'v1.auth', request_id: authRequestId, data: { token } }),
+          fail: () => failConnection(new Error('websocket.disconnected')),
+        })
+      })
+      currentSocket.onMessage(({ data }) => {
+        if (socket !== currentSocket)
+          return
         let message: SocketEnvelope
         try { message = JSON.parse(String(data)) }
         catch { return }
-        if (message.event === 'v1.authenticated' && message.request_id === authRequestId) {
-          attempts = 0; connected.value = true
-          heartbeat = setInterval(() => socket?.send({ data: JSON.stringify({ event: 'v1.ping', request_id: createRequestId(), data: {} }) }), 25000)
-          resolve(); return
+        if (message.request_id === authRequestId && !authenticated) {
+          if (message.event === 'v1.game.error') {
+            failConnection(new GameSocketError(String(message.data?.code || 'system.error')))
+            return
+          }
+          if (message.event !== 'v1.authenticated')
+            return
+          clearTimeout(authTimer)
+          authenticated = true
+          connected.value = true
+          heartbeat = setInterval(() => currentSocket.send({ data: JSON.stringify({ event: 'v1.ping', request_id: createRequestId(), data: {} }) }), 25000)
+          resolve()
+          return
         }
         if (message.event === 'v1.room.member.typing') { updateTyping(message.data || {}); return }
         if (message.event === 'v1.room.member.kicked') {
@@ -129,17 +202,22 @@ export function useGameSocket() {
           job.reject(new GameSocketError(String(message.data?.code || 'system.error')))
         else job.resolve(message.data)
       })
-      socket.onClose(() => {
-        stopHeartbeat(); connected.value = false; connecting = null; failPending(new Error('websocket.disconnected'))
-        if (intentionalDisconnect) {
-          intentionalDisconnect = false
-          return
-        }
-        reconnect()
-      })
-      socket.onError(() => { connected.value = false; connecting = null; reject(new Error('websocket.disconnected')) })
-    }).finally(() => { connecting = null })
-    return connecting
+      currentSocket.onClose(() => failConnection(new Error('websocket.disconnected'), false))
+      currentSocket.onError(() => failConnection(new Error('websocket.disconnected')))
+    })
+  }
+  async function recoverSnapshots() {
+    if (!needsSnapshotRecovery)
+      return
+    const roomId = roomSnapshot.value?.id
+    let gameId = gameSnapshot.value?.id
+    if (roomId) {
+      const room = await sendConnected<RoomSnapshot>('v1.room.join', { room_id: roomId }, true, 15000)
+      gameId = room.game_id || gameId
+    }
+    if (gameId)
+      await sendConnected<GameSnapshot>('v1.game.join', { game_id: gameId }, true, 15000)
+    needsSnapshotRecovery = false
   }
   function reconnect() {
     if (reconnecting.value)
@@ -153,18 +231,25 @@ export function useGameSocket() {
       return
     }
     reconnecting.value = true
-    setTimeout(async () => {
+    reconnectTimer = setTimeout(async () => {
+      reconnectTimer = null
       reconnecting.value = false; try { await connect() }
       catch {}
     }, Math.min(1000 * 2 ** attempts++, 15000))
   }
   function disconnectAndClear() {
-    intentionalDisconnect = true
+    connectionGeneration++
     attempts = 0
+    needsSnapshotRecovery = false
+    if (reconnectTimer)
+      clearTimeout(reconnectTimer)
+    reconnectTimer = null
     stopHeartbeat()
     failPending(new Error('websocket.disconnected'))
     const currentSocket = socket
     socket = null
+    cancelConnect?.()
+    cancelConnect = null
     connecting = null
     connected.value = false
     reconnecting.value = false
@@ -177,19 +262,39 @@ export function useGameSocket() {
     gameNextStarted.value = null
     roomClueBoard.value = null
     currentSocket?.close({ code: 1000, reason: 'player.logout' })
-    if (!currentSocket)
-      intentionalDisconnect = false
   }
   async function send<T>(event: string, data: Record<string, unknown>, waitForResponse = true): Promise<T> {
     await connect()
+    return sendConnected<T>(event, data, waitForResponse)
+  }
+  async function sendConnected<T>(event: string, data: Record<string, unknown>, waitForResponse = true, timeoutMs = 0): Promise<T> {
+    const currentSocket = socket
+    if (!currentSocket || !connected.value)
+      throw new Error('websocket.disconnected')
     const request_id = createRequestId()
     if (!waitForResponse) {
-      socket?.send({ data: JSON.stringify({ event, request_id, data }) })
+      currentSocket.send({ data: JSON.stringify({ event, request_id, data }) })
       return undefined as T
     }
     return new Promise<T>((resolve, reject) => {
-      pending.set(request_id, { resolve: value => resolve(value as T), reject })
-      socket?.send({ data: JSON.stringify({ event, request_id, data }), fail: () => { pending.delete(request_id); reject(new Error('websocket.disconnected')) } })
+      const timer = timeoutMs > 0
+        ? setTimeout(() => {
+            pending.delete(request_id)
+            reject(new Error('websocket.timeout'))
+          }, timeoutMs)
+        : undefined
+      const cleanup = () => {
+        if (timer)
+          clearTimeout(timer)
+        pending.delete(request_id)
+      }
+      pending.set(request_id, {
+        resolve: (value) => { cleanup(); resolve(value as T) },
+        reject: (error) => { cleanup(); reject(error) },
+      })
+      currentSocket.send({ data: JSON.stringify({ event, request_id, data }), fail: () => {
+        pending.get(request_id)?.reject(new Error('websocket.disconnected'))
+      } })
     })
   }
   return {

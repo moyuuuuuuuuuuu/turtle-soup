@@ -73,20 +73,14 @@ function onTap() {
     </text>
 
     <view class="q-card-foot">
-      <text class="q-meta">
-        <template v-if="minutes">
+      <view class="q-meta">
+        <text v-if="minutes" class="q-meta-item">
           {{ minutes }}
-        </template>
-        <template v-if="minutes && (plays || metaExtra)">
-          ·
-        </template>
-        <template v-if="plays">
-          {{ plays }}
-        </template>
-        <template v-if="!plays && metaExtra">
-          {{ metaExtra }}
-        </template>
-      </text>
+        </text>
+        <text v-if="plays || metaExtra" class="q-meta-item">
+          {{ minutes ? '· ' : '' }}{{ plays || metaExtra }}
+        </text>
+      </view>
       <text class="q-arrow" aria-hidden="true">
         →
       </text>
@@ -183,13 +177,22 @@ function onTap() {
 }
 
 .q-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  column-gap: 4px;
   color: var(--hgt-text-3);
   font-family: var(--hgt-font-body);
   font-size: 12px;
   line-height: 1.4;
 }
 
+.q-meta-item {
+  white-space: nowrap;
+}
+
 .q-arrow {
+  flex: none;
   color: var(--hgt-brand);
   font-family: var(--hgt-font-mono);
   font-size: 14px;

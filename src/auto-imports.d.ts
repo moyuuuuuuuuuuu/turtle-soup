@@ -9,6 +9,8 @@ declare global {
   const Apis: typeof import('./api/index')['Apis']
   const CommonUtil: typeof import('@wot-ui/ui')['CommonUtil']
   const EffectScope: typeof import('vue')['EffectScope']
+  const GameSocketError: typeof import('./utils/serviceError')['GameSocketError']
+  const PlayerApiError: typeof import('./api/player')['PlayerApiError']
   const TurtleApiError: typeof import('./api/turtle')['TurtleApiError']
   const acceptHMRUpdate: typeof import('pinia')['acceptHMRUpdate']
   const alovaInstance: typeof import('./api/index')['alovaInstance']
@@ -17,6 +19,7 @@ declare global {
   const applyPrettyQuestionDetailUrl: typeof import('./utils/questionRoute')['applyPrettyQuestionDetailUrl']
   const applyRootTheme: typeof import('./utils/theme')['applyRootTheme']
   const applyStoredTheme: typeof import('./utils/theme')['applyStoredTheme']
+  const assetBaseUrl: typeof import('./utils/assetUrl')['assetBaseUrl']
   const asyncComputed: typeof import('@vueuse/core')['asyncComputed']
   const autoResetRef: typeof import('@vueuse/core')['autoResetRef']
   const bootstrapPrettyQuestionRoute: typeof import('./utils/questionRoute')['bootstrapPrettyQuestionRoute']
@@ -178,12 +181,18 @@ declare global {
   const refThrottled: typeof import('@vueuse/core')['refThrottled']
   const refWithControl: typeof import('@vueuse/core')['refWithControl']
   const rememberNativeFeedbackApi: typeof import('./utils/feedback')['rememberNativeFeedbackApi']
+  const resolveAssetUrl: typeof import('./utils/assetUrl')['resolveAssetUrl']
+  const resolveCapsuleRightPadding: typeof import('./utils/navSafeArea')['resolveCapsuleRightPadding']
   const resolveComponent: typeof import('vue')['resolveComponent']
   const resolveDepth: typeof import('./utils/depth')['resolveDepth']
   const resolveGameStatus: typeof import('./utils/gameStatus')['resolveGameStatus']
   const resolveRef: typeof import('@vueuse/core')['resolveRef']
+  const resolveShellChromeMetrics: typeof import('./utils/navSafeArea')['resolveShellChromeMetrics']
+  const resolveTopNavMetrics: typeof import('./utils/navSafeArea')['resolveTopNavMetrics']
+  const resolveTopNavOffset: typeof import('./utils/navSafeArea')['resolveTopNavOffset']
   const resolveUnref: typeof import('@vueuse/core')['resolveUnref']
   const roomApi: typeof import('./api/turtle')['roomApi']
+  const serviceErrorMessage: typeof import('./utils/serviceError')['serviceErrorMessage']
   const setActivePinia: typeof import('pinia')['setActivePinia']
   const setMapStoreSuffix: typeof import('pinia')['setMapStoreSuffix']
   const shallowReactive: typeof import('vue')['shallowReactive']
@@ -429,6 +438,8 @@ declare module 'vue' {
     readonly Apis: UnwrapRef<typeof import('./api/index')['Apis']>
     readonly CommonUtil: UnwrapRef<typeof import('@wot-ui/ui')['CommonUtil']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
+    readonly GameSocketError: UnwrapRef<typeof import('./utils/serviceError')['GameSocketError']>
+    readonly PlayerApiError: UnwrapRef<typeof import('./api/player')['PlayerApiError']>
     readonly TurtleApiError: UnwrapRef<typeof import('./api/turtle')['TurtleApiError']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly alovaInstance: UnwrapRef<typeof import('./api/index')['alovaInstance']>
@@ -437,6 +448,7 @@ declare module 'vue' {
     readonly applyPrettyQuestionDetailUrl: UnwrapRef<typeof import('./utils/questionRoute')['applyPrettyQuestionDetailUrl']>
     readonly applyRootTheme: UnwrapRef<typeof import('./utils/theme')['applyRootTheme']>
     readonly applyStoredTheme: UnwrapRef<typeof import('./utils/theme')['applyStoredTheme']>
+    readonly assetBaseUrl: UnwrapRef<typeof import('./utils/assetUrl')['assetBaseUrl']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>
     readonly autoResetRef: UnwrapRef<typeof import('@vueuse/core')['autoResetRef']>
     readonly bootstrapPrettyQuestionRoute: UnwrapRef<typeof import('./utils/questionRoute')['bootstrapPrettyQuestionRoute']>
@@ -598,12 +610,18 @@ declare module 'vue' {
     readonly refThrottled: UnwrapRef<typeof import('@vueuse/core')['refThrottled']>
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
     readonly rememberNativeFeedbackApi: UnwrapRef<typeof import('./utils/feedback')['rememberNativeFeedbackApi']>
+    readonly resolveAssetUrl: UnwrapRef<typeof import('./utils/assetUrl')['resolveAssetUrl']>
+    readonly resolveCapsuleRightPadding: UnwrapRef<typeof import('./utils/navSafeArea')['resolveCapsuleRightPadding']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
     readonly resolveDepth: UnwrapRef<typeof import('./utils/depth')['resolveDepth']>
     readonly resolveGameStatus: UnwrapRef<typeof import('./utils/gameStatus')['resolveGameStatus']>
     readonly resolveRef: UnwrapRef<typeof import('@vueuse/core')['resolveRef']>
+    readonly resolveShellChromeMetrics: UnwrapRef<typeof import('./utils/navSafeArea')['resolveShellChromeMetrics']>
+    readonly resolveTopNavMetrics: UnwrapRef<typeof import('./utils/navSafeArea')['resolveTopNavMetrics']>
+    readonly resolveTopNavOffset: UnwrapRef<typeof import('./utils/navSafeArea')['resolveTopNavOffset']>
     readonly resolveUnref: UnwrapRef<typeof import('@vueuse/core')['resolveUnref']>
     readonly roomApi: UnwrapRef<typeof import('./api/turtle')['roomApi']>
+    readonly serviceErrorMessage: UnwrapRef<typeof import('./utils/serviceError')['serviceErrorMessage']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
     readonly setMapStoreSuffix: UnwrapRef<typeof import('pinia')['setMapStoreSuffix']>
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>

@@ -14,4 +14,11 @@ export default uni(
       '**/*.md',
     ],
   },
+  {
+    files: ['tests/**/*.mjs'],
+    rules: {
+      // These dependency-free regressions run with the built-in Node test runner.
+      'test/no-import-node-test': 'off',
+    },
+  },
 )

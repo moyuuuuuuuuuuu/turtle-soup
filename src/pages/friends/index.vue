@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import type { FriendLink } from '@/types/game'
 import { friendLinkApi } from '@/api/turtle'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 
 definePage({
   name: 'friends',
   layout: 'tabbar',
   style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } },
 })
+
+const heroBgSrc = resolveAssetUrl('/static/hgt/bg/bg_lighthouse_night.jpg')
 
 const links = ref<FriendLink[]>([])
 const loading = ref(true)
@@ -89,7 +92,7 @@ onMounted(() => {
     <section class="friends-hero">
       <image
         class="hero-bg"
-        src="/static/hgt/bg/bg_lighthouse_night.jpg"
+        :src="heroBgSrc"
         mode="aspectFill"
       />
       <view class="hero-veil" />

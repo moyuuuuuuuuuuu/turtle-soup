@@ -91,8 +91,8 @@ page {
   --hgt-content-max: 1360px;
   --hgt-reading-max: 680px;
 
-  /* 深海氛围：首页灯塔，其他页不用大图 */
-  --hgt-atmo-img: url('/static/hgt/bg/bg_deep_ocean_hero.jpg');
+  /* 深海氛围背景：由页面内联 style / BOS 远程地址提供，不再写死本地 static */
+  --hgt-atmo-img: none;
   --hgt-atmo-filter: none;
   --hgt-atmo-veil:
     linear-gradient(90deg,
@@ -211,6 +211,52 @@ button[loading],
 .game-page .secondary-btn {
   background: transparent !important;
   color: var(--hgt-text-2) !important;
+}
+
+/* 推理页沉浸布局（全局，覆盖小程序 slot 作用域）：
+   main 定高，.game-page 绝对占满顶部导航（或 header）与 tabbar 之间 */
+/* #ifdef H5 */
+@media (max-width: 767px) {
+/* #endif */
+/* #ifndef H5 */
+@media all {
+/* #endif */
+  .hgt-app.is-immersive-game .hgt-main {
+    position: relative;
+    min-height: 0;
+    height: var(--hgt-viewport-h, 100vh);
+    height: var(--hgt-viewport-h, 100dvh);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .hgt-app.is-immersive-game .hgt-main .game-page,
+  .hgt-app.is-immersive-game .hgt-main .game-load-state {
+    position: absolute;
+    top: var(--hgt-mobile-header-offset, 56px);
+    right: 0;
+    bottom: calc(var(--hgt-tabbar-h, 64px) + var(--hgt-safe-bottom, env(safe-area-inset-bottom, 0px)));
+    left: 0;
+    height: auto !important;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .hgt-app.is-immersive-game .game-page .composer {
+    padding-bottom: 10px;
+  }
+
+  /* 原生默认导航（抖音等）：offset 已为 0，top 对齐视口顶；高度/底边用系统 px */
+  .hgt-app.mp-default-nav.is-immersive-game .hgt-main {
+    height: var(--hgt-viewport-h, 100vh);
+    height: var(--hgt-viewport-h, 100dvh);
+  }
+  .hgt-app.mp-default-nav.is-immersive-game .hgt-main .game-page,
+  .hgt-app.mp-default-nav.is-immersive-game .hgt-main .game-load-state {
+    top: 0 !important;
+    bottom: calc(var(--hgt-tabbar-h, 64px) + var(--hgt-safe-bottom, env(safe-area-inset-bottom, 0px))) !important;
+  }
 }
 
 html,

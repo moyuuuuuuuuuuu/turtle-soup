@@ -3,6 +3,8 @@
 import type { LegalDocuments } from '@/api/player'
 import { playerApi } from '@/api/player'
 import { usePlayerStore } from '@/store/playerStore'
+import { resolveAssetUrl } from '@/utils/assetUrl'
+import { resolveShellChromeMetrics } from '@/utils/navSafeArea'
 import LegalDocumentPopup from './LegalDocumentPopup.vue'
 
 declare const tt: {
@@ -28,6 +30,24 @@ const emailCode = ref('')
 const legalDocuments = ref<LegalDocuments>({ service_terms: '', privacy_policy: '' })
 const legalDocumentVisible = ref(false)
 const legalDocumentKind = ref<keyof LegalDocuments>('service_terms')
+const authChrome = ref(resolveShellChromeMetrics())
+const authPageStyle = computed(() => {
+  // #ifndef H5
+  const metrics = authChrome.value
+  return {
+    minHeight: metrics.viewportHeight > 0 ? `${metrics.viewportHeight}px` : '100vh',
+    paddingTop: `${metrics.offset + 28}px`,
+    paddingBottom: `${Math.max(32, metrics.safeBottom)}px`,
+  }
+  // #endif
+  // #ifdef H5
+  return {}
+  // #endif
+})
+
+function updateAuthChrome() {
+  authChrome.value = resolveShellChromeMetrics()
+}
 
 const modeTitle = computed(() => ({
   password: '登录',
@@ -39,10 +59,13 @@ const modeTitle = computed(() => ({
 watch(mode, () => { emailCode.value = '' })
 
 onMounted(() => {
+  updateAuthChrome()
+  uni.onWindowResize(updateAuthChrome)
   void playerApi.legalDocuments().then((documents) => { legalDocuments.value = documents }).catch(() => {})
 })
 
 onUnmounted(() => {
+  uni.offWindowResize(updateAuthChrome)
   Object.values(codeTimers).forEach(timer => timer && clearInterval(timer))
 })
 
@@ -180,16 +203,16 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 </script>
 
 <template>
-  <view class="auth-page">
+  <view class="auth-page" :style="authPageStyle">
     <image
       class="auth-bg"
-      src="/static/hgt/bg/bg_deep_ocean_hero.jpg"
+      :src="resolveAssetUrl('/static/hgt/bg/bg_deep_ocean_hero.jpg')"
       mode="aspectFill"
     />
     <view class="auth-veil" />
     <view class="auth-shell">
       <view class="brand-block">
-        <image class="brand-logo" src="/static/brand/logo-mark-dark.png" mode="aspectFit" />
+        <image class="brand-logo" :src="resolveAssetUrl('/static/brand/logo-mark-dark.png')" mode="aspectFit" />
         <view class="brand-text">
           <text class="brand-en">
             MOYUU
@@ -206,208 +229,210 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
         </text>
       </view>
 
-      <view class="form-card">
-        <text class="form-title">
-          {{ modeTitle }}
-        </text>
-
-        <!-- #ifdef H5 -->
-        <view :key="mode" class="form-body">
-          <template v-if="mode === 'password'">
-            <label class="field">
-              <text class="field-label">用户名或邮箱</text>
-              <input v-model="email" class="field-input" type="text" placeholder="请输入用户名或邮箱">
-            </label>
-            <label class="field">
-              <text class="field-label">密码</text>
-              <input v-model="password" class="field-input" password confirm-type="done" placeholder="请输入密码" @confirm="submit">
-            </label>
-            <button class="primary" :disabled="busy" @click="submit">
-              {{ busy ? '登录中…' : '登录' }}
-            </button>
-            <view class="auth-links">
-              <text class="auth-link" @click="mode = 'code'">
-                邮箱验证码登录
-              </text>
-              <text class="auth-link-sep">
-                ·
-              </text>
-              <text class="auth-link" @click="mode = 'register'">
-                注册
-              </text>
-              <text class="auth-link-sep">
-                ·
-              </text>
-              <text class="auth-link" @click="mode = 'reset'">
-                忘记密码
-              </text>
-            </view>
-            <text class="agreement">
-              登录即表示同意
-              <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
-                服务条款
-              </text>
-              与
-              <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
-                隐私政策
-              </text>
-            </text>
-          </template>
-
-          <template v-else-if="mode === 'code'">
-            <label class="field">
-              <text class="field-label">邮箱</text>
-              <input v-model="email" class="field-input" type="text" placeholder="your@email.com">
-            </label>
-            <label class="field">
-              <text class="field-label">验证码</text>
-              <view class="code-row">
-                <input v-model="emailCode" class="field-input flex" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
-                <button class="code-btn" :disabled="codeBusy.login || codeCountdown.login > 0" @click="sendCode('login')">
-                  {{ codeButtonText('login') }}
-                </button>
-              </view>
-            </label>
-            <button class="primary" :disabled="busy" @click="submit">
-              {{ busy ? '验证中…' : '验证登录' }}
-            </button>
-            <text class="agreement">
-              登录即表示同意
-              <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
-                服务条款
-              </text>
-              与
-              <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
-                隐私政策
-              </text>
-            </text>
-            <button class="ghost" @click="mode = 'password'">
-              ← 返回登录
-            </button>
-          </template>
-
-          <template v-else-if="mode === 'register'">
-            <label class="field">
-              <text class="field-label">用户名</text>
-              <input v-model="username" class="field-input" type="text" placeholder="4–20 个字符">
-            </label>
-            <label class="field">
-              <text class="field-label">邮箱</text>
-              <input v-model="email" class="field-input" type="text" placeholder="your@email.com">
-            </label>
-            <label class="field">
-              <text class="field-label">密码</text>
-              <input v-model="password" class="field-input" password placeholder="至少 8 位">
-            </label>
-            <label class="field">
-              <text class="field-label">确认密码</text>
-              <input v-model="passwordConfirmation" class="field-input" password placeholder="再次输入密码">
-            </label>
-            <label class="field">
-              <text class="field-label">邮箱验证码</text>
-              <view class="code-row">
-                <input v-model="emailCode" class="field-input flex" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
-                <button class="code-btn" :disabled="codeBusy.register || codeCountdown.register > 0" @click="sendCode('register')">
-                  {{ codeButtonText('register') }}
-                </button>
-              </view>
-            </label>
-            <button class="primary" :disabled="busy" @click="submit">
-              {{ busy ? '创建中…' : '创建账号' }}
-            </button>
-            <text class="agreement">
-              注册即表示同意
-              <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
-                服务条款
-              </text>
-              与
-              <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
-                隐私政策
-              </text>
-            </text>
-            <button class="ghost" @click="mode = 'password'">
-              已有账号？返回登录 →
-            </button>
-          </template>
-
-          <template v-else>
-            <text class="notice">
-              输入注册邮箱并验证身份，即可设置新密码。
-            </text>
-            <label class="field">
-              <text class="field-label">注册邮箱</text>
-              <input v-model="email" class="field-input" type="text" placeholder="your@email.com">
-            </label>
-            <label class="field">
-              <text class="field-label">邮箱验证码</text>
-              <view class="code-row">
-                <input v-model="emailCode" class="field-input flex" type="number" :maxlength="6" placeholder="6 位验证码">
-                <button class="code-btn" :disabled="codeBusy.reset_password || codeCountdown.reset_password > 0" @click="sendCode('reset_password')">
-                  {{ codeButtonText('reset_password') }}
-                </button>
-              </view>
-            </label>
-            <label class="field">
-              <text class="field-label">新密码</text>
-              <input v-model="password" class="field-input" password confirm-type="done" placeholder="至少 8 位" @confirm="submit">
-            </label>
-            <button class="primary" :disabled="busy" @click="submit">
-              {{ busy ? '重置中…' : '重置并登录' }}
-            </button>
-            <button class="ghost" @click="mode = 'password'">
-              ← 返回登录
-            </button>
-          </template>
-        </view>
-        <!-- #endif -->
-
-        <!-- #ifdef MP-WEIXIN -->
-        <view class="form-body mini-program-auth">
-          <text class="mini-program-title">
-            微信登录
+      <view class="auth-form-col">
+        <view class="form-card">
+          <text class="form-title">
+            {{ modeTitle }}
           </text>
-          <text class="mini-program-description">
-            授权后可同步推理记录
-          </text>
-          <button class="primary platform-login wechat-login" :disabled="busy" @click="authorizeMiniProgram('wechat')">
-            <view class="platform-logo i-simple-icons-wechat" aria-hidden="true" />
-            <text>{{ busy ? '授权中…' : '微信一键登录' }}</text>
-          </button>
-          <view class="agreement">
-            <text>登录即表示同意 </text>
-            <text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
-              服务条款
-            </text>
-            <text> 与 </text>
-            <text class="agreement-link" @tap.stop="openMiniProgramPrivacy">
-              隐私保护指引
+
+          <!-- #ifdef H5 -->
+          <view :key="mode" class="form-body">
+            <template v-if="mode === 'password'">
+              <label class="field">
+                <text class="field-label">用户名或邮箱</text>
+                <input v-model="email" class="field-input" type="text" placeholder="请输入用户名或邮箱">
+              </label>
+              <label class="field">
+                <text class="field-label">密码</text>
+                <input v-model="password" class="field-input" password confirm-type="done" placeholder="请输入密码" @confirm="submit">
+              </label>
+              <button class="primary" :disabled="busy" @click="submit">
+                {{ busy ? '登录中…' : '登录' }}
+              </button>
+              <view class="auth-links">
+                <text class="auth-link" @click="mode = 'code'">
+                  邮箱验证码登录
+                </text>
+                <text class="auth-link-sep">
+                  ·
+                </text>
+                <text class="auth-link" @click="mode = 'register'">
+                  注册
+                </text>
+                <text class="auth-link-sep">
+                  ·
+                </text>
+                <text class="auth-link" @click="mode = 'reset'">
+                  忘记密码
+                </text>
+              </view>
+              <text class="agreement">
+                登录即表示同意
+                <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
+                  服务条款
+                </text>
+                与
+                <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
+                  隐私政策
+                </text>
+              </text>
+            </template>
+
+            <template v-else-if="mode === 'code'">
+              <label class="field">
+                <text class="field-label">邮箱</text>
+                <input v-model="email" class="field-input" type="text" placeholder="your@email.com">
+              </label>
+              <label class="field">
+                <text class="field-label">验证码</text>
+                <view class="code-row">
+                  <input v-model="emailCode" class="field-input flex" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
+                  <button class="code-btn" :disabled="codeBusy.login || codeCountdown.login > 0" @click="sendCode('login')">
+                    {{ codeButtonText('login') }}
+                  </button>
+                </view>
+              </label>
+              <button class="primary" :disabled="busy" @click="submit">
+                {{ busy ? '验证中…' : '验证登录' }}
+              </button>
+              <text class="agreement">
+                登录即表示同意
+                <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
+                  服务条款
+                </text>
+                与
+                <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
+                  隐私政策
+                </text>
+              </text>
+              <button class="ghost" @click="mode = 'password'">
+                ← 返回登录
+              </button>
+            </template>
+
+            <template v-else-if="mode === 'register'">
+              <label class="field">
+                <text class="field-label">用户名</text>
+                <input v-model="username" class="field-input" type="text" placeholder="4–20 个字符">
+              </label>
+              <label class="field">
+                <text class="field-label">邮箱</text>
+                <input v-model="email" class="field-input" type="text" placeholder="your@email.com">
+              </label>
+              <label class="field">
+                <text class="field-label">密码</text>
+                <input v-model="password" class="field-input" password placeholder="至少 8 位">
+              </label>
+              <label class="field">
+                <text class="field-label">确认密码</text>
+                <input v-model="passwordConfirmation" class="field-input" password placeholder="再次输入密码">
+              </label>
+              <label class="field">
+                <text class="field-label">邮箱验证码</text>
+                <view class="code-row">
+                  <input v-model="emailCode" class="field-input flex" type="number" :maxlength="6" confirm-type="done" placeholder="6 位验证码" @confirm="submit">
+                  <button class="code-btn" :disabled="codeBusy.register || codeCountdown.register > 0" @click="sendCode('register')">
+                    {{ codeButtonText('register') }}
+                  </button>
+                </view>
+              </label>
+              <button class="primary" :disabled="busy" @click="submit">
+                {{ busy ? '创建中…' : '创建账号' }}
+              </button>
+              <text class="agreement">
+                注册即表示同意
+                <text class="agreement-link" @click="openManagedLegalDocument('service_terms')">
+                  服务条款
+                </text>
+                与
+                <text class="agreement-link" @click="openManagedLegalDocument('privacy_policy')">
+                  隐私政策
+                </text>
+              </text>
+              <button class="ghost" @click="mode = 'password'">
+                已有账号？返回登录 →
+              </button>
+            </template>
+
+            <template v-else>
+              <text class="notice">
+                输入注册邮箱并验证身份，即可设置新密码。
+              </text>
+              <label class="field">
+                <text class="field-label">注册邮箱</text>
+                <input v-model="email" class="field-input" type="text" placeholder="your@email.com">
+              </label>
+              <label class="field">
+                <text class="field-label">邮箱验证码</text>
+                <view class="code-row">
+                  <input v-model="emailCode" class="field-input flex" type="number" :maxlength="6" placeholder="6 位验证码">
+                  <button class="code-btn" :disabled="codeBusy.reset_password || codeCountdown.reset_password > 0" @click="sendCode('reset_password')">
+                    {{ codeButtonText('reset_password') }}
+                  </button>
+                </view>
+              </label>
+              <label class="field">
+                <text class="field-label">新密码</text>
+                <input v-model="password" class="field-input" password confirm-type="done" placeholder="至少 8 位" @confirm="submit">
+              </label>
+              <button class="primary" :disabled="busy" @click="submit">
+                {{ busy ? '重置中…' : '重置并登录' }}
+              </button>
+              <button class="ghost" @click="mode = 'password'">
+                ← 返回登录
+              </button>
+            </template>
+          </view>
+          <!-- #endif -->
+
+          <!-- #ifdef MP-WEIXIN -->
+          <view class="form-body mini-program-auth">
+            <button class="primary platform-login wechat-login" :disabled="busy" @click="authorizeMiniProgram('wechat')">
+              <view class="platform-logo i-simple-icons-wechat" aria-hidden="true" />
+              <text>{{ busy ? '授权中…' : '微信一键登录' }}</text>
+            </button>
+            <text class="mini-program-description">
+              授权后可同步推理记录
             </text>
           </view>
+          <!-- #endif -->
+
+          <!-- #ifdef MP-TOUTIAO -->
+          <view class="form-body mini-program-auth">
+            <button class="primary platform-login douyin-login" :disabled="busy" @click="authorizeMiniProgram('douyin')">
+              <view class="platform-logo i-simple-icons-tiktok" aria-hidden="true" />
+              <text>{{ busy ? '授权中…' : '抖音一键登录' }}</text>
+            </button>
+            <text class="mini-program-description">
+              授权后可同步推理记录
+            </text>
+          </view>
+        <!-- #endif -->
+        </view>
+
+        <!-- #ifdef MP-WEIXIN -->
+        <view class="agreement form-agreement">
+          <text>登录即表示同意 </text>
+          <text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
+            服务条款
+          </text>
+          <text> 与 </text>
+          <text class="agreement-link" @tap.stop="openMiniProgramPrivacy">
+            隐私保护指引
+          </text>
         </view>
         <!-- #endif -->
 
         <!-- #ifdef MP-TOUTIAO -->
-        <view class="form-body mini-program-auth">
-          <text class="mini-program-title">
-            抖音登录
+        <view class="agreement form-agreement">
+          <text>登录即表示同意 </text>
+          <text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
+            服务条款
           </text>
-          <text class="mini-program-description">
-            授权后可同步推理记录
+          <text> 与 </text>
+          <text class="agreement-link" @tap.stop="openManagedLegalDocument('privacy_policy')">
+            隐私政策
           </text>
-          <button class="primary platform-login douyin-login" :disabled="busy" @click="authorizeMiniProgram('douyin')">
-            <view class="platform-logo i-simple-icons-tiktok" aria-hidden="true" />
-            <text>{{ busy ? '授权中…' : '抖音一键登录' }}</text>
-          </button>
-          <view class="agreement">
-            <text>登录即表示同意 </text>
-            <text class="agreement-link" @tap.stop="openManagedLegalDocument('service_terms')">
-              服务条款
-            </text>
-            <text> 与 </text>
-            <text class="agreement-link" @tap.stop="openManagedLegalDocument('privacy_policy')">
-              隐私政策
-            </text>
-          </view>
         </view>
         <!-- #endif -->
       </view>
@@ -529,9 +554,17 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
   line-height: 1.8;
 }
 
+.auth-form-col {
+  display: flex;
+  width: min(440px, 100%);
+  gap: 14px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .form-card {
   box-sizing: border-box;
-  width: min(440px, 100%);
+  width: 100%;
   padding: 28px 26px 24px;
   border: 1px solid var(--hgt-border);
   border-radius: var(--hgt-radius-lg);
@@ -546,6 +579,11 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
   font-size: 24px;
   font-weight: 600;
   letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.form-agreement {
+  width: 100%;
 }
 
 .form-body {
@@ -652,7 +690,6 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 .auth-links,
 .agreement,
 .notice,
-.mini-program-title,
 .mini-program-description {
   display: flex;
   gap: 6px;
@@ -683,13 +720,6 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
 
 .mini-program-auth {
   gap: 12px;
-}
-
-.mini-program-title {
-  color: var(--hgt-text);
-  font-family: var(--hgt-font-display);
-  font-size: 16px;
-  font-weight: 600;
 }
 
 .platform-login {

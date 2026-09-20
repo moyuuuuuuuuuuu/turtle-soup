@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resolveAssetUrl } from '@/utils/assetUrl'
+
 const props = withDefaults(defineProps<{
   /** 文案；传空字符串则只显示 logo */
   text?: string
@@ -13,7 +15,7 @@ const props = withDefaults(defineProps<{
   block: false,
 })
 
-const logoSrc = '/static/brand/logo-mark-dark.png'
+const logoSrc = resolveAssetUrl('/static/brand/logo-mark-dark.png')
 
 const showText = computed(() => props.text !== '' && props.text != null)
 </script>

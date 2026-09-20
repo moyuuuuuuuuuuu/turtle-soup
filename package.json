@@ -50,6 +50,7 @@
     "build:quickapp-webview-huawei": "uni build -p quickapp-webview-huawei",
     "build:quickapp-webview-union": "uni build -p quickapp-webview-union",
     "type-check": "vue-tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:docs": "eslint docs --ext .js,.ts,.vue,.mts,.cts --ignore-pattern '**/*.md'",

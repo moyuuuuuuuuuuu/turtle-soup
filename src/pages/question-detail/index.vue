@@ -5,11 +5,30 @@ import DepthBadge from '@/components/DepthBadge.vue'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 import { difficultyLabel, estimateMinutes, formatPlayCount } from '@/utils/depth'
 import { hgtConfirm } from '@/utils/feedback'
+import { resolveShellChromeMetrics } from '@/utils/navSafeArea'
 import { applyPrettyQuestionDetailUrl, openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'question-detail', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
+const detailPageStyle = {
+  backgroundImage: `linear-gradient(180deg, rgba(4, 24, 29, 0.18) 0%, rgba(4, 24, 29, 0.28) 40%, rgba(4, 24, 29, 0.55) 72%, rgba(4, 24, 29, 0.82) 90%, #04181d 100%), url(${resolveAssetUrl('/static/hgt/bg/bg_deep_ocean.jpg')})`,
+}
+
+const detailScrollStyle = ref<Record<string, string>>({})
+
+function updateDetailScrollHeight() {
+  // #ifndef H5
+  const metrics = resolveShellChromeMetrics()
+  detailScrollStyle.value = {
+    height: `${Math.max(0, metrics.viewportHeight - metrics.offset - 64 - metrics.safeBottom)}px`,
+  }
+  // #endif
+}
+
+updateDetailScrollHeight()
 
 const route = useRoute()
 const router = useRouter()
@@ -193,101 +212,111 @@ async function shareQuestion() {
 }
 
 onMounted(async () => {
+  updateDetailScrollHeight()
+  uni.onWindowResize(updateDetailScrollHeight)
   await Promise.all([load(), player.restore()])
 })
+
+onUnmounted(() => uni.offWindowResize(updateDetailScrollHeight))
 </script>
 
 <template>
-  <view class="detail-page">
-    <view class="water-glow" aria-hidden="true" />
+  <scroll-view scroll-y class="detail-scroll" :style="detailScrollStyle">
+    <view class="detail-page" :style="detailPageStyle">
+      <view class="water-glow" aria-hidden="true" />
 
-    <view v-if="loading" class="loading-block">
-      <view class="sk-line sk-meta" />
-      <view class="sk-line sk-title" />
-      <view class="sk-line sk-body" />
-      <view class="sk-line sk-body short" />
-    </view>
-
-    <view v-else-if="question" class="detail-shell">
-      <view class="top-bar">
-        <button class="back-btn" @click="goBackToLibrary">
-          ← 返回题库
-        </button>
-        <button class="share-btn" @click="shareQuestion">
-          分享
-        </button>
+      <view v-if="loading" class="loading-block">
+        <view class="sk-line sk-meta" />
+        <view class="sk-line sk-title" />
+        <view class="sk-line sk-body" />
+        <view class="sk-line sk-body short" />
       </view>
 
-      <view class="detail-body fade-in">
-        <view class="depth-block">
-          <DepthBadge :difficulty="question.difficulty" />
-        </view>
-
-        <text class="detail-title">
-          {{ question.title }}
-        </text>
-
-        <view class="tag-row">
-          <text v-if="categoryLine" class="diff-text">
-            {{ categoryLine }}
-          </text>
-        </view>
-
-        <view class="rule-line" aria-hidden="true" />
-
-        <view class="surface-block">
-          <text class="surface-label">
-            汤面
-          </text>
-          <text class="surface-text">
-            {{ question.surface }}
-          </text>
-        </view>
-
-        <view class="rule-line" aria-hidden="true" />
-
-        <text v-if="metaLine" class="meta-line">
-          {{ metaLine }}
-        </text>
-
-        <view class="cta-block">
-          <button class="cta-btn" :loading="starting" :disabled="starting || randomLoading" @click="start">
-            {{ starting ? '正在进入…' : roomId ? '与原队伍继续 →' : '开始推理 →' }}
+      <view v-else-if="question" class="detail-shell">
+        <view class="top-bar">
+          <button class="back-btn" @click="goBackToLibrary">
+            ← 返回题库
           </button>
-          <view class="secondary-row">
-            <text class="secondary-label">
-              不感兴趣？
-            </text>
-            <button class="random-btn" :disabled="randomLoading || starting" @click="loadRandom">
-              {{ randomLoading ? '寻找中…' : '随机换一题' }}
-            </button>
-            <text class="host-note host-note-inline">
-              ◇ 主持人只会回答「是」「不是」或「无关」
+          <button class="share-btn" @click="shareQuestion">
+            分享
+          </button>
+        </view>
+
+        <view class="detail-body fade-in">
+          <view class="depth-block">
+            <DepthBadge :difficulty="question.difficulty" />
+          </view>
+
+          <text class="detail-title">
+            {{ question.title }}
+          </text>
+
+          <view class="tag-row">
+            <text v-if="categoryLine" class="diff-text">
+              {{ categoryLine }}
             </text>
           </view>
+
+          <view class="rule-line" aria-hidden="true" />
+
+          <view class="surface-block">
+            <text class="surface-label">
+              汤面
+            </text>
+            <text class="surface-text">
+              {{ question.surface }}
+            </text>
+          </view>
+
+          <view class="rule-line" aria-hidden="true" />
+
+          <text v-if="metaLine" class="meta-line">
+            {{ metaLine }}
+          </text>
+
+          <view class="cta-block">
+            <button class="cta-btn" :loading="starting" :disabled="starting || randomLoading" @click="start">
+              {{ starting ? '正在进入…' : roomId ? '与原队伍继续 →' : '开始推理 →' }}
+            </button>
+            <view class="secondary-row">
+              <text class="secondary-label">
+                不感兴趣？
+              </text>
+              <button class="random-btn" :disabled="randomLoading || starting" @click="loadRandom">
+                {{ randomLoading ? '寻找中…' : '随机换一题' }}
+              </button>
+              <text class="host-note host-note-inline">
+                ◇ 主持人只会回答「是」「不是」或「无关」
+              </text>
+            </view>
+          </view>
         </view>
+
+        <text class="question-no">
+          题目编号 {{ questionNo }}
+        </text>
       </view>
 
-      <text class="question-no">
-        题目编号 {{ questionNo }}
-      </text>
+      <view v-else class="empty">
+        <text class="empty-mark">
+          ◇
+        </text>
+        <text class="empty-title">
+          谜题不存在或已下架
+        </text>
+        <button class="empty-action" @click="goBackToLibrary">
+          返回题库
+        </button>
+      </view>
     </view>
-
-    <view v-else class="empty">
-      <text class="empty-mark">
-        ◇
-      </text>
-      <text class="empty-title">
-        谜题不存在或已下架
-      </text>
-      <button class="empty-action" @click="goBackToLibrary">
-        返回题库
-      </button>
-    </view>
-  </view>
+  </scroll-view>
 </template>
 
 <style scoped>
+.detail-scroll {
+  width: 100%;
+}
+
 .detail-page {
   position: relative;
   box-sizing: border-box;
@@ -295,14 +324,6 @@ onMounted(async () => {
   padding: 28px 24px 48px;
   overflow: hidden;
   background-color: #04181d;
-  background-image:
-    linear-gradient(180deg,
-      rgba(4, 24, 29, 0.18) 0%,
-      rgba(4, 24, 29, 0.28) 40%,
-      rgba(4, 24, 29, 0.55) 72%,
-      rgba(4, 24, 29, 0.82) 90%,
-      #04181d 100%),
-    url('/static/hgt/bg/bg_deep_ocean.jpg');
   background-position: center 22%;
   background-repeat: no-repeat;
   background-size: cover;
@@ -636,9 +657,28 @@ onMounted(async () => {
   border: 0;
 }
 
+/* #ifdef H5 */
 @media (max-width: 767px) {
+/* #endif */
+/* #ifndef H5 */
+@media all {
+/* #endif */
+  .detail-scroll {
+    height: calc(var(--hgt-viewport-h, 100vh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 64px));
+    height: calc(var(--hgt-viewport-h, 100dvh) - var(--hgt-shell-top, 56px) - var(--hgt-shell-bottom, 64px));
+  }
+
   .detail-page {
     padding: 20px 16px 40px;
+  }
+
+  .detail-shell {
+    min-height: 0;
+  }
+
+  .host-note-inline {
+    flex-basis: 100%;
+    margin-left: 0;
   }
 
   .detail-title {

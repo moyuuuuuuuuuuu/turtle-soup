@@ -4,9 +4,12 @@ import { gameApi, questionApi, roomApi, TurtleApiError } from '@/api/turtle'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 import { supportsPublicRooms } from '@/utils/platform'
 
 definePage({ name: 'rooms', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
+const heroBgSrc = resolveAssetUrl('/static/hgt/bg/bg_deep_ocean.jpg')
 
 type Screen = 'actions' | 'join' | 'create' | 'created'
 
@@ -234,7 +237,7 @@ onMounted(async () => {
       <section class="rooms-hero">
         <image
           class="hero-bg"
-          src="/static/hgt/bg/bg_deep_ocean.jpg"
+          :src="heroBgSrc"
           mode="aspectFill"
         />
         <view class="hero-veil" />

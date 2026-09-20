@@ -3,8 +3,11 @@ import type { HomeStats, PublicQuestion, PublicTag } from '@/types/game'
 import { ensureAnonymousSession, homeApi, questionApi, tagApi } from '@/api/turtle'
 import { usePlayerStore } from '@/store/playerStore'
 import { formatCount } from '@/utils'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 import { supportsPublicRooms } from '@/utils/platform'
 import { openQuestionDetail } from '@/utils/questionRoute'
+
+const stageBgStyle = { backgroundImage: `url(${resolveAssetUrl('/static/hgt/bg/bg_deep_ocean_hero.jpg')})` }
 
 definePage({ name: 'home', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
 
@@ -12,7 +15,7 @@ const router = useRouter()
 const player = usePlayerStore()
 
 const featured = ref<PublicQuestion[]>([])
-/** 英雄区背景盖住的第一行卡片数：桌面3 / 平板2 / 移动1 */
+/** 英雄区背景压住的第一行卡片数：桌面3 / 平板2 / 移动1（列表 DOM 叠在背景图下沿） */
 const firstRowCount = ref(3)
 const featuredFirst = computed(() => featured.value.slice(0, firstRowCount.value))
 const featuredRest = computed(() => featured.value.slice(firstRowCount.value))
@@ -30,12 +33,13 @@ function syncFirstRowCount() {
   // #ifdef H5
   if (typeof window === 'undefined')
     return
-  const width = window.innerWidth
-  // 与 CSS 栅格一致：>=1200 三列，>=768 两列，更窄单列
-  firstRowCount.value = width >= 1200 ? 3 : width >= 768 ? 2 : 1
+  const h5Width = window.innerWidth
+  // 与 CSS 栅格一致：>=1200 三列，>=768 两列，更窄单列；列表压在背景图下沿
+  firstRowCount.value = h5Width >= 1200 ? 3 : h5Width >= 768 ? 2 : 1
   // #endif
   // #ifndef H5
-  firstRowCount.value = 3
+  const mpWidth = uni.getSystemInfoSync().windowWidth
+  firstRowCount.value = mpWidth >= 1200 ? 3 : mpWidth >= 768 ? 2 : 1
   // #endif
 }
 
@@ -294,7 +298,7 @@ onUnmounted(() => {
       <view
         class="stage-bg"
         aria-hidden="true"
-        :style="{ backgroundImage: 'url(/static/hgt/bg/bg_deep_ocean_hero.jpg)' }"
+        :style="stageBgStyle"
       />
       <view class="stage-veil" />
 
@@ -308,8 +312,8 @@ onUnmounted(() => {
           </text>
           <text class="hero-title">
             而你，正慢慢接近<text class="hero-accent">
-              真相
-            </text>。
+              真相。
+            </text>
           </text>
           <text class="hero-copy">
             一碗看似寻常的汤，可能藏着意想不到的故事。向下追问，直到接近真相。
@@ -345,42 +349,32 @@ onUnmounted(() => {
           </view>
         </view>
 
-        <scroll-view
-          v-if="showCategoryToggle && !categoriesExpanded"
-          class="cat-scroll"
-          scroll-x
-          :show-scrollbar="false"
-        >
-          <view class="cat-tabs">
-            <view
-              v-for="cat in visibleCategories"
-              :key="String(cat.tagId)"
-              class="cat-tab"
-              :class="{ active: activeCategory.tagId === cat.tagId }"
-              @click="selectCategory(cat)"
-            >
-              {{ cat.label }}
-            </view>
-            <view class="cat-tab cat-more" @click="toggleCategoriesExpanded">
-              更多 <text class="cat-more-icon">
-                +
-              </text>
-            </view>
-          </view>
-        </scroll-view>
-        <view v-else class="cat-tabs cat-tabs-wrap">
-          <view
-            v-for="cat in categories"
-            :key="String(cat.tagId)"
-            class="cat-tab"
-            :class="{ active: activeCategory.tagId === cat.tagId }"
-            @click="selectCategory(cat)"
+        <view class="cat-bar">
+          <scroll-view
+            class="cat-scroll"
+            scroll-x
+            :show-scrollbar="false"
           >
-            {{ cat.label }}
-          </view>
-          <view v-if="showCategoryToggle" class="cat-tab cat-more" @click="toggleCategoriesExpanded">
-            收起 <text class="cat-more-icon">
-              −
+            <view class="cat-tabs">
+              <view
+                v-for="cat in visibleCategories"
+                :key="String(cat.tagId)"
+                class="cat-tab"
+                :class="{ active: activeCategory.tagId === cat.tagId }"
+                @click="selectCategory(cat)"
+              >
+                {{ cat.label }}
+              </view>
+            </view>
+          </scroll-view>
+          <view
+            v-if="showCategoryToggle"
+            class="cat-tab cat-more cat-toggle"
+            @click="toggleCategoriesExpanded"
+          >
+            {{ categoriesExpanded ? '收起' : '更多' }}
+            <text class="cat-more-icon">
+              {{ categoriesExpanded ? '−' : '+' }}
             </text>
           </view>
         </view>
@@ -508,6 +502,10 @@ onUnmounted(() => {
 .home-page {
   /* 全页统一内容域：最大宽度 + 水平 gutter，各板块左右对齐 */
   --home-gutter: 20px;
+  /* 背景图 DOM 高度：约半屏到三分之二之间 */
+  --home-bg-h: clamp(360px, 56vh, 620px);
+  /* 首行题目卡压进背景图的深度（约卡片高的 1/3~1/2） */
+  --home-card-on-bg: 84px;
   min-height: 100%;
   background: var(--hgt-bg);
   color: var(--hgt-text);
@@ -522,25 +520,31 @@ onUnmounted(() => {
 
 .stage-bg {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: auto;
   z-index: 0;
   width: 100%;
-  height: 100%;
+  height: var(--home-bg-h);
   background-color: #041418;
-  background-image: url('/static/hgt/bg/bg_deep_ocean_hero.jpg');
   background-position: 62% 24%;
   background-repeat: no-repeat;
   background-size: cover;
   background-attachment: scroll;
-  /* 底部羽化，避免英雄区收边过硬 */
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 72%, rgba(0, 0, 0, 0.72) 86%, rgba(0, 0, 0, 0.28) 94%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 72%, rgba(0, 0, 0, 0.72) 86%, rgba(0, 0, 0, 0.28) 94%, transparent 100%);
+  /* 底部羽化，便于首行卡片压图时过渡 */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 70%, rgba(0, 0, 0, 0.7) 86%, rgba(0, 0, 0, 0.28) 94%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 70%, rgba(0, 0, 0, 0.7) 86%, rgba(0, 0, 0, 0.28) 94%, transparent 100%);
 }
 
 .stage-veil {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: auto;
   z-index: 1;
+  height: var(--home-bg-h);
   background:
     linear-gradient(90deg,
       rgba(4, 20, 24, 0.42) 0%,
@@ -558,15 +562,16 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* 英雄区与第二排之间的柔和过渡带 */
+/* 背景图底部过渡：落在首行卡片压图区域 */
 .stage::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  top: calc(var(--home-bg-h) - 64px);
+  bottom: auto;
   z-index: 2;
-  height: 72px;
+  height: 64px;
   pointer-events: none;
   background: linear-gradient(
     180deg,
@@ -583,9 +588,13 @@ onUnmounted(() => {
   display: flex;
   box-sizing: border-box;
   width: 100%;
-  min-height: clamp(420px, 50vh, 560px);
-  height: clamp(420px, 50vh, 560px);
-  padding: 40px 0 96px;
+  /*
+   * 英雄区 ≈ 背景高度 - 列表标题/筛选条 - 首行卡片压图深度，
+   * 使首行卡片约 1/3~1/2 落在背景图上。
+   */
+  min-height: max(260px, calc(var(--home-bg-h) - 220px));
+  height: auto;
+  padding: 36px 0 40px;
   align-items: center;
 }
 
@@ -620,6 +629,7 @@ onUnmounted(() => {
 }
 
 .hero-accent {
+  display: inline-block;
   color: var(--hgt-brand);
 }
 
@@ -681,8 +691,9 @@ onUnmounted(() => {
   z-index: 3;
   box-sizing: border-box;
   width: min(var(--hgt-content-max), 100%);
-  margin: -72px auto 0;
-  padding: 28px var(--home-gutter) 20px;
+  /* 高度已由 hero 预留压图空间，此处不再额外负 margin */
+  margin: 0 auto;
+  padding: 4px var(--home-gutter) 20px;
 }
 
 .section-head {
@@ -736,22 +747,35 @@ onUnmounted(() => {
   color: var(--hgt-text-2);
 }
 
-.cat-scroll {
+/* 筛选条：标签横向滚动，更多/收起固定在行末（视窗内容区右侧） */
+.cat-bar {
+  display: flex;
   width: 100%;
   margin-bottom: 20px;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
   white-space: nowrap;
 }
 
 .cat-tabs {
-  display: flex;
+  display: inline-flex;
+  width: max-content;
+  min-width: 100%;
+  padding-right: 4px;
   gap: 20px;
   align-items: center;
+  white-space: nowrap;
 }
 
-.cat-tabs-wrap {
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  row-gap: 8px;
+.cat-toggle {
+  flex: 0 0 auto;
+  padding-right: 0;
+  padding-left: 6px;
 }
 
 .cat-tab {
@@ -836,6 +860,18 @@ onUnmounted(() => {
 .featured-grid-first,
 .featured-grid-rest {
   align-items: stretch;
+}
+
+/* 首行卡片压在背景图上：略实一点，保证可读 */
+.featured-grid-first :deep(.q-card) {
+  border-color: rgba(232, 244, 242, 0.16);
+  background: linear-gradient(135deg, rgba(7, 34, 40, 0.78), rgba(4, 24, 29, 0.62));
+  box-shadow: 0 12px 28px rgba(2, 12, 16, 0.28);
+}
+
+.featured-grid-first :deep(.q-card.depth-v1),
+.featured-grid-first :deep(.q-card.depth-v2) {
+  background: linear-gradient(135deg, rgba(7, 34, 40, 0.82), rgba(4, 24, 29, 0.68));
 }
 
 .explore {
@@ -1072,6 +1108,9 @@ onUnmounted(() => {
 @media (min-width: 768px) {
   .home-page {
     --home-gutter: clamp(24px, 4vw, 48px);
+    /* PC：背景约占视口 56%~62%（半屏到三分之二之间） */
+    --home-bg-h: clamp(440px, 58vh, 700px);
+    --home-card-on-bg: 90px;
   }
 
   .stage-bg {
@@ -1079,16 +1118,19 @@ onUnmounted(() => {
   }
 
   .hero {
-    padding: 48px 0 120px;
+    min-height: max(280px, calc(var(--home-bg-h) - 220px));
+    height: auto;
+    padding: 40px 0 48px;
   }
 
   .hero-title {
+    max-width: 640px;
     font-size: 36px;
   }
 
   .featured {
-    margin-top: -88px;
-    padding-top: 32px;
+    margin-top: 0;
+    padding-top: 8px;
   }
 
   .featured-grid {
@@ -1150,8 +1192,17 @@ onUnmounted(() => {
 }
 
 @media (max-width: 767px) {
+  .home-page {
+    /* 移动端：背景约占整屏 56%~60%（半屏多一点、不足 2/3） */
+    --home-bg-h: calc(100vh * 0.58);
+    --home-bg-h: calc(100dvh * 0.58);
+    --home-card-on-bg: 78px;
+  }
+
   .stage-bg {
     background-position: 70% 30%;
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 66%, rgba(0, 0, 0, 0.72) 84%, rgba(0, 0, 0, 0.28) 93%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 66%, rgba(0, 0, 0, 0.72) 84%, rgba(0, 0, 0, 0.28) 93%, transparent 100%);
   }
 
   .stage-veil {
@@ -1168,9 +1219,25 @@ onUnmounted(() => {
         rgba(6, 26, 32, 0.42) 100%);
   }
 
-  .stage-bg {
-    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 68%, rgba(0, 0, 0, 0.65) 84%, rgba(0, 0, 0, 0.22) 93%, transparent 100%);
-    mask-image: linear-gradient(180deg, #000 0%, #000 68%, rgba(0, 0, 0, 0.65) 84%, rgba(0, 0, 0, 0.22) 93%, transparent 100%);
+  .stage::after {
+    top: calc(var(--home-bg-h) - 56px);
+    height: 56px;
+  }
+
+  /* 英雄文案占背景上半段，精选首行卡片下压约 1/3~1/2 */
+  .hero {
+    min-height: max(240px, calc(var(--home-bg-h) - 200px));
+    height: auto;
+    padding: 28px 0 32px;
+  }
+
+  .featured {
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  .featured-rest {
+    background: var(--hgt-bg);
   }
 }
 </style>

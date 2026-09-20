@@ -2,10 +2,13 @@
 import type { PublicQuestion, PublicTag } from '@/types/game'
 import { ensureAnonymousSession, questionApi, tagApi } from '@/api/turtle'
 import QuestionTextCard from '@/components/QuestionTextCard.vue'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 import { difficultyLabel } from '@/utils/depth'
 import { openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'questions', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
+
+const libraryBgStyle = { backgroundImage: `url(${resolveAssetUrl('/static/hgt/bg/bg_deep_ocean.jpg')})` }
 
 const route = useRoute()
 const roomId = computed(() => String(route.query.room_id || ''))
@@ -252,7 +255,7 @@ onUnmounted(() => {
 
 <template>
   <view class="library-page">
-    <view class="library-bg" aria-hidden="true" />
+    <view class="library-bg" aria-hidden="true" :style="libraryBgStyle" />
     <view class="library-veil" aria-hidden="true" />
     <view class="page-shell">
       <view class="page-head">
@@ -452,7 +455,6 @@ onUnmounted(() => {
   z-index: 0;
   pointer-events: none;
   background-color: #04181d;
-  background-image: url('/static/hgt/bg/bg_deep_ocean.jpg');
   background-position: center 12%;
   background-repeat: no-repeat;
   background-size: cover;
@@ -600,6 +602,13 @@ onUnmounted(() => {
   min-width: 0;
   gap: 4px;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .tab {

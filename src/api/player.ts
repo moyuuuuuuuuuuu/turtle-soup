@@ -49,7 +49,7 @@ async function call<T>(path: string, method: 'GET' | 'POST' | 'DELETE' = 'POST',
     success: ({ data: raw }) => {
       const body = raw as Envelope<T>; if (body?.code === 'success')
         return resolve(body.data); if (authenticated && !retried && body?.code === 'auth.token_invalid')
-        return restoreAccess().then(result => result ? call<T>(path, method, data, true, true).then(resolve, reject) : reject(new PlayerApiError(body.code, body.message || body.code))); return reject(new PlayerApiError(body?.code || 'system.error', body?.message || body?.code || '操作失败，请稍后重试'))
+        return restoreAccess().then(result => result ? call<T>(path, method, data, true, true).then(resolve, reject) : reject(new PlayerApiError(body.code, body.message || body.code)), reject); return reject(new PlayerApiError(body?.code || 'system.error', body?.message || body?.code || '操作失败，请稍后重试'))
     },
     fail: () => reject(new Error('网络请求失败，请检查网络连接')),
   }))
@@ -68,7 +68,7 @@ async function uploadAvatarFile(filePath: string, retried = false): Promise<Play
         if (body?.code === 'success')
           return resolve(body.data)
         if (!retried && body?.code === 'auth.token_invalid')
-          return restoreAccess().then(result => result ? uploadAvatarFile(filePath, true).then(resolve, reject) : reject(new PlayerApiError(body.code, body.message || body.code)))
+          return restoreAccess().then(result => result ? uploadAvatarFile(filePath, true).then(resolve, reject) : reject(new PlayerApiError(body.code, body.message || body.code)), reject)
         reject(new PlayerApiError(body?.code || 'system.error', body?.message || body?.code || '头像上传失败'))
       }
       catch {
@@ -85,7 +85,15 @@ async function performRestore() {
   if (!refresh_token)
     return null
   try { return accept(await call<AuthResult>('/auth/token/refresh', 'POST', { refresh_token })) }
-  catch { invalidatePlayerSession(); return null }
+  catch (error) {
+    if (error instanceof PlayerApiError && ['auth.token_invalid', 'auth.refresh_token_reused', 'auth.user_disabled'].includes(error.code)) {
+      invalidatePlayerSession()
+      return null
+    }
+    // A transport/server failure does not establish that the session is invalid.
+    // Let callers retry without switching this user to an anonymous identity.
+    throw error
+  }
 }
 
 async function restoreAccess() {
