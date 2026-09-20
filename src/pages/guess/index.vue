@@ -83,12 +83,14 @@ function goBack() {
 
     <HgtConfirmDialog
       v-model="confirmOpen"
+      eyebrow="SUBMIT · 提交真相"
       title="提交真相"
-      content="提交后，主持人会根据汤底判断你的推理。"
+      description="提交后，主持人会根据汤底判断你的推理。"
       confirm-text="提交真相"
       cancel-text="再想想"
       @confirm="doSubmit"
     />
+    <HgtFeedbackHost />
   </view>
 </template>
 

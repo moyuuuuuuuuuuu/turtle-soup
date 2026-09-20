@@ -80,6 +80,16 @@ declare global {
   const getCurrentScope: typeof import('vue')['getCurrentScope']
   const getSystemTheme: typeof import('./utils/systemTheme')['getSystemTheme']
   const h: typeof import('vue')['h']
+  const hgtConfirm: typeof import('./utils/feedback')['hgtConfirm']
+  const hgtConfirmYes: typeof import('./utils/feedback')['hgtConfirmYes']
+  const hgtLoading: typeof import('./utils/feedback')['hgtLoading']
+  const hgtLoadingHide: typeof import('./utils/feedback')['hgtLoadingHide']
+  const hgtToast: typeof import('./utils/feedback')['hgtToast']
+  const hgtToastError: typeof import('./utils/feedback')['hgtToastError']
+  const hgtToastHide: typeof import('./utils/feedback')['hgtToastHide']
+  const hgtToastInfo: typeof import('./utils/feedback')['hgtToastInfo']
+  const hgtToastSuccess: typeof import('./utils/feedback')['hgtToastSuccess']
+  const hgtToastWarning: typeof import('./utils/feedback')['hgtToastWarning']
   const homeApi: typeof import('./api/turtle')['homeApi']
   const ignorableWatch: typeof import('@vueuse/core')['ignorableWatch']
   const initializeThemeOnce: typeof import('./utils/systemTheme')['initializeThemeOnce']
@@ -146,6 +156,7 @@ declare global {
   const openQuestionDetail: typeof import('./utils/questionRoute')['openQuestionDetail']
   const paperTagUrl: typeof import('./utils/questionCover')['paperTagUrl']
   const paperTextureUrl: typeof import('./utils/questionCover')['paperTextureUrl']
+  const patchNativeFeedback: typeof import('./utils/patchNativeFeedback')['patchNativeFeedback']
   const pausableWatch: typeof import('@vueuse/core')['pausableWatch']
   const persistPlugin: typeof import('./store/persist')['persistPlugin']
   const playerApi: typeof import('./api/player')['playerApi']
@@ -166,6 +177,7 @@ declare global {
   const refDefault: typeof import('@vueuse/core')['refDefault']
   const refThrottled: typeof import('@vueuse/core')['refThrottled']
   const refWithControl: typeof import('@vueuse/core')['refWithControl']
+  const rememberNativeFeedbackApi: typeof import('./utils/feedback')['rememberNativeFeedbackApi']
   const resolveComponent: typeof import('vue')['resolveComponent']
   const resolveDepth: typeof import('./utils/depth')['resolveDepth']
   const resolveGameStatus: typeof import('./utils/gameStatus')['resolveGameStatus']
@@ -265,6 +277,7 @@ declare global {
   const useEventSource: typeof import('@vueuse/core')['useEventSource']
   const useEyeDropper: typeof import('@vueuse/core')['useEyeDropper']
   const useFavicon: typeof import('@vueuse/core')['useFavicon']
+  const useFeedbackStore: typeof import('./store/feedbackStore')['useFeedbackStore']
   const useFetch: typeof import('@vueuse/core')['useFetch']
   const useFileDialog: typeof import('@vueuse/core')['useFileDialog']
   const useFileSystemAccess: typeof import('@vueuse/core')['useFileSystemAccess']
@@ -487,6 +500,16 @@ declare module 'vue' {
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getSystemTheme: UnwrapRef<typeof import('./utils/systemTheme')['getSystemTheme']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
+    readonly hgtConfirm: UnwrapRef<typeof import('./utils/feedback')['hgtConfirm']>
+    readonly hgtConfirmYes: UnwrapRef<typeof import('./utils/feedback')['hgtConfirmYes']>
+    readonly hgtLoading: UnwrapRef<typeof import('./utils/feedback')['hgtLoading']>
+    readonly hgtLoadingHide: UnwrapRef<typeof import('./utils/feedback')['hgtLoadingHide']>
+    readonly hgtToast: UnwrapRef<typeof import('./utils/feedback')['hgtToast']>
+    readonly hgtToastError: UnwrapRef<typeof import('./utils/feedback')['hgtToastError']>
+    readonly hgtToastHide: UnwrapRef<typeof import('./utils/feedback')['hgtToastHide']>
+    readonly hgtToastInfo: UnwrapRef<typeof import('./utils/feedback')['hgtToastInfo']>
+    readonly hgtToastSuccess: UnwrapRef<typeof import('./utils/feedback')['hgtToastSuccess']>
+    readonly hgtToastWarning: UnwrapRef<typeof import('./utils/feedback')['hgtToastWarning']>
     readonly homeApi: UnwrapRef<typeof import('./api/turtle')['homeApi']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly initializeThemeOnce: UnwrapRef<typeof import('./utils/systemTheme')['initializeThemeOnce']>
@@ -553,6 +576,7 @@ declare module 'vue' {
     readonly openQuestionDetail: UnwrapRef<typeof import('./utils/questionRoute')['openQuestionDetail']>
     readonly paperTagUrl: UnwrapRef<typeof import('./utils/questionCover')['paperTagUrl']>
     readonly paperTextureUrl: UnwrapRef<typeof import('./utils/questionCover')['paperTextureUrl']>
+    readonly patchNativeFeedback: UnwrapRef<typeof import('./utils/patchNativeFeedback')['patchNativeFeedback']>
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly persistPlugin: UnwrapRef<typeof import('./store/persist')['persistPlugin']>
     readonly playerApi: UnwrapRef<typeof import('./api/player')['playerApi']>
@@ -573,6 +597,7 @@ declare module 'vue' {
     readonly refDefault: UnwrapRef<typeof import('@vueuse/core')['refDefault']>
     readonly refThrottled: UnwrapRef<typeof import('@vueuse/core')['refThrottled']>
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
+    readonly rememberNativeFeedbackApi: UnwrapRef<typeof import('./utils/feedback')['rememberNativeFeedbackApi']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
     readonly resolveDepth: UnwrapRef<typeof import('./utils/depth')['resolveDepth']>
     readonly resolveGameStatus: UnwrapRef<typeof import('./utils/gameStatus')['resolveGameStatus']>
@@ -672,6 +697,7 @@ declare module 'vue' {
     readonly useEventSource: UnwrapRef<typeof import('@vueuse/core')['useEventSource']>
     readonly useEyeDropper: UnwrapRef<typeof import('@vueuse/core')['useEyeDropper']>
     readonly useFavicon: UnwrapRef<typeof import('@vueuse/core')['useFavicon']>
+    readonly useFeedbackStore: UnwrapRef<typeof import('./store/feedbackStore')['useFeedbackStore']>
     readonly useFetch: UnwrapRef<typeof import('@vueuse/core')['useFetch']>
     readonly useFileDialog: UnwrapRef<typeof import('@vueuse/core')['useFileDialog']>
     readonly useFileSystemAccess: UnwrapRef<typeof import('@vueuse/core')['useFileSystemAccess']>

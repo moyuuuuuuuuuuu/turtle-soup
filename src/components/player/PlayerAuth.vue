@@ -86,17 +86,21 @@ function normalizeRedirect(raw: string) {
 }
 function finish(result: Awaited<ReturnType<typeof playerApi.passwordLogin>>) {
   store.accept(result)
+  const notes: string[] = ['登录成功 · 欢迎回到深海']
   if (result.merged_games)
-    uni.showToast({ title: `已合并 ${result.merged_games} 局记录`, icon: 'none' })
+    notes.push(`已合并 ${result.merged_games} 局推理记录`)
+  uni.showToast({ title: notes.join('\n'), icon: 'success', duration: 1400 })
   const redirect = normalizeRedirect(String(route.query.redirect || ''))
-  if (redirect) {
-    uni.redirectTo({
-      url: redirect,
-      fail: () => uni.switchTab({ url: '/pages/index/index' }),
-    })
-    return
-  }
-  uni.switchTab({ url: '/pages/index/index' })
+  setTimeout(() => {
+    if (redirect) {
+      uni.redirectTo({
+        url: redirect,
+        fail: () => uni.switchTab({ url: '/pages/index/index' }),
+      })
+      return
+    }
+    uni.switchTab({ url: '/pages/index/index' })
+  }, 420)
 }
 function startCodeCountdown(purpose: EmailCodePurpose) {
   const currentTimer = codeTimers[purpose]
@@ -415,6 +419,7 @@ async function authorizeMiniProgram(platform: MiniProgramPlatform) {
       :documents="legalDocuments"
       :light="false"
     />
+    <HgtFeedbackHost />
   </view>
 </template>
 

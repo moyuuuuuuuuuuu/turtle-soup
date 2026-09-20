@@ -389,7 +389,10 @@ onMounted(async () => {
 
 .page-head {
   display: flex;
-  padding: 36px 48px 20px;
+  box-sizing: border-box;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 36px 32px 16px;
   gap: 8px;
   flex-direction: column;
 }
@@ -410,7 +413,7 @@ onMounted(async () => {
 
 .section-label {
   display: block;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   color: var(--hgt-text-3);
   font-family: var(--hgt-font-mono);
   font-size: 11px;
@@ -418,14 +421,19 @@ onMounted(async () => {
 }
 
 .loading-line {
-  padding: 48px;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 48px 32px;
   color: var(--hgt-text-3);
   font-size: 13px;
 }
 
 /* Continue */
 .continue-section {
-  padding: 8px 48px 28px;
+  box-sizing: border-box;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 4px 32px 20px;
 }
 
 .continue-row {
@@ -491,7 +499,10 @@ onMounted(async () => {
 
 /* Stats — unframed numbers + thin dividers */
 .resume-stats {
-  padding: 8px 48px 32px;
+  box-sizing: border-box;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 4px 32px 24px;
 }
 
 .stats-row {
@@ -534,7 +545,10 @@ onMounted(async () => {
 
 /* History list */
 .history-section {
-  padding: 8px 48px 24px;
+  box-sizing: border-box;
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 4px 32px 24px;
 }
 
 .toolbar {
@@ -781,7 +795,8 @@ onMounted(async () => {
   .page-head,
   .continue-section,
   .resume-stats,
-  .history-section {
+  .history-section,
+  .loading-line {
     padding-right: 16px;
     padding-left: 16px;
   }

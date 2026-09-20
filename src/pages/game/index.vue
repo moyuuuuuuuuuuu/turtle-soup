@@ -45,9 +45,11 @@ const notesDrawerOpen = ref(false)
 const notesPanelFloating = ref(false)
 /** 移动端汤面底部弹层 */
 const mobileSurfaceOpen = ref(false)
-/** 移动端操作菜单底部弹层 */
-const mobileMenuOpen = ref(false)
 const mobileSurfaceRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null)
+/** 移动端底栏横向滚动：左右箭头翻页，减少滑动误触 */
+const mobileBarScrollLeft = ref(0)
+const mobileBarCanLeft = ref(false)
+const mobileBarCanRight = ref(false)
 const mobileSurfaceOverflow = ref(false)
 const surfaceExpanded = ref(false)
 
@@ -106,68 +108,12 @@ const statLine = computed(() => {
   return `已提问 ${game.value.question_count} 次 · 已进行 ${formatDuration(elapsedSeconds.value)}`
 })
 
-/** 顶部（题目信息 + 对话）在 top-zone 内的占比；底部输入区固定不参与该百分比 */
-const chatPercent = ref(56)
 const mobilePuzzleExpanded = ref(false)
-const dragState = reactive({ active: false, startY: 0, startPercent: 56, boardHeight: 600 })
-/** 窄屏（移动端）启用对话区可拖拽高度 */
-const isCompactLayout = ref(true)
 
-function syncCompactLayout() {
-  // #ifdef H5
-  isCompactLayout.value = typeof window !== 'undefined'
-    ? window.matchMedia('(max-width: 899px)').matches
-    : true
-  // #endif
-  // #ifndef H5
-  isCompactLayout.value = true
-  // #endif
-}
-
-/** chat 占顶部空间：窄屏按 chatPercent 分配，宽屏自适应 */
-const chatStyle = computed(() => {
-  if (!isCompactLayout.value)
-    return { flex: '1 1 auto' }
-  return {
-    flex: `0 0 ${chatPercent.value}%`,
-    minHeight: '160px',
-  }
-})
-
-function onDragStart(event: TouchEvent | MouseEvent) {
-  if (readonlyMode.value)
-    return
-  dragState.active = true
-  dragState.startPercent = chatPercent.value
-  const point = 'touches' in event ? event.touches[0] : event
-  dragState.startY = point.clientY
-  const handle = event.currentTarget as HTMLElement | null
-  const topZone = handle?.closest?.('.top-zone') as HTMLElement | null
-  dragState.boardHeight = topZone?.clientHeight || (typeof window !== 'undefined' ? window.innerHeight * 0.55 : 600)
-  if (!('touches' in event) && typeof document !== 'undefined') {
-    const move = (e: MouseEvent) => onDragMove(e)
-    const up = () => {
-      onDragEnd()
-      document.removeEventListener('mousemove', move)
-      document.removeEventListener('mouseup', up)
-    }
-    document.addEventListener('mousemove', move)
-    document.addEventListener('mouseup', up)
-  }
-}
-function onDragMove(event: TouchEvent | MouseEvent) {
-  if (!dragState.active)
-    return
-  if ('touches' in event)
-    event.preventDefault?.()
-  const point = 'touches' in event ? event.touches[0] : event
-  const boardHeight = dragState.boardHeight || 600
-  // 向下拖：对话变矮、题目信息变高；向上拖：对话变高
-  const delta = ((point.clientY - dragState.startY) / boardHeight) * 100
-  chatPercent.value = Math.min(72, Math.max(28, dragState.startPercent - delta))
-}
-function onDragEnd() {
-  dragState.active = false
+function judgeMessageKey(message: GameMessage, index: number) {
+  if (pendingPlayerMessage.value === message)
+    return 'pending-player-msg'
+  return `m-${message.sequence}-${message.role}-${index}`
 }
 
 const riskTypeLabels: Record<string, string> = { death: '死亡', violence: '暴力', gore: '血腥', self_harm: '自伤', sexual: '性内容', child_safety: '未成年人', discrimination: '歧视', illegal: '违法', substance: '成瘾物', other: '其他' }
@@ -539,7 +485,6 @@ function openTruthStage() {
     return
   inputMode.value = 'bottom'
   notesDrawerOpen.value = false
-  mobileMenuOpen.value = false
   mobileSurfaceOpen.value = false
 }
 function cancelTruthStage() {
@@ -556,7 +501,6 @@ function openNotesDrawer(tabName: 'clues' | 'notes' = clueTab.value) {
   // #ifndef H5
   notesPanelFloating.value = false
   // #endif
-  mobileMenuOpen.value = false
   mobileSurfaceOpen.value = false
 }
 function closeNotesDrawer() {
@@ -566,22 +510,12 @@ function closeNotesDrawer() {
 
 function openSurfaceSheet() {
   mobileSurfaceOpen.value = true
-  mobileMenuOpen.value = false
   notesDrawerOpen.value = false
   surfaceExpanded.value = true
   nextTick(() => measureMobileSurface())
 }
 function closeSurfaceSheet() {
   mobileSurfaceOpen.value = false
-}
-
-function openMobileMenu() {
-  mobileMenuOpen.value = true
-  notesDrawerOpen.value = false
-  mobileSurfaceOpen.value = false
-}
-function closeMobileMenu() {
-  mobileMenuOpen.value = false
 }
 
 async function sendTeam() {
@@ -692,25 +626,11 @@ function requestLeaveRoom() {
 }
 
 function exitGame() {
-  closeMobileMenu()
   if (isMultiplayer.value && room.value) {
     requestLeaveRoom()
     return
   }
   returnToQuestionLibrary()
-}
-
-function mobileInvite() {
-  closeMobileMenu()
-  void invite()
-}
-function mobileLeaveRoom() {
-  closeMobileMenu()
-  requestLeaveRoom()
-}
-function mobileAbandon() {
-  closeMobileMenu()
-  abandon()
 }
 
 function measureMobileSurface() {
@@ -719,6 +639,35 @@ function measureMobileSurface() {
     ? value
     : (value as { $el?: HTMLElement } | null)?.$el
   mobileSurfaceOverflow.value = Boolean(element && element.scrollHeight > element.clientHeight + 1)
+}
+
+function onMobileBarScroll(event: { detail?: { scrollLeft?: number, scrollWidth?: number, clientWidth?: number } }) {
+  const detail = event?.detail || {}
+  const left = Number(detail.scrollLeft) || 0
+  const scrollWidth = Number(detail.scrollWidth) || 0
+  const clientWidth = Number(detail.clientWidth) || 0
+  mobileBarScrollLeft.value = left
+  mobileBarCanLeft.value = left > 2
+  if (scrollWidth > 0 && clientWidth > 0)
+    mobileBarCanRight.value = left + clientWidth < scrollWidth - 2
+  else
+    mobileBarCanRight.value = true
+}
+
+function scrollMobileBar(direction: -1 | 1) {
+  const step = 160
+  mobileBarScrollLeft.value = Math.max(0, mobileBarScrollLeft.value + direction * step)
+  mobileBarCanLeft.value = mobileBarScrollLeft.value > 2
+  // #ifdef H5
+  nextTick(() => {
+    if (typeof document === 'undefined')
+      return
+    const el = document.querySelector('.mobile-bar') as HTMLElement | null
+    if (!el)
+      return
+    mobileBarCanRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
+  })
+  // #endif
 }
 
 async function submitBottom() {
@@ -741,6 +690,8 @@ async function submitBottom() {
 
 function submitJudgeInput() {
   if (readonlyMode.value || !canInput.value)
+    return
+  if (busy.value)
     return
   if (inputMode.value === 'bottom')
     return submitBottom()
@@ -852,17 +803,18 @@ watch(() => game.value?.surface, async () => {
 })
 
 function onWindowResize() {
-  syncCompactLayout()
   measureMobileSurface()
 }
 
 onMounted(async () => {
-  syncCompactLayout()
   await player.restore()
   await refresh()
   surfaceExpanded.value = false
   await nextTick()
   measureMobileSurface()
+  // 默认假定可向右滚，真实边界在首次 scroll / H5 测量后修正
+  mobileBarCanLeft.value = false
+  mobileBarCanRight.value = true
   if (typeof window !== 'undefined')
     window.addEventListener('resize', onWindowResize)
 })
@@ -888,25 +840,13 @@ onUnmounted(() => {
           DEPTH {{ depthLabel }}
         </text>
         <view class="topbar-actions">
-          <button class="topbar-btn hgt-mono" @click="openNotesDrawer()">
-            线索笔记
-            <text v-if="clueCount" class="topbar-badge">
-              {{ clueCount }}
-            </text>
-          </button>
           <button class="topbar-btn weak hgt-mono" @click="exitGame">
             退出
           </button>
         </view>
       </header>
 
-      <!-- PC 右侧悬浮：线索笔记 / 提示灯泡 -->
-      <button class="pc-float-notes" @click="openNotesDrawer()">
-        线索笔记
-        <text v-if="clueCount" class="pc-float-badge">
-          {{ clueCount }}
-        </text>
-      </button>
+      <!-- 移动端线索笔记只保留底部操作条入口；PC 在左侧面板打开 -->
 
       <view class="game-body">
         <!-- 左栏：谜题信息 -->
@@ -1029,9 +969,9 @@ onUnmounted(() => {
           </view>
 
           <view class="panel-actions">
-            <button class="hgt-mono notes-entry outline" @click="openNotesDrawer()">
+            <button class="hgt-mono tool-btn outline" @click="openNotesDrawer()">
               线索笔记
-              <text v-if="clueCount" class="panel-notes-badge">
+              <text v-if="clueCount" class="tool-badge">
                 {{ clueCount }}
               </text>
             </button>
@@ -1061,8 +1001,13 @@ onUnmounted(() => {
         <main class="panel-center">
           <view class="center-stack">
             <view class="top-zone">
-              <view class="mobile-puzzle">
-                <button class="mobile-puzzle-head" @click="mobilePuzzleExpanded = !mobilePuzzleExpanded">
+              <view class="mobile-puzzle" :class="{ expanded: mobilePuzzleExpanded }">
+                <!-- 用 view 而非 button：uni-app button 高度易被压扁，展开后会盖住标题/收起 -->
+                <view
+                  class="mobile-puzzle-head"
+                  hover-class="mobile-puzzle-head-hover"
+                  @click="mobilePuzzleExpanded = !mobilePuzzleExpanded"
+                >
                   <view class="mobile-puzzle-copy">
                     <text class="mobile-puzzle-title">
                       {{ game.title }}
@@ -1074,8 +1019,8 @@ onUnmounted(() => {
                   <text class="mobile-puzzle-toggle hgt-mono">
                     {{ mobilePuzzleExpanded ? '收起 −' : '题目信息 +' }}
                   </text>
-                </button>
-                <!-- 展开时自然撑高，不压缩、不内部滚动 -->
+                </view>
+                <!-- 展开时自然撑高；标题栏 sticky，避免汤面盖住题目名与收起 -->
                 <view v-if="mobilePuzzleExpanded" class="mobile-puzzle-body">
                   <text class="mobile-puzzle-label hgt-mono">
                     汤面
@@ -1151,8 +1096,8 @@ onUnmounted(() => {
                 </view>
               </view>
 
-              <template v-else-if="isMultiplayer && tab === 'team' && !readonlyMode">
-                <view class="chat-zone">
+              <template v-else>
+                <view v-if="isMultiplayer && tab === 'team' && !readonlyMode" class="chat-zone">
                   <scroll-view scroll-y :scroll-into-view="teamScrollTarget" scroll-with-animation class="stage">
                     <view class="stage-inner">
                       <view v-if="!(room?.messages || []).length" class="stage-empty">
@@ -1182,20 +1127,23 @@ onUnmounted(() => {
                     </view>
                   </scroll-view>
                 </view>
-              </template>
 
-              <template v-else>
-                <view class="chat-zone" :style="chatStyle">
-                  <view
-                    class="drag-handle"
-                    aria-label="拖拽：底部输入固定，调整题目信息与对话高度"
-                    @touchstart="onDragStart"
-                    @touchmove="onDragMove"
-                    @touchend="onDragEnd"
-                    @mousedown="onDragStart"
+                <view v-else class="chat-zone">
+                  <!-- 提示灯泡：对话区左侧中部（黄框位置） -->
+                  <button
+                    v-if="!readonlyMode && canInput && !showTruthStage"
+                    class="hint-float"
+                    :disabled="busy || hintLeft <= 0"
+                    :class="{ disabled: hintLeft <= 0 }"
+                    @click="requestHint"
                   >
-                    <text class="drag-handle-bar" />
-                  </view>
+                    <text class="hint-float-icon" aria-hidden="true">
+                      💡
+                    </text>
+                    <text class="hint-float-count hgt-mono">
+                      {{ hintLabel }}
+                    </text>
+                  </button>
                   <scroll-view scroll-y :scroll-into-view="judgeScrollTarget" scroll-with-animation class="stage">
                     <view class="stage-inner">
                       <view v-if="!displayMessages.length" class="stage-empty">
@@ -1212,7 +1160,7 @@ onUnmounted(() => {
                       <view
                         v-for="(message, messageIndex) in displayMessages"
                         :id="judgeMessageId(message.sequence)"
-                        :key="`${messageIndex}-${message.sequence}-${message.role}`"
+                        :key="judgeMessageKey(message, messageIndex)"
                         class="msg-row"
                         :class="message.role"
                       >
@@ -1262,34 +1210,73 @@ onUnmounted(() => {
             <!-- /top-zone -->
 
             <view class="bottom-dock">
-              <!-- 悬浮提示灯泡：图标 + 次数 -->
-              <button
-                v-if="!readonlyMode && canInput && !showTruthStage"
-                class="hint-float"
-                :disabled="busy || hintLeft <= 0"
-                :class="{ disabled: hintLeft <= 0 }"
-                @click="requestHint"
-              >
-                <text class="hint-float-icon" aria-hidden="true">
-                  💡
-                </text>
-                <text class="hint-float-count hgt-mono">
-                  {{ hintLabel }}
-                </text>
-              </button>
-
-              <view v-if="!readonlyMode && !showTruthStage" class="mobile-bar">
-                <button class="mobile-bar-btn" @click="openSurfaceSheet">
-                  汤面
+              <view v-if="!readonlyMode && !showTruthStage" class="mobile-bar-wrap">
+                <button
+                  class="mobile-bar-nav left"
+                  :disabled="!mobileBarCanLeft"
+                  aria-label="操作栏向左"
+                  @click="scrollMobileBar(-1)"
+                >
+                  ‹
                 </button>
-                <button class="mobile-bar-btn" @click="openNotesDrawer()">
-                  线索笔记
-                </button>
-                <button class="mobile-bar-btn" @click="openTruthStage">
-                  提交真相
-                </button>
-                <button class="mobile-bar-btn more" @click="openMobileMenu">
-                  •••
+                <scroll-view
+                  scroll-x
+                  class="mobile-bar"
+                  :scroll-left="mobileBarScrollLeft"
+                  @scroll="onMobileBarScroll"
+                >
+                  <view class="mobile-bar-track">
+                    <button class="mobile-bar-btn" @click="openSurfaceSheet">
+                      汤面
+                    </button>
+                    <button
+                      v-if="canInput"
+                      class="mobile-bar-btn"
+                      :disabled="busy || hintLeft <= 0"
+                      @click="requestHint"
+                    >
+                      提示 {{ hintLabel }}
+                    </button>
+                    <button class="mobile-bar-btn" @click="openNotesDrawer()">
+                      线索笔记
+                    </button>
+                    <button v-if="canInput" class="mobile-bar-btn" @click="openTruthStage">
+                      提交真相
+                    </button>
+                    <button
+                      v-if="player.user && (!room || room.member_count < room.max_players) && !readonlyMode"
+                      class="mobile-bar-btn"
+                      :disabled="creatingRoom"
+                      @click="invite"
+                    >
+                      {{ creatingRoom ? '创建中…' : '邀请队友' }}
+                    </button>
+                    <button
+                      v-if="isMultiplayer && room"
+                      class="mobile-bar-btn danger"
+                      @click="requestLeaveRoom"
+                    >
+                      退出房间
+                    </button>
+                    <button
+                      v-if="!readonlyMode && (game.mode === 'single' || room?.is_owner)"
+                      class="mobile-bar-btn danger"
+                      @click="abandon"
+                    >
+                      放弃推理
+                    </button>
+                    <button class="mobile-bar-btn weak" @click="returnToQuestionLibrary">
+                      返回题库
+                    </button>
+                  </view>
+                </scroll-view>
+                <button
+                  class="mobile-bar-nav right"
+                  :disabled="!mobileBarCanRight"
+                  aria-label="操作栏向右"
+                  @click="scrollMobileBar(1)"
+                >
+                  ›
                 </button>
               </view>
 
@@ -1307,13 +1294,13 @@ onUnmounted(() => {
                       @input="teamTyping"
                       @confirm="sendTeam"
                     >
-                    <button
+                    <view
                       class="send-btn"
-                      :disabled="room?.members.find(item => item.is_self)?.is_muted"
+                      :class="{ disabled: room?.members.find(item => item.is_self)?.is_muted }"
                       @click="sendTeam"
                     >
                       发送
-                    </button>
+                    </view>
                   </view>
                 </view>
               </view>
@@ -1324,7 +1311,6 @@ onUnmounted(() => {
                     重新询问
                   </button>
                 </view>
-                <!-- 次要操作在上，输入框贴底 -->
                 <view class="composer-secondary">
                   <button class="secondary-btn hgt-mono" @click="openTruthStage">
                     我知道真相了 → 提交推理
@@ -1339,13 +1325,13 @@ onUnmounted(() => {
                       placeholder="向主持人提一个只能用「是 / 不是 / 无关」回答的问题……"
                       @confirm="submitJudgeInput"
                     >
-                    <button
+                    <view
                       class="send-btn"
-                      :disabled="game.remaining_questions === 0"
+                      :class="{ disabled: game.remaining_questions === 0 || busy }"
                       @click="submitJudgeInput"
                     >
                       {{ busy ? '判断中…' : '提问' }}
-                    </button>
+                    </view>
                   </view>
                 </view>
               </view>
@@ -1367,7 +1353,7 @@ onUnmounted(() => {
         </main>
       </view>
 
-      <!-- 右侧线索/笔记：PC 悬浮框 / 移动端抽屉 -->
+      <!-- 右侧线索/笔记：PC 悬浮框 / 移动端底部抽屉 -->
       <view
         v-if="notesDrawerOpen"
         class="drawer-mask"
@@ -1379,6 +1365,7 @@ onUnmounted(() => {
           :class="{ 'is-floating-panel': notesPanelFloating }"
           @click.stop
         >
+          <view class="sheet-handle notes-handle" aria-hidden="true" />
           <view class="drawer-head">
             <text class="drawer-title hgt-display">
               线索笔记
@@ -1504,38 +1491,6 @@ onUnmounted(() => {
               </view>
             </template>
           </scroll-view>
-        </view>
-      </view>
-
-      <!-- 移动端操作菜单 -->
-      <view v-if="mobileMenuOpen" class="sheet-mask" @click="closeMobileMenu">
-        <view class="bottom-sheet menu-sheet" @click.stop>
-          <view class="sheet-handle" />
-          <view class="sheet-head">
-            <text class="sheet-title hgt-mono">
-              更多操作
-            </text>
-            <button class="drawer-close" @click="closeMobileMenu">
-              ×
-            </button>
-          </view>
-          <view class="menu-list">
-            <button class="menu-item" @click="openNotesDrawer('clues')">
-              线索笔记
-            </button>
-            <button v-if="player.user && (!room || room.member_count < room.max_players) && !readonlyMode" class="menu-item" @click="mobileInvite">
-              {{ creatingRoom ? '正在创建房间…' : '邀请队友' }}
-            </button>
-            <button v-if="isMultiplayer && room" class="menu-item" @click="mobileLeaveRoom">
-              退出房间
-            </button>
-            <button v-if="!readonlyMode && (game.mode === 'single' || room?.is_owner)" class="menu-item danger" @click="mobileAbandon">
-              放弃推理
-            </button>
-            <button class="menu-item weak" @click="returnToQuestionLibrary">
-              返回题库
-            </button>
-          </view>
         </view>
       </view>
     </view>
@@ -1691,15 +1646,28 @@ onUnmounted(() => {
   color: var(--hgt-text);
 }
 
-/* 移动端题目信息：默认收起条，可展开 */
+/* 全页只允许对话区内部滚动，避免多层滚动条 */
+.game-page :deep(*),
+.game-page * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(117, 220, 211, 0.25) transparent;
+}
+
+/* 移动端题目信息：默认收起条，可展开；拖拽时让出空间给对话区 */
 .mobile-puzzle {
   display: none;
   box-sizing: border-box;
-  flex: none;
-  overflow: visible;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 46%;
+  overflow: hidden;
   border-bottom: 1px solid rgba(117, 220, 211, 0.12);
   background: rgba(4, 20, 24, 0.72);
   flex-direction: column;
+}
+
+.mobile-puzzle.expanded {
+  max-height: min(52%, 280px);
 }
 
 .center-stack {
@@ -1712,6 +1680,7 @@ onUnmounted(() => {
 
 .top-zone {
   display: flex;
+  width: 100%;
   min-height: 0;
   flex: 1;
   flex-direction: column;
@@ -1722,6 +1691,7 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex: none;
+  width: 100%;
   flex-direction: column;
   margin-top: auto;
   border-top: 1px solid rgba(117, 220, 211, 0.08);
@@ -1729,24 +1699,37 @@ onUnmounted(() => {
 }
 
 .chat-zone {
-  display: flex;
-  min-height: 0;
-  flex: 1 1 auto;
-  flex-direction: column;
-}
-
-.mobile-puzzle-head {
+  position: relative;
   display: flex;
   box-sizing: border-box;
   width: 100%;
+  min-height: 140px;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-puzzle-head {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
   margin: 0;
   padding: 10px 12px;
   border: 0;
-  align-items: flex-start;
+  flex: none;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: transparent;
+  background: rgba(4, 20, 24, 0.96);
   text-align: left;
+}
+
+.mobile-puzzle-head-hover {
+  background: rgba(15, 53, 57, 0.55);
 }
 
 .mobile-puzzle-head::after { border: 0; }
@@ -1785,8 +1768,12 @@ onUnmounted(() => {
   box-sizing: border-box;
   padding: 0 12px 12px;
   gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
   flex-direction: column;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-puzzle-label {
@@ -1806,24 +1793,6 @@ onUnmounted(() => {
 .mobile-puzzle-tags {
   color: var(--hgt-text-3);
   font-size: 12px;
-}
-
-.drag-handle {
-  display: none;
-  height: 16px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  touch-action: none;
-  cursor: ns-resize;
-  background: rgba(4, 20, 24, 0.5);
-}
-
-.drag-handle-bar {
-  width: 42px;
-  height: 3px;
-  border-radius: 2px;
-  background: rgba(117, 220, 211, 0.35);
 }
 
 .hint-btn {
@@ -1872,6 +1841,10 @@ onUnmounted(() => {
   color: var(--hgt-text);
 }
 
+.notes-handle {
+  display: none;
+}
+
 .notes-drawer.is-floating-panel,
 .drawer-mask.is-floating .notes-drawer {
   position: fixed;
@@ -1885,6 +1858,11 @@ onUnmounted(() => {
   overflow: hidden;
   box-shadow: none;
   background: #061A20;
+}
+
+.notes-drawer.is-floating-panel .notes-handle,
+.drawer-mask.is-floating .notes-handle {
+  display: none;
 }
 
 .drawer-mask.is-floating {
@@ -1932,9 +1910,6 @@ onUnmounted(() => {
   .game-topbar {
     display: flex !important;
   }
-  .pc-float-notes {
-    display: flex !important;
-  }
   .mobile-puzzle {
     display: none !important;
   }
@@ -1948,28 +1923,26 @@ onUnmounted(() => {
   .game-topbar {
     display: flex !important;
   }
-  .pc-float-notes {
-    display: none !important;
-  }
   .mobile-puzzle {
     display: flex;
   }
-  .drag-handle {
-    display: flex !important;
-  }
-  .chat-zone {
-    flex: 0 0 auto;
-    min-height: 160px;
-  }
+  /* 题目名与收起在 mobile-puzzle-head；顶栏只保留局内状态 + 退出，避免双标题叠压 */
   .topbar-brand {
+    display: none;
+  }
+  .topbar-title {
+    display: block;
     overflow: hidden;
     flex: 1;
     min-width: 0;
+    color: var(--hgt-text-2);
+    font-family: var(--hgt-font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .topbar-title {
-    display: none;
   }
 }
 
@@ -1988,9 +1961,9 @@ onUnmounted(() => {
 
 .hint-float {
   position: absolute;
-  z-index: 5;
-  right: 14px;
-  bottom: calc(100% + 8px);
+  z-index: 6;
+  left: 10px;
+  top: 58%;
   display: flex;
   box-sizing: border-box;
   width: 48px;
@@ -2022,7 +1995,7 @@ onUnmounted(() => {
 
 .hint-float.disabled,
 .hint-float[disabled] {
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .bottom-dock {
@@ -2098,14 +2071,15 @@ onUnmounted(() => {
   font-size: 10px;
 }
 
-/* ===== Body：通栏布局，左谜题 + 中对话，线索/笔记走抽屉 ===== */
+/* ===== Body：内容向中间聚拢，左工具 + 中对话 ===== */
 .game-body {
   display: grid;
   box-sizing: border-box;
-  width: 100%;
+  width: min(1200px, 100%);
   min-height: 0;
-  margin: 0;
+  margin: 0 auto;
   flex: 1;
+  overflow: hidden;
   grid-template-columns: 240px minmax(0, 1fr);
 }
 
@@ -2117,8 +2091,10 @@ onUnmounted(() => {
   padding: 20px 14px;
   border-right: 1px solid rgba(117, 220, 211, 0.12);
   flex-direction: column;
+  overflow-x: hidden;
   overflow-y: auto;
   background: rgba(4, 20, 24, 0.55);
+  scrollbar-width: thin;
 }
 .back-question {
   display: flex;
@@ -2206,15 +2182,25 @@ onUnmounted(() => {
 }
 .metadata-items {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-wrap: nowrap;
   gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.metadata-items::-webkit-scrollbar {
+  display: none;
 }
 .metadata-chip {
+  flex: none;
   padding: 3px 8px;
   border: 1px solid rgba(117, 220, 211, 0.12);
   border-radius: var(--hgt-radius-xs);
   color: var(--hgt-text-2);
   font-size: 11px;
+  white-space: nowrap;
 }
 .risk-chip {
   border-color: rgba(201, 164, 106, 0.4);
@@ -2355,10 +2341,15 @@ onUnmounted(() => {
   border-color: rgba(208, 90, 82, 0.35);
   color: var(--hgt-danger);
 }
-.notes-entry {
+.tool-btn {
+  position: relative;
   color: var(--hgt-text);
 }
-.panel-notes-badge {
+.tool-btn.disabled,
+.tool-btn[disabled] {
+  opacity: 0.45;
+}
+.tool-badge {
   display: inline-flex;
   min-width: 16px;
   height: 16px;
@@ -2451,19 +2442,58 @@ onUnmounted(() => {
   text-align: center;
 }
 .stage {
+  box-sizing: border-box;
+  width: 100%;
   flex: 1;
   min-height: 0;
-  padding: 28px 16px 12px;
-  box-sizing: border-box;
+  padding: 20px 16px 12px;
+  overflow-x: hidden !important;
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable;
+  /* 收窄系统滚动条，避免多层滚动条抢视觉 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(117, 220, 211, 0.28) transparent;
+}
+.stage::-webkit-scrollbar,
+.chat-zone :deep(.uni-scroll-view)::-webkit-scrollbar {
+  width: 6px;
+  height: 0;
+}
+.stage::-webkit-scrollbar-thumb,
+.chat-zone :deep(.uni-scroll-view)::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(117, 220, 211, 0.28);
+}
+.stage::-webkit-scrollbar-track,
+.chat-zone :deep(.uni-scroll-view)::-webkit-scrollbar-track {
+  background: transparent;
 }
 .stage-inner {
-  width: min(680px, 100%);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
   min-height: 100%;
   margin: 0 auto;
+  overflow-x: hidden;
+}
+.chat-zone :deep(.uni-scroll-view),
+.chat-zone :deep(.uni-scroll-view-container),
+.chat-zone :deep(.uni-scroll-view-content) {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+.chat-zone :deep(.uni-scroll-view) {
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+.chat-zone :deep(.uni-scroll-view-content) {
+  overflow: visible !important;
 }
 .stage-empty {
   display: flex;
-  min-height: 42vh;
+  min-height: 240px;
   padding: 32px 12px;
   align-items: center;
   justify-content: center;
@@ -2492,7 +2522,7 @@ onUnmounted(() => {
   line-height: 1.75;
 }
 .msg-row {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .msg-row.host {
   display: flex;
@@ -2502,7 +2532,7 @@ onUnmounted(() => {
   display: flex;
   box-sizing: border-box;
   width: fit-content;
-  max-width: min(480px, 92%);
+  max-width: min(420px, 92%);
   padding: 12px 16px;
   border: 1px solid rgba(117, 220, 211, 0.16);
   border-radius: var(--hgt-radius-sm);
@@ -2519,10 +2549,13 @@ onUnmounted(() => {
 }
 .host-answer {
   display: flex;
-  gap: 8px;
-  flex-direction: column;
+  gap: 6px 12px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  flex-direction: row;
 }
 .host-keyword {
+  flex: none;
   font-family: var(--hgt-font-display);
   font-size: 28px;
   font-weight: 600;
@@ -2530,6 +2563,8 @@ onUnmounted(() => {
   line-height: 1.2;
 }
 .host-explain {
+  min-width: 0;
+  flex: 1 1 160px;
   color: var(--hgt-text-2);
   font-size: 14px;
   line-height: 1.75;
@@ -2544,7 +2579,7 @@ onUnmounted(() => {
   display: flex;
   box-sizing: border-box;
   width: fit-content;
-  max-width: min(420px, 92%);
+  max-width: min(360px, 88%);
   padding: 10px 14px;
   border: 1px solid rgba(117, 220, 211, 0.12);
   border-radius: var(--hgt-radius-sm);
@@ -2688,6 +2723,7 @@ onUnmounted(() => {
 }
 
 /* Composer */
+.mobile-bar-wrap,
 .mobile-bar {
   display: none;
 }
@@ -2731,23 +2767,29 @@ onUnmounted(() => {
 .retry-btn::after { border: 0; }
 .input-row {
   display: flex;
+  width: 100%;
   gap: 8px;
+  align-items: stretch;
 }
 .input-row input {
+  box-sizing: border-box;
+  min-width: 0;
   flex: 1;
-  height: 44px;
+  height: 48px;
   padding: 0 14px;
-  border: 1px solid rgba(117, 220, 211, 0.12);
+  border: 1px solid rgba(117, 220, 211, 0.14);
   border-radius: var(--hgt-radius-sm);
-  background: rgba(15, 53, 57, 0.4);
+  background: rgba(15, 53, 57, 0.35);
   color: var(--hgt-text);
   font-size: 14px;
 }
+/* 整块可点的发送按钮 */
 .send-btn {
   display: flex;
-  width: 88px;
+  box-sizing: border-box;
+  width: 92px;
   flex: none;
-  height: 44px;
+  height: 48px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -2758,34 +2800,20 @@ onUnmounted(() => {
   color: var(--hgt-on-brand);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.send-btn::after { border: 0; }
-.send-btn:disabled {
+.send-btn.disabled {
   opacity: 0.5;
+  pointer-events: none;
 }
 .composer-secondary {
   display: flex;
   margin-bottom: 8px;
   gap: 14px;
   flex-wrap: wrap;
-}
-
-.input-row input {
-  flex: 1;
-  box-sizing: border-box;
-  height: 52px;
-  padding: 0 14px;
-  border: 1px solid var(--hgt-border);
-  border-radius: var(--hgt-radius-sm);
-  background: transparent;
-  color: var(--hgt-text);
-  font-size: 14px;
-}
-
-.send-btn {
-  width: 88px;
-  flex: none;
-  height: 52px;
 }
 .secondary-btn {
   display: flex;
@@ -2841,6 +2869,7 @@ onUnmounted(() => {
 }
 .drawer-close {
   display: flex;
+  flex: none;
   width: 30px;
   height: 30px;
   margin: 0;
@@ -3015,9 +3044,11 @@ onUnmounted(() => {
   display: flex;
   box-sizing: border-box;
   width: 100%;
-  max-height: 72vh;
+  max-height: min(72vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 16px));
+  margin-bottom: calc(var(--hgt-tabbar-h, 64px) + env(safe-area-inset-bottom));
   padding: 8px 0 16px;
   border-top: 1px solid rgba(117, 220, 211, 0.12);
+  border-radius: var(--hgt-radius-lg) var(--hgt-radius-lg) 0 0;
   flex-direction: column;
   background: #061A20;
 }
@@ -3030,22 +3061,29 @@ onUnmounted(() => {
 }
 .sheet-head {
   display: flex;
+  flex: none;
   padding: 4px 16px 10px;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 .sheet-title {
+  flex: 1;
+  min-width: 0;
   color: var(--hgt-text);
   font-family: var(--hgt-font-display);
   font-size: 16px;
   font-weight: 600;
+  white-space: nowrap;
 }
 .sheet-body {
   flex: 1;
   min-height: 0;
-  padding: 0 16px 8px;
+  max-height: calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 120px);
+  padding: 0 16px 12px;
   box-sizing: border-box;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .sheet-surface {
   display: block;
@@ -3064,33 +3102,6 @@ onUnmounted(() => {
 .sheet-member {
   padding: 6px 0;
   border-top: 1px solid rgba(117, 220, 211, 0.08);
-}
-.menu-list {
-  display: flex;
-  padding: 4px 12px 8px;
-  gap: 6px;
-  flex-direction: column;
-}
-.menu-item {
-  display: flex;
-  height: 44px;
-  margin: 0;
-  padding: 0 12px;
-  border: 0;
-  border-radius: var(--hgt-radius-sm);
-  align-items: center;
-  background: rgba(15, 53, 57, 0.28);
-  color: var(--hgt-text);
-  font-size: 14px;
-  text-align: left;
-}
-.menu-item::after { border: 0; }
-.menu-item.danger {
-  color: var(--hgt-danger);
-}
-.menu-item.weak {
-  background: transparent;
-  color: var(--hgt-text-3);
 }
 
 /* ===== Invite ===== */
@@ -3372,20 +3383,64 @@ onUnmounted(() => {
   .topbar-depth {
     font-size: 11px;
   }
-  .mobile-bar {
+  .mobile-bar-wrap {
     display: flex;
     flex: none;
-    padding: 6px 8px;
+    align-items: stretch;
     border-top: 1px solid rgba(117, 220, 211, 0.12);
-    gap: 6px;
     background: rgba(4, 20, 24, 0.72);
   }
-  .mobile-bar-btn {
+  .mobile-bar-nav {
     display: flex;
+    box-sizing: border-box;
+    width: 34px;
+    flex: none;
+    height: auto;
+    min-height: 46px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4, 20, 24, 0.96);
+    color: var(--hgt-text-2);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .mobile-bar-nav::after { border: 0; }
+  .mobile-bar-nav.left {
+    border-right: 1px solid rgba(117, 220, 211, 0.1);
+  }
+  .mobile-bar-nav.right {
+    border-left: 1px solid rgba(117, 220, 211, 0.1);
+  }
+  .mobile-bar-nav[disabled] {
+    opacity: 0.28;
+  }
+  .mobile-bar {
+    display: block;
     flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .mobile-bar-track {
+    display: inline-flex;
+    box-sizing: border-box;
+    width: max-content;
+    padding: 6px 8px;
+    gap: 6px;
+    vertical-align: middle;
+  }
+  .mobile-bar-btn {
+    display: inline-flex;
+    box-sizing: border-box;
+    width: max-content !important;
+    max-width: none;
+    flex: 0 0 auto;
     height: 34px;
     margin: 0;
-    padding: 0 4px;
+    padding: 0 12px;
     border: 1px solid rgba(117, 220, 211, 0.12);
     border-radius: var(--hgt-radius-xs);
     align-items: center;
@@ -3394,11 +3449,42 @@ onUnmounted(() => {
     color: var(--hgt-text);
     font-size: 12px;
     line-height: 1;
+    white-space: nowrap;
   }
   .mobile-bar-btn::after { border: 0; }
-  .mobile-bar-btn.more {
-    flex: 0 0 44px;
-    color: var(--hgt-text-2);
+  .mobile-bar-btn.danger {
+    color: var(--hgt-danger);
+  }
+  .mobile-bar-btn.weak {
+    color: var(--hgt-text-3);
+  }
+  .mobile-bar-btn[disabled] {
+    opacity: 0.45;
+  }
+
+  /* 移动端线索笔记改为底部抽屉，落在 tabbar 上方 */
+  .notes-drawer:not(.is-floating-panel) {
+    top: auto;
+    right: 0;
+    bottom: calc(var(--hgt-tabbar-h, 64px) + env(safe-area-inset-bottom));
+    left: 0;
+    width: 100%;
+    height: auto;
+    max-height: min(70vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 48px));
+    border-left: 0;
+    border-top: 1px solid rgba(117, 220, 211, 0.16);
+    border-radius: var(--hgt-radius-lg) var(--hgt-radius-lg) 0 0;
+  }
+  .notes-drawer:not(.is-floating-panel) .notes-handle {
+    display: block;
+  }
+  .notes-drawer:not(.is-floating-panel) .drawer-body {
+    min-height: 160px;
+    height: min(42vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 180px));
+  }
+
+  .bottom-sheet .sheet-body {
+    height: min(48vh, calc(100dvh - var(--hgt-tabbar-h, 64px) - env(safe-area-inset-bottom) - 140px));
   }
   .stage {
     padding: 18px 12px 8px;
@@ -3416,8 +3502,12 @@ onUnmounted(() => {
   .composer {
     padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
   }
-  .input-row button {
-    width: 76px;
+  .input-row .send-btn {
+    width: 80px;
+    height: 44px;
+  }
+  .input-row input {
+    height: 44px;
   }
   .composer-secondary {
     gap: 10px;
@@ -3425,7 +3515,17 @@ onUnmounted(() => {
 }
 
 @media (min-width: 900px) {
+  .mobile-bar-wrap,
   .mobile-bar {
+    display: none !important;
+  }
+  .hint-float {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 899px) {
+  .hint-float {
     display: none !important;
   }
 }

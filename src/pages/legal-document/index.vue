@@ -36,6 +36,7 @@ onMounted(async () => {
 
 <template>
   <view class="legal-page" :class="{ light }">
+    <HgtFeedbackHost />
     <view class="legal-head">
       <text class="legal-eyebrow hgt-mono">
         ◇ LEGAL

@@ -231,14 +231,28 @@ onMounted(async () => {
     </view>
 
     <template v-else>
-      <view class="page-head">
-        <text class="page-title">
-          多人推理
-        </text>
-        <text class="page-sub">
-          和朋友一起，从同一碗汤开始推理。
-        </text>
-      </view>
+      <section class="rooms-hero">
+        <image
+          class="hero-bg"
+          src="/static/hgt/bg/bg_deep_ocean.jpg"
+          mode="aspectFill"
+        />
+        <view class="hero-veil" />
+        <view class="hero-copy">
+          <text class="hero-en">
+            MULTIPLAYER
+          </text>
+          <text class="hero-title">
+            多人推理
+          </text>
+          <text class="hero-quote">
+            和朋友一起，从同一碗汤开始推理。
+          </text>
+          <text class="hero-sub">
+            创建房间，或用邀请码加入好友的推理局。
+          </text>
+        </view>
+      </section>
 
       <view v-if="loading" class="loading-state">
         <wd-loading />
@@ -423,13 +437,80 @@ onMounted(async () => {
   color: var(--hgt-text);
   font-family: var(--hgt-font-body);
 }
-.page-head,
+.rooms-hero {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  min-height: clamp(280px, 42vh, 420px);
+  padding: 48px 20px 56px;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(1.28) contrast(0.94) saturate(1.06);
+}
+.hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+.hero-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(4, 20, 24, 0.12) 0%, rgba(4, 20, 24, 0.04) 35%, transparent 60%),
+    linear-gradient(180deg, rgba(6, 26, 32, 0) 0%, rgba(6, 26, 32, 0.04) 50%, rgba(6, 26, 32, 0.18) 78%, rgba(6, 26, 32, 0.42) 92%, var(--hgt-bg) 100%);
+}
+.hero-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  box-sizing: border-box;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(8px, 2vw, 24px);
+  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.hero-en {
+  color: var(--hgt-brand);
+  font-family: var(--hgt-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+}
+.hero-title {
+  color: var(--hgt-text-bright);
+  font-family: var(--hgt-font-display);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.hero-quote {
+  max-width: 520px;
+  color: var(--hgt-text);
+  font-family: var(--hgt-font-display);
+  font-size: 16px;
+  line-height: 1.8;
+}
+.hero-sub {
+  color: var(--hgt-text-3);
+  font-family: var(--hgt-font-display);
+  font-size: 13px;
+}
 .unavailable,
 .room-content {
   box-sizing: border-box;
-  width: min(640px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto;
-  padding: 24px 16px 20px;
+  padding: 8px 24px 24px;
 }
 .page-title {
   display: block;
@@ -438,14 +519,6 @@ onMounted(async () => {
   font-size: 24px;
   font-weight: 600;
   letter-spacing: 0.08em;
-}
-.page-sub {
-  display: block;
-  margin-top: 6px;
-  color: var(--hgt-text-2);
-  font-family: var(--hgt-font-display);
-  font-size: 13px;
-  line-height: 1.6;
 }
 .unavailable {
   display: flex;
@@ -475,13 +548,20 @@ onMounted(async () => {
 }
 .room-content {
   display: flex;
-  gap: 14px;
+  gap: 20px;
   flex-direction: column;
+}
+.join-panel,
+.create-panel,
+.created-panel,
+.room-section {
+  max-width: 720px;
 }
 .action-grid {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-template-columns: 1fr 1fr;
+  max-width: 720px;
 }
 .action-btn {
   display: flex;
@@ -750,6 +830,35 @@ onMounted(async () => {
 @media (max-width: 480px) {
   .action-grid {
     grid-template-columns: 1fr;
+    max-width: none;
+  }
+  .join-panel,
+  .create-panel,
+  .created-panel,
+  .room-section {
+    max-width: none;
+  }
+  .unavailable,
+  .room-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .rooms-hero {
+    padding: 64px 32px 72px;
+  }
+  .unavailable,
+  .room-content {
+    padding: 12px 32px 32px;
+  }
+  .join-panel,
+  .create-panel,
+  .created-panel,
+  .room-section {
+    padding: 20px;
+    gap: 14px;
   }
 }
 </style>

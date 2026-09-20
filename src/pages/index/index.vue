@@ -12,6 +12,10 @@ const router = useRouter()
 const player = usePlayerStore()
 
 const featured = ref<PublicQuestion[]>([])
+/** 英雄区背景盖住的第一行卡片数：桌面3 / 平板2 / 移动1 */
+const firstRowCount = ref(3)
+const featuredFirst = computed(() => featured.value.slice(0, firstRowCount.value))
+const featuredRest = computed(() => featured.value.slice(firstRowCount.value))
 const stats = ref<HomeStats>({
   question_count: 0,
   today_online: 0,
@@ -21,6 +25,19 @@ const stats = ref<HomeStats>({
 const loading = ref(true)
 const loadError = ref(false)
 const randomLoading = ref(false)
+
+function syncFirstRowCount() {
+  // #ifdef H5
+  if (typeof window === 'undefined')
+    return
+  const width = window.innerWidth
+  // 与 CSS 栅格一致：>=1200 三列，>=768 两列，更窄单列
+  firstRowCount.value = width >= 1200 ? 3 : width >= 768 ? 2 : 1
+  // #endif
+  // #ifndef H5
+  firstRowCount.value = 3
+  // #endif
+}
 
 interface HomeCategory { label: string, tagId: number | undefined }
 
@@ -253,9 +270,21 @@ async function openFooterLink(link: FooterLink) {
 }
 
 onMounted(() => {
+  syncFirstRowCount()
+  // #ifdef H5
+  if (typeof window !== 'undefined')
+    window.addEventListener('resize', syncFirstRowCount)
+  // #endif
   void loadCategories()
   void loadHome()
   void loadStats()
+})
+
+onUnmounted(() => {
+  // #ifdef H5
+  if (typeof window !== 'undefined')
+    window.removeEventListener('resize', syncFirstRowCount)
+  // #endif
 })
 </script>
 
@@ -368,17 +397,33 @@ onMounted(() => {
         <view v-else-if="!featured.length" class="content-state">
           <text>暂无谜题</text>
         </view>
-        <view v-else class="featured-grid">
-          <QuestionTextCard
-            v-for="(item, index) in featured"
-            :key="item.id"
-            :question="item"
-            :index="index"
-            @click="openQuestion"
-          />
-        </view>
+        <template v-else>
+          <!-- 第一排：英雄区背景延伸到这里 -->
+          <view class="featured-grid featured-grid-first">
+            <QuestionTextCard
+              v-for="(item, index) in featuredFirst"
+              :key="item.id"
+              :question="item"
+              :index="index"
+              @click="openQuestion"
+            />
+          </view>
+        </template>
       </section>
     </view>
+
+    <!-- 第二排起：正常页面背景 -->
+    <section v-if="!loading && !loadError && featuredRest.length" class="featured-rest">
+      <view class="featured-grid featured-grid-rest">
+        <QuestionTextCard
+          v-for="(item, index) in featuredRest"
+          :key="item.id"
+          :question="item"
+          :index="index + featuredFirst.length"
+          @click="openQuestion"
+        />
+      </view>
+    </section>
 
     <section class="explore">
       <view class="explore-glow" aria-hidden="true" />
@@ -434,12 +479,14 @@ onMounted(() => {
     </section>
 
     <footer class="site-footer">
-      <text class="footer-brand">
-        墨鱼海龟汤
-      </text>
-      <text class="footer-tagline">
-        谜题沉在水下，真相等待浮现。
-      </text>
+      <view class="footer-brand-block">
+        <text class="footer-brand">
+          墨鱼海龟汤
+        </text>
+        <text class="footer-tagline">
+          谜题沉在水下，真相等待浮现。
+        </text>
+      </view>
       <view class="footer-links">
         <text
           v-for="link in footerLinks"
@@ -459,6 +506,8 @@ onMounted(() => {
 
 <style scoped>
 .home-page {
+  /* 全页统一内容域：最大宽度 + 水平 gutter，各板块左右对齐 */
+  --home-gutter: 20px;
   min-height: 100%;
   background: var(--hgt-bg);
   color: var(--hgt-text);
@@ -483,6 +532,9 @@ onMounted(() => {
   background-repeat: no-repeat;
   background-size: cover;
   background-attachment: scroll;
+  /* 底部羽化，避免英雄区收边过硬 */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 72%, rgba(0, 0, 0, 0.72) 86%, rgba(0, 0, 0, 0.28) 94%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 72%, rgba(0, 0, 0, 0.72) 86%, rgba(0, 0, 0, 0.28) 94%, transparent 100%);
 }
 
 .stage-veil {
@@ -491,17 +543,38 @@ onMounted(() => {
   z-index: 1;
   background:
     linear-gradient(90deg,
-      rgba(4, 20, 24, 0.55) 0%,
-      rgba(4, 20, 24, 0.28) 28%,
-      rgba(4, 20, 24, 0.08) 52%,
+      rgba(4, 20, 24, 0.42) 0%,
+      rgba(4, 20, 24, 0.2) 28%,
+      rgba(4, 20, 24, 0.05) 52%,
       transparent 72%),
     linear-gradient(180deg,
-      rgba(6, 26, 32, 0.06) 0%,
-      transparent 26%,
-      rgba(6, 26, 32, 0.22) 56%,
-      rgba(6, 26, 32, 0.62) 82%,
-      #061a20 100%);
+      rgba(6, 26, 32, 0.02) 0%,
+      transparent 35%,
+      rgba(6, 26, 32, 0.08) 58%,
+      rgba(6, 26, 32, 0.18) 78%,
+      rgba(6, 26, 32, 0.34) 90%,
+      rgba(6, 26, 32, 0.48) 96%,
+      rgba(6, 26, 32, 0.55) 100%);
   pointer-events: none;
+}
+
+/* 英雄区与第二排之间的柔和过渡带 */
+.stage::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 72px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(4, 20, 24, 0.2) 45%,
+    rgba(4, 20, 24, 0.55) 75%,
+    var(--hgt-bg) 100%
+  );
 }
 
 .hero {
@@ -521,10 +594,9 @@ onMounted(() => {
   z-index: 2;
   display: flex;
   box-sizing: border-box;
-  width: 100%;
-  max-width: 1440px;
+  width: min(var(--hgt-content-max), 100%);
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 var(--home-gutter);
   align-items: flex-start;
   flex-direction: column;
 }
@@ -610,7 +682,7 @@ onMounted(() => {
   box-sizing: border-box;
   width: min(var(--hgt-content-max), 100%);
   margin: -72px auto 0;
-  padding: 28px 20px 48px;
+  padding: 28px var(--home-gutter) 20px;
 }
 
 .section-head {
@@ -749,10 +821,23 @@ onMounted(() => {
   gap: 12px;
 }
 
+.featured-rest {
+  box-sizing: border-box;
+  width: min(var(--hgt-content-max), 100%);
+  margin: 0 auto;
+  padding: 0 var(--home-gutter) 48px;
+  background: var(--hgt-bg);
+}
+
+.featured-grid-first,
+.featured-grid-rest {
+  align-items: stretch;
+}
+
 .explore {
   position: relative;
   width: 100%;
-  padding: 56px 20px 40px;
+  padding: 56px 0 40px;
   overflow: hidden;
   background: var(--hgt-bg);
 }
@@ -772,8 +857,10 @@ onMounted(() => {
   position: relative;
   z-index: 1;
   display: grid;
+  box-sizing: border-box;
   width: min(var(--hgt-content-max), 100%);
   margin: 0 auto;
+  padding: 0 var(--home-gutter);
   grid-template-columns: 1fr;
   gap: 24px;
   align-items: end;
@@ -840,9 +927,10 @@ onMounted(() => {
 }
 
 .how {
+  box-sizing: border-box;
   width: min(var(--hgt-content-max), 100%);
   margin: 0 auto;
-  padding: 24px 20px 64px;
+  padding: 24px var(--home-gutter) 64px;
 }
 
 .steps {
@@ -904,13 +992,23 @@ onMounted(() => {
 .site-footer {
   display: flex;
   box-sizing: border-box;
-  width: 100%;
-  padding: 40px 20px 48px;
-  flex-direction: column;
-  gap: 12px;
-  align-items: flex-start;
-  background: #041418;
+  width: min(var(--hgt-content-max), 100%);
+  margin: 0 auto;
+  padding: 28px var(--home-gutter) 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 32px;
+  flex-wrap: wrap;
+  background: transparent;
   border-top: 1px solid var(--hgt-border-soft);
+}
+
+.footer-brand-block {
+  display: flex;
+  min-width: 0;
+  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .footer-brand {
@@ -928,27 +1026,50 @@ onMounted(() => {
 
 .footer-links {
   display: flex;
-  margin-top: 10px;
-  gap: 12px;
-  flex-direction: column;
-  align-items: flex-start;
+  margin: 0;
+  gap: 8px 20px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .footer-link {
   color: var(--hgt-text-3);
   font-family: var(--hgt-font-display);
   font-size: 13px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
+.footer-link:hover {
+  color: var(--hgt-brand);
+}
+
 .footer-copy {
-  margin-top: 16px;
+  width: 100%;
+  margin: 0;
   color: var(--hgt-text-3);
   font-family: var(--hgt-font-mono);
   font-size: 11px;
 }
 
+@media (max-width: 767px) {
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-links {
+    justify-content: flex-start;
+  }
+}
+
 @media (min-width: 768px) {
+  .home-page {
+    --home-gutter: clamp(24px, 4vw, 48px);
+  }
+
   .stage-bg {
     background-position: 55% 22%;
   }
@@ -957,17 +1078,13 @@ onMounted(() => {
     padding: 48px 0 120px;
   }
 
-  .hero-inner {
-    padding: 0 clamp(24px, 4.5vw, 64px);
-  }
-
   .hero-title {
     font-size: 36px;
   }
 
   .featured {
     margin-top: -88px;
-    padding: 32px clamp(24px, 4.5vw, 64px) 56px;
+    padding-top: 32px;
   }
 
   .featured-grid {
@@ -975,8 +1092,13 @@ onMounted(() => {
     gap: 16px;
   }
 
+  .featured-rest {
+    padding-bottom: 56px;
+  }
+
   .explore {
-    padding: 72px clamp(24px, 4.5vw, 64px) 56px;
+    padding-top: 72px;
+    padding-bottom: 56px;
   }
 
   .explore-inner {
@@ -985,7 +1107,7 @@ onMounted(() => {
   }
 
   .how {
-    padding: 24px clamp(24px, 4.5vw, 64px) 80px;
+    padding-bottom: 80px;
   }
 
   .steps {
@@ -1008,7 +1130,8 @@ onMounted(() => {
   }
 
   .site-footer {
-    padding: 48px clamp(24px, 4.5vw, 64px) 48px;
+    padding-top: 48px;
+    padding-bottom: 48px;
   }
 }
 
@@ -1020,11 +1143,6 @@ onMounted(() => {
   .featured-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  .hero-inner {
-    padding-left: clamp(32px, 3.5vw, 56px);
-    padding-right: clamp(32px, 3.5vw, 56px);
-  }
 }
 
 @media (max-width: 767px) {
@@ -1035,14 +1153,20 @@ onMounted(() => {
   .stage-veil {
     background:
       linear-gradient(90deg,
-        rgba(4, 20, 24, 0.42) 0%,
-        rgba(4, 20, 24, 0.2) 40%,
+        rgba(4, 20, 24, 0.35) 0%,
+        rgba(4, 20, 24, 0.14) 40%,
         transparent 75%),
       linear-gradient(180deg,
-        rgba(6, 26, 32, 0.05) 0%,
-        rgba(6, 26, 32, 0.2) 45%,
-        rgba(6, 26, 32, 0.68) 78%,
-        #061a20 100%);
+        rgba(6, 26, 32, 0.02) 0%,
+        transparent 40%,
+        rgba(6, 26, 32, 0.12) 70%,
+        rgba(6, 26, 32, 0.28) 88%,
+        rgba(6, 26, 32, 0.42) 100%);
+  }
+
+  .stage-bg {
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 68%, rgba(0, 0, 0, 0.65) 84%, rgba(0, 0, 0, 0.22) 93%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 68%, rgba(0, 0, 0, 0.65) 84%, rgba(0, 0, 0, 0.22) 93%, transparent 100%);
   }
 }
 </style>

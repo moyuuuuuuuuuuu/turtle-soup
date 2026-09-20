@@ -98,6 +98,7 @@ function onTap() {
 .q-card {
   display: flex;
   box-sizing: border-box;
+  height: 100%;
   min-height: 210px;
   padding: 18px 18px 16px;
   flex-direction: column;
@@ -205,12 +206,16 @@ function onTap() {
 
 @media screen and (max-width: 767px) {
   .q-card {
-    min-height: 176px;
+    min-height: 168px;
     padding: 14px 14px 12px;
   }
 
   .q-title {
     font-size: 16px;
+  }
+
+  .q-surface {
+    min-height: 44px;
   }
 }
 </style>

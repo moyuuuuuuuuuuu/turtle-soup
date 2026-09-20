@@ -222,6 +222,10 @@ onMounted(() => {
   inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: 70% center;
+  /* 提亮灯塔原图，减少“太暗”感 */
+  filter: brightness(1.35) contrast(0.92) saturate(1.08);
 }
 
 .hero-bg img {
@@ -235,8 +239,8 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(4, 20, 24, 0.88) 0%, rgba(4, 20, 24, 0.45) 48%, transparent 78%),
-    linear-gradient(180deg, rgba(6, 26, 32, 0.15) 0%, rgba(6, 26, 32, 0.55) 70%, var(--hgt-bg) 100%);
+    linear-gradient(90deg, rgba(4, 20, 24, 0.12) 0%, rgba(4, 20, 24, 0.04) 35%, transparent 60%),
+    linear-gradient(180deg, rgba(6, 26, 32, 0) 0%, rgba(6, 26, 32, 0.04) 50%, rgba(6, 26, 32, 0.18) 78%, rgba(6, 26, 32, 0.42) 92%, var(--hgt-bg) 100%);
 }
 
 .hero-copy {

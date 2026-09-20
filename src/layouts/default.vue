@@ -12,5 +12,15 @@ export default {
 </script>
 
 <template>
-  <slot />
+  <view class="hgt-default-layout">
+    <slot />
+    <HgtFeedbackHost />
+  </view>
 </template>
+
+<style scoped>
+.hgt-default-layout {
+  min-height: 100vh;
+  background: var(--hgt-bg);
+}
+</style>

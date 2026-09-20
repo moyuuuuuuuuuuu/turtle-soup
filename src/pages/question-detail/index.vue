@@ -6,6 +6,7 @@ import { useGameSocket } from '@/composables/useGameSocket'
 import { useGameStore } from '@/store/gameStore'
 import { usePlayerStore } from '@/store/playerStore'
 import { difficultyLabel, estimateMinutes, formatPlayCount } from '@/utils/depth'
+import { hgtConfirm } from '@/utils/feedback'
 import { applyPrettyQuestionDetailUrl, openQuestionDetail } from '@/utils/questionRoute'
 
 definePage({ name: 'question-detail', layout: 'tabbar', style: { 'navigationStyle': 'custom', 'mp-toutiao': { navigationStyle: 'default' } } })
@@ -86,16 +87,14 @@ async function load() {
 }
 
 function requestRiskConfirmation(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const riskText = question.value?.risk_note || question.value?.risk_warning || ''
-    uni.showModal({
-      title: '风险提示',
-      content: riskText || '本题题材可能偏沉重，确认后再进入。',
-      confirmText: '了解并继续',
-      cancelText: '再想想',
-      success: ({ confirm }) => resolve(Boolean(confirm)),
-      fail: () => resolve(false),
-    })
+  const riskText = question.value?.risk_note || question.value?.risk_warning || ''
+  return hgtConfirm({
+    eyebrow: 'RISK',
+    title: '风险提示',
+    description: riskText || '本题题材可能偏沉重，确认后再进入。',
+    confirmText: '了解并继续',
+    cancelText: '再想想',
+    tone: 'warning',
   })
 }
 
@@ -255,9 +254,6 @@ onMounted(async () => {
           <button class="cta-btn" :loading="starting" :disabled="starting || randomLoading" @click="start">
             {{ starting ? '正在进入…' : roomId ? '与原队伍继续 →' : '开始推理 →' }}
           </button>
-          <text class="host-note">
-            ◇ 主持人只会回答「是」「不是」或「无关」
-          </text>
           <view class="secondary-row">
             <text class="secondary-label">
               不感兴趣？
@@ -265,6 +261,9 @@ onMounted(async () => {
             <button class="random-btn" :disabled="randomLoading || starting" @click="loadRandom">
               {{ randomLoading ? '寻找中…' : '随机换一题' }}
             </button>
+            <text class="host-note host-note-inline">
+              ◇ 主持人只会回答「是」「不是」或「无关」
+            </text>
           </view>
         </view>
       </view>
@@ -293,19 +292,34 @@ onMounted(async () => {
   position: relative;
   box-sizing: border-box;
   min-height: 100%;
-  padding: 28px 32px 48px;
+  padding: 28px 24px 48px;
   overflow: hidden;
   background-color: #04181d;
   background-image:
     linear-gradient(180deg,
-      rgba(4, 24, 29, 0.5) 0%,
-      rgba(4, 24, 29, 0.7) 45%,
+      rgba(4, 24, 29, 0.18) 0%,
+      rgba(4, 24, 29, 0.28) 40%,
+      rgba(4, 24, 29, 0.55) 72%,
+      rgba(4, 24, 29, 0.82) 90%,
       #04181d 100%),
     url('/static/hgt/bg/bg_deep_ocean.jpg');
-  background-position: center 18%;
+  background-position: center 22%;
   background-repeat: no-repeat;
   background-size: cover;
   color: var(--hgt-text);
+}
+
+.detail-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 80% 55% at 50% 30%,
+    transparent 0%,
+    rgba(4, 24, 29, 0.15) 70%,
+    rgba(4, 24, 29, 0.35) 100%
+  );
 }
 
 .water-glow {
@@ -328,7 +342,7 @@ onMounted(async () => {
   position: relative;
   z-index: 1;
   display: flex;
-  width: min(760px, 100%);
+  width: min(1120px, 100%);
   min-height: calc(100vh - 120px);
   margin: 0 auto;
   flex-direction: column;
@@ -419,12 +433,19 @@ onMounted(async () => {
 .surface-block {
   box-sizing: border-box;
   width: 100%;
-  max-width: var(--hgt-reading-max);
+  max-width: none;
   min-height: 240px;
-  padding: 22px 24px;
-  border: 1px solid rgba(130, 220, 210, 0.08);
-  border-radius: var(--hgt-radius-md);
-  background: rgba(15, 53, 57, 0.2);
+  padding: 24px 28px;
+  border: 1px solid rgba(130, 220, 210, 0.05);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse 90% 70% at 30% 20%, rgba(94, 196, 184, 0.06), transparent 55%),
+    rgba(12, 40, 46, 0.08);
+  box-shadow:
+    inset 0 0 48px rgba(4, 20, 24, 0.25),
+    0 0 0 1px rgba(4, 20, 24, 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .surface-label {
@@ -490,8 +511,14 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
+.host-note-inline {
+  margin-left: 8px;
+  opacity: 0.85;
+}
+
 .secondary-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -533,7 +560,7 @@ onMounted(async () => {
   position: relative;
   z-index: 1;
   display: flex;
-  width: min(760px, 100%);
+  width: min(1120px, 100%);
   margin: 48px auto 0;
   flex-direction: column;
   gap: 14px;

@@ -268,6 +268,8 @@ onMounted(async () => {
         <text>{{ activeRoom?.name }}</text>
       </view>
     </button>
+
+    <HgtFeedbackHost />
   </view>
 </template>
 

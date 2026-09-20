@@ -227,6 +227,8 @@ onUnmounted(() => {
 
 <template>
   <view class="library-page">
+    <view class="library-bg" aria-hidden="true" />
+    <view class="library-veil" aria-hidden="true" />
     <view class="page-shell">
       <view class="page-head">
         <text class="title">
@@ -253,50 +255,77 @@ onUnmounted(() => {
         </view>
       </view>
 
-      <view class="tab-row">
-        <view class="tabs">
-          <button
-            v-for="tab in categories"
-            :key="tab.label"
-            class="tab"
-            :class="{ active: activeTagId === tab.tagId && activeTabLabel === tab.label }"
-            @click="selectTab(tab)"
-          >
-            {{ tab.label }}
-          </button>
-        </view>
-        <button
-          class="more-filter"
-          :class="{ active: filtersVisible }"
-          @click="filtersVisible = !filtersVisible"
-        >
-          更多筛选
-          <text class="more-arrow">
-            {{ filtersVisible ? '↑' : '↓' }}
-          </text>
-        </button>
-      </view>
-
-      <view v-if="filtersVisible" class="filter-panel">
-        <view class="filter-group">
-          <text class="filter-label">
-            难度
-          </text>
-          <view class="chip-row">
+      <view class="filter-bar">
+        <view class="tab-row">
+          <view class="tabs">
             <button
-              v-for="option in DIFFICULTY_OPTIONS"
-              :key="option.label"
-              class="chip"
-              :class="{ active: difficulty === option.value }"
-              @click="setDifficulty(option.value)"
+              v-for="tab in categories"
+              :key="tab.label"
+              class="tab"
+              :class="{ active: activeTagId === tab.tagId && activeTabLabel === tab.label }"
+              @click="selectTab(tab)"
             >
-              {{ option.label }}
+              {{ tab.label }}
             </button>
           </view>
+          <button
+            class="more-filter"
+            :class="{ active: filtersVisible }"
+            @click="filtersVisible = !filtersVisible"
+          >
+            更多筛选
+            <text class="more-arrow">
+              {{ filtersVisible ? '↑' : '↓' }}
+            </text>
+          </button>
         </view>
-        <button v-if="hasActiveFilter" class="reset-btn" @click="clearAllFilters">
-          重置筛选
-        </button>
+
+        <view v-if="filtersVisible" class="filter-panel">
+          <view class="filter-group">
+            <text class="filter-label">
+              难度
+            </text>
+            <view class="chip-row">
+              <button
+                v-for="option in DIFFICULTY_OPTIONS"
+                :key="option.label"
+                class="chip"
+                :class="{ active: difficulty === option.value }"
+                @click="setDifficulty(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </view>
+          </view>
+          <button v-if="hasActiveFilter" class="reset-btn" @click="clearAllFilters">
+            重置筛选
+          </button>
+        </view>
+
+        <view class="result-bar">
+          <text class="result-count">
+            {{ resultLine }}
+          </text>
+          <view class="sort-wrap">
+            <button class="sort-trigger" @click="sortOpen = !sortOpen">
+              {{ sortLabel }}
+              <text class="sort-arrow">
+                ⌄
+              </text>
+            </button>
+            <view v-if="sortOpen" class="sort-menu">
+              <button
+                v-for="option in SORT_OPTIONS"
+                :key="option.key"
+                class="sort-item"
+                :class="{ active: sortKey === option.key }"
+                @click="setSort(option.key)"
+              >
+                {{ option.label }}
+              </button>
+            </view>
+          </view>
+        </view>
       </view>
 
       <view v-if="hasActiveFilter" class="active-chips">
@@ -321,31 +350,6 @@ onUnmounted(() => {
         <button class="active-chip clear" @click="clearAllFilters">
           清除全部
         </button>
-      </view>
-
-      <view class="result-bar">
-        <text class="result-count">
-          {{ resultLine }}
-        </text>
-        <view class="sort-wrap">
-          <button class="sort-trigger" @click="sortOpen = !sortOpen">
-            {{ sortLabel }}
-            <text class="sort-arrow">
-              ⌄
-            </text>
-          </button>
-          <view v-if="sortOpen" class="sort-menu">
-            <button
-              v-for="option in SORT_OPTIONS"
-              :key="option.key"
-              class="sort-item"
-              :class="{ active: sortKey === option.key }"
-              @click="setSort(option.key)"
-            >
-              {{ option.label }}
-            </button>
-          </view>
-        </view>
       </view>
 
       <view v-if="loading && !items.length" class="skeleton-grid">
@@ -413,13 +417,53 @@ onUnmounted(() => {
 
 <style scoped>
 .library-page {
+  position: relative;
   min-height: 100%;
   padding-bottom: 48px;
+  overflow: hidden;
   background: var(--hgt-bg);
   color: var(--hgt-text);
 }
 
+/* 通透海底背景：顶部可见，向下渐隐到正常底色 */
+.library-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #04181d;
+  background-image: url('/static/hgt/bg/bg_deep_ocean.jpg');
+  background-position: center 12%;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: scroll;
+  filter: brightness(1.08) saturate(1.05);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.9) 22%, rgba(0, 0, 0, 0.55) 40%, rgba(0, 0, 0, 0.2) 55%, transparent 72%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.9) 22%, rgba(0, 0, 0, 0.55) 40%, rgba(0, 0, 0, 0.2) 55%, transparent 72%);
+}
+
+.library-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg,
+      rgba(4, 20, 24, 0.42) 0%,
+      rgba(4, 20, 24, 0.28) 40%,
+      rgba(4, 20, 24, 0.22) 70%,
+      rgba(4, 20, 24, 0.18) 100%),
+    linear-gradient(180deg,
+      rgba(4, 20, 24, 0.34) 0%,
+      rgba(4, 20, 24, 0.38) 28%,
+      rgba(4, 20, 24, 0.52) 48%,
+      rgba(4, 20, 24, 0.78) 72%,
+      var(--hgt-bg) 100%);
+}
+
 .page-shell {
+  position: relative;
+  z-index: 1;
   width: min(1400px, 100%);
   margin: 0 auto;
   padding: 28px 32px 0;
@@ -495,6 +539,33 @@ onUnmounted(() => {
   border: 0;
 }
 
+/* 筛选控件条：半透明磨砂底，避免叠在亮水纹上看不清 */
+.filter-bar {
+  position: relative;
+  z-index: 20;
+  margin-top: 4px;
+  padding: 6px 12px 0;
+  border: 1px solid rgba(117, 220, 211, 0.08);
+  border-radius: var(--hgt-radius-md);
+  background: rgba(4, 20, 24, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.filter-bar .tab-row {
+  border-bottom-color: rgba(117, 220, 211, 0.1);
+}
+
+.filter-bar .filter-panel {
+  margin-top: 4px;
+  padding-bottom: 10px;
+}
+
+.filter-bar .result-bar {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
 .tab-row {
   display: flex;
   align-items: flex-end;
@@ -520,7 +591,7 @@ onUnmounted(() => {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--hgt-text-3);
+  color: var(--hgt-text-2);
   font-size: 13px;
   white-space: nowrap;
 }
@@ -551,7 +622,7 @@ onUnmounted(() => {
   padding: 0 10px;
   border: 0;
   background: transparent;
-  color: var(--hgt-text-3);
+  color: var(--hgt-text-2);
   font-size: 13px;
   align-items: center;
   gap: 4px;
@@ -702,7 +773,7 @@ onUnmounted(() => {
   padding: 0 4px;
   border: 0;
   background: transparent;
-  color: var(--hgt-text-2);
+  color: var(--hgt-text);
   font-size: 13px;
   align-items: center;
   gap: 4px;
@@ -719,7 +790,7 @@ onUnmounted(() => {
 
 .sort-menu {
   position: absolute;
-  z-index: 30;
+  z-index: 40;
   top: calc(100% + 6px);
   right: 0;
   display: flex;
@@ -756,6 +827,14 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+
+/* 卡片略透，让海底背景透出一点 */
+.question-grid :deep(.q-card) {
+  background: rgba(12, 40, 46, 0.42) !important;
+  border-color: rgba(117, 220, 211, 0.1) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .skeleton-grid {
@@ -905,6 +984,23 @@ onUnmounted(() => {
 }
 
 @media (max-width: 767px) {
+  .library-bg {
+    background-position: center 0;
+    background-size: 100% 260px;
+    filter: brightness(1.18) saturate(1.08);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.75) 55%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.75) 55%, transparent 100%);
+  }
+
+  .library-veil {
+    background:
+      linear-gradient(180deg,
+        rgba(4, 20, 24, 0.28) 0%,
+        rgba(4, 20, 24, 0.34) 35%,
+        rgba(4, 20, 24, 0.58) 60%,
+        var(--hgt-bg) 100%);
+  }
+
   .page-shell {
     padding: 20px 16px 0;
   }
@@ -928,7 +1024,7 @@ onUnmounted(() => {
   .question-grid,
   .skeleton-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
   }
 
   .skeleton-card {
