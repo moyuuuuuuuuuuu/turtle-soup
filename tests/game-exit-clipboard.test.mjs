@@ -65,8 +65,10 @@ test('route leave, cached-page hide and unmount clear every game overlay', () =>
   for (const lifecycle of ['route', 'deactivated', 'unmount']) {
     const hooks = {}
     const refs = Object.fromEntries(['pageActive', 'resultOpen', 'inviteOpen', 'confirmOpen', 'notesDrawerOpen', 'notesPanelFloating', 'mobileSurfaceOpen'].map(name => [name, { value: true }]))
+    const pendingPlayerMessage = { value: { content: 'waiting' } }
     loadModule('src/pages/game/index.vue', {}, {
       ...refs,
+      pendingPlayerMessage,
       pageVersion: 0,
       confirmAction: () => {},
       route: { path: '/pages/game/index' },
@@ -75,6 +77,7 @@ test('route leave, cached-page hide and unmount clear every game overlay', () =>
       onBeforeUnmount: (callback) => { hooks.unmount = callback },
     }, source => source.slice(source.indexOf('function closePageOverlays()'), source.indexOf('\nonShow(() =>')))
     hooks[lifecycle]()
+    assert.equal(pendingPlayerMessage.value, null)
     for (const ref of Object.values(refs))
       assert.equal(ref.value, false)
   }

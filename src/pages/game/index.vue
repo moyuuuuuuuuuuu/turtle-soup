@@ -9,6 +9,7 @@ import { usePlayerStore } from '@/store/playerStore'
 import { exitAbandonedRoom } from '@/utils/abandonedRoom'
 import { copyText } from '@/utils/clipboard'
 import { resolveDepth } from '@/utils/depth'
+import { readGameDuration } from '@/utils/gameDuration'
 import { formatDuration } from '@/utils/gameStatus'
 import { resolveShellChromeMetrics } from '@/utils/navSafeArea'
 import { supportsPublicRooms } from '@/utils/platform'
@@ -49,6 +50,7 @@ const gamePageStyle = computed(() => {
 })
 
 const question = ref('')
+const truthDraft = ref('')
 const teamMessage = ref('')
 const tab = ref<'judge' | 'team'>('judge')
 const inputMode = ref<'question' | 'bottom'>('question')
@@ -125,7 +127,7 @@ const readonlyMode = computed(() => {
 
 const depth = computed(() => resolveDepth(game.value?.difficulty))
 const depthLabel = computed(() => depth.value.code)
-const elapsedSeconds = ref(0)
+const elapsedSeconds = ref<number | null>(null)
 let elapsedTimer: ReturnType<typeof setInterval> | undefined
 let elapsedBase = Date.now()
 
@@ -272,6 +274,28 @@ function startElapsedClock(fromSeconds = 0) {
   }, 1000)
 }
 
+let clockVersion = 0
+watch([() => game.value?.id, () => game.value?.status, () => pageActive.value, () => gameId.value], async ([id, status, active]) => {
+  const version = ++clockVersion
+  if (elapsedTimer)
+    clearInterval(elapsedTimer)
+  elapsedTimer = undefined
+  elapsedSeconds.value = null
+  if (!id || !active || id !== gameId.value)
+    return
+  try {
+    const seconds = await readGameDuration(id, gameApi.history)
+    if (version !== clockVersion || seconds === null)
+      return
+    elapsedSeconds.value = seconds
+    if (!readonlyMode.value && (status === 'created' || status === 'playing'))
+      startElapsedClock(seconds)
+  }
+  catch {
+    // Keep unavailable timing explicit; never replace historical timing with a new local clock.
+  }
+}, { immediate: true })
+
 watch(socket.gameSnapshot, (value) => {
   if (!pageActive.value || !value)
     return
@@ -287,15 +311,17 @@ async function switchToGame(nextGameId: string) {
   if (!pageActive.value || !nextGameId || nextGameId === game.value?.id || nextGameId === switchingGameId)
     return
   switchingGameId = nextGameId
-  const version = pageVersion
+  const version = ++pageVersion
+  pendingPlayerMessage.value = null
   resultOpen.value = false
   errorMessage.value = ''
   question.value = ''
+  truthDraft.value = ''
   inputMode.value = 'question'
   customClues.value = []
   newClue.value = ''
   notesDrawerOpen.value = false
-  startElapsedClock(0)
+  elapsedSeconds.value = null
   try {
     const snapshot = readonlyMode.value ? await gameApi.read(nextGameId) : await socket.join(nextGameId)
     if (!pageActive.value || version !== pageVersion)
@@ -415,7 +441,6 @@ async function refresh() {
     }
     if (!isCurrentPage())
       return
-    startElapsedClock(0)
     if (route.query.show_result === '1' && game.value && ['solved', 'finished', 'abandoned'].includes(game.value.status))
       resultOpen.value = true
   }
@@ -431,14 +456,23 @@ async function refresh() {
 watch(routeGameId, (nextGameId) => {
   if (!pageActive.value || route.name !== 'game' || !nextGameId || nextGameId === gameId.value)
     return
+  pendingPlayerMessage.value = null
+  errorMessage.value = ''
+  closePageOverlays()
+  question.value = ''
+  truthDraft.value = ''
+  inputMode.value = 'question'
   gameId.value = nextGameId
   void refresh()
 })
 
 async function ask() {
   const text = question.value.trim()
-  if (!text || busy.value || !game.value)
+  if (!text || busy.value || !canInput.value || !game.value)
     return
+  const requestedId = game.value.id
+  const version = pageVersion
+  const isCurrentRequest = () => pageActive.value && version === pageVersion && gameId.value === requestedId
   const messages = game.value.messages || []
   const lastSequence = messages[messages.length - 1]?.sequence ?? 0
   const rawUserId = player.user?.id
@@ -459,13 +493,18 @@ async function ask() {
   busy.value = true
   errorMessage.value = ''
   try {
-    const next = await socket.ask(game.value.id, text)
+    const next = await socket.ask(requestedId, text)
+    if (!isCurrentRequest())
+      return
     pendingPlayerMessage.value = null
     store.setGame(next)
   }
   catch (error) {
+    if (!isCurrentRequest())
+      return
     pendingPlayerMessage.value = null
-    question.value = text
+    if (!question.value)
+      question.value = text
     errorMessage.value = (error as Error).message
     uni.showToast({ title: '判定失败，可原样重试', icon: 'none' })
   }
@@ -723,17 +762,27 @@ async function scrollMobileBar(direction: -1 | 1) {
 }
 
 async function submitBottom() {
-  if (!question.value.trim() || busy.value)
+  if (!canInput.value || !truthDraft.value.trim() || busy.value)
     return
+  const requestedId = game.value!.id
+  const submittedDraft = truthDraft.value
+  const version = pageVersion
+  const isCurrentRequest = () => pageActive.value && version === pageVersion && gameId.value === requestedId
   busy.value = true
   errorMessage.value = ''
   try {
-    store.setGame(await socket.guess(game.value!.id, question.value))
-    question.value = ''
+    const snapshot = await socket.guess(requestedId, submittedDraft)
+    if (!isCurrentRequest())
+      return
+    store.setGame(snapshot)
+    if (truthDraft.value === submittedDraft)
+      truthDraft.value = ''
     inputMode.value = 'question'
     resultOpen.value = true
   }
   catch (error) {
+    if (!isCurrentRequest())
+      return
     errorMessage.value = (error as Error).message
     uni.showToast({ title: (error as Error).message, icon: 'none' })
   }
@@ -898,6 +947,7 @@ function closePageOverlays() {
 function deactivatePage() {
   pageActive.value = false
   pageVersion++
+  pendingPlayerMessage.value = null
   closePageOverlays()
 }
 
@@ -1185,13 +1235,13 @@ onUnmounted(() => {
                     把你目前推理出的完整故事写下来。提交后，主持人会根据汤底判断你的推理。
                   </text>
                   <textarea
-                    v-model="question"
+                    v-model="truthDraft"
                     class="truth-input"
                     :maxlength="2000"
                     placeholder="人物、事件与关键因果……"
                   />
                   <text class="truth-count hgt-mono">
-                    {{ question.length }}/2000
+                    {{ truthDraft.length }}/2000
                   </text>
                   <view v-if="errorMessage" class="stage-error">
                     {{ errorMessage }}
@@ -1200,7 +1250,7 @@ onUnmounted(() => {
                     <button class="btn-ghost" @click="cancelTruthStage">
                       返回继续提问
                     </button>
-                    <button class="btn-brand" :disabled="!question.trim() || busy" @click="submitBottom">
+                    <button class="btn-brand" :disabled="!truthDraft.trim() || busy" @click="submitBottom">
                       {{ busy ? '判断中…' : '提交真相' }}
                     </button>
                   </view>
